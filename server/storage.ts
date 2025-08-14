@@ -737,7 +737,220 @@ public class FeatureService : IFeatureService
         id: "project-site_controller-development",
         title: "Site Controller",
         description: "Project layer site controller with authentication and site-specific logic",
-        content: "Create a Project layer site controller with authentication, authorization, site-specific business logic, and proper error handling.",
+        content: `Create a Project layer site controller with authentication, authorization, site-specific business logic, and proper error handling.
+
+// Project layer site controller
+[Authorize]
+[Route("api/[controller]")]
+[ApiController]
+public class SiteController : ControllerBase
+{
+    private readonly ISiteService _siteService;
+    private readonly ILogger<SiteController> _logger;
+    private readonly IAuthorizationService _authorizationService;
+    private readonly ICurrentUserService _currentUserService;
+
+    public SiteController(
+        ISiteService siteService,
+        ILogger<SiteController> logger,
+        IAuthorizationService authorizationService,
+        ICurrentUserService currentUserService)
+    {
+        _siteService = siteService;
+        _logger = logger;
+        _authorizationService = authorizationService;
+        _currentUserService = currentUserService;
+    }
+
+    [HttpGet("content/{*path}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetContent(string path)
+    {
+        try
+        {
+            _logger.LogInformation("Requesting content for path: {Path}", path);
+            
+            var content = await _siteService.GetContentByPathAsync(path);
+            if (content == null)
+            {
+                _logger.LogWarning("Content not found for path: {Path}", path);
+                return NotFound(new { message = "Content not found", path });
+            }
+
+            // Check if user has permission to view this content
+            var authResult = await _authorizationService.AuthorizeAsync(User, content, "CanView");
+            if (!authResult.Succeeded)
+            {
+                _logger.LogWarning("User {UserId} denied access to content: {Path}", 
+                    _currentUserService.UserId, path);
+                return Forbid();
+            }
+
+            return Ok(content);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving content for path: {Path}", path);
+            return StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    [HttpGet("navigation")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetNavigation()
+    {
+        try
+        {
+            var navigation = await _siteService.GetNavigationAsync();
+            return Ok(navigation);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving navigation");
+            return StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    [HttpPost("contact")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SubmitContact([FromBody] ContactFormModel model)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            _logger.LogInformation("Processing contact form submission from {Email}", model.Email);
+            
+            var result = await _siteService.ProcessContactFormAsync(model);
+            if (result.Success)
+            {
+                _logger.LogInformation("Contact form submitted successfully for {Email}", model.Email);
+                return Ok(new { message = "Thank you for your message. We'll get back to you soon." });
+            }
+
+            return BadRequest(new { message = result.ErrorMessage });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing contact form for {Email}", model?.Email);
+            return StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    [HttpGet("search")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Search([FromQuery] string query, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                return BadRequest(new { message = "Search query is required" });
+            }
+
+            _logger.LogInformation("Search query: {Query}, Page: {Page}", query, page);
+            
+            var results = await _siteService.SearchAsync(query, page, pageSize);
+            return Ok(results);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error performing search for query: {Query}", query);
+            return StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    [HttpGet("user/profile")]
+    [Authorize]
+    public async Task<IActionResult> GetUserProfile()
+    {
+        try
+        {
+            var userId = _currentUserService.UserId;
+            var profile = await _siteService.GetUserProfileAsync(userId);
+            
+            if (profile == null)
+            {
+                return NotFound(new { message = "User profile not found" });
+            }
+
+            return Ok(profile);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving user profile for user: {UserId}", _currentUserService.UserId);
+            return StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+
+    [HttpPut("user/profile")]
+    [Authorize]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateUserProfile([FromBody] UserProfileModel model)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var userId = _currentUserService.UserId;
+            _logger.LogInformation("Updating profile for user: {UserId}", userId);
+            
+            var result = await _siteService.UpdateUserProfileAsync(userId, model);
+            if (result.Success)
+            {
+                return Ok(new { message = "Profile updated successfully" });
+            }
+
+            return BadRequest(new { message = result.ErrorMessage });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating user profile for user: {UserId}", _currentUserService.UserId);
+            return StatusCode(500, new { message = "Internal server error" });
+        }
+    }
+}
+
+// Supporting models
+public class ContactFormModel
+{
+    [Required]
+    [EmailAddress]
+    public string Email { get; set; }
+
+    [Required]
+    [StringLength(100)]
+    public string Name { get; set; }
+
+    [Required]
+    [StringLength(500)]
+    public string Message { get; set; }
+
+    public string Phone { get; set; }
+}
+
+public class UserProfileModel
+{
+    [Required]
+    [StringLength(100)]
+    public string FirstName { get; set; }
+
+    [Required]
+    [StringLength(100)]
+    public string LastName { get; set; }
+
+    [EmailAddress]
+    public string Email { get; set; }
+
+    public string Phone { get; set; }
+    public string Company { get; set; }
+}`,
         category: "project",
         component: "site_controller",
         sdlcStage: "development",
@@ -749,7 +962,170 @@ public class FeatureService : IFeatureService
         id: "project-layout_view-development",
         title: "Layout View",
         description: "Main layout view with navigation, SEO, and performance optimization",
-        content: "Implement a master layout view with navigation, SEO meta tags, performance optimization, and responsive design for the Project layer.",
+        content: `Implement a master layout view with navigation, SEO meta tags, performance optimization, and responsive design for the Project layer.
+
+@model BasePageViewModel
+@inject IAssetService AssetService
+@inject ISeoService SeoService
+@{
+    Layout = null;
+    var seoData = SeoService.GetSeoData(Model);
+    var preloadAssets = AssetService.GetPreloadAssets();
+}
+
+<!DOCTYPE html>
+<html lang="@seoData.Language" dir="@seoData.Direction">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    
+    <!-- SEO Meta Tags -->
+    <title>@seoData.Title</title>
+    <meta name="description" content="@seoData.Description">
+    <meta name="keywords" content="@seoData.Keywords">
+    <meta name="author" content="@seoData.Author">
+    <meta name="robots" content="@seoData.RobotsContent">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="@seoData.Title">
+    <meta property="og:description" content="@seoData.Description">
+    <meta property="og:image" content="@seoData.ImageUrl">
+    <meta property="og:url" content="@seoData.CanonicalUrl">
+    <meta property="og:type" content="@seoData.PageType">
+    <meta property="og:site_name" content="@seoData.SiteName">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="@seoData.Title">
+    <meta name="twitter:description" content="@seoData.Description">
+    <meta name="twitter:image" content="@seoData.ImageUrl">
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="@seoData.CanonicalUrl">
+    
+    <!-- DNS Prefetch -->
+    <link rel="dns-prefetch" href="//fonts.googleapis.com">
+    <link rel="dns-prefetch" href="//cdn.example.com">
+    
+    <!-- Preload Critical Assets -->
+    @foreach (var asset in preloadAssets)
+    {
+        @if (asset.EndsWith(".css"))
+        {
+            <link rel="preload" href="@asset" as="style" onload="this.onload=null;this.rel='stylesheet'">
+            <noscript><link rel="stylesheet" href="@asset"></noscript>
+        }
+        else if (asset.EndsWith(".js"))
+        {
+            <link rel="preload" href="@asset" as="script">
+        }
+        else if (asset.Contains("font"))
+        {
+            <link rel="preload" href="@asset" as="font" type="font/woff2" crossorigin>
+        }
+    }
+    
+    <!-- Critical CSS Inline -->
+    <style>
+        /* Critical above-the-fold CSS */
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; }
+        .header { background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+    </style>
+    
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "@seoData.SchemaType",
+        "name": "@seoData.Title",
+        "description": "@seoData.Description",
+        "url": "@seoData.CanonicalUrl",
+        "image": "@seoData.ImageUrl"
+    }
+    </script>
+    
+    <!-- Analytics -->
+    @if (!string.IsNullOrEmpty(seoData.GoogleAnalyticsId))
+    {
+        <!-- Google Analytics -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=@seoData.GoogleAnalyticsId"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '@seoData.GoogleAnalyticsId', {
+                anonymize_ip: true,
+                cookie_flags: 'SameSite=None;Secure'
+            });
+        </script>
+    }
+</head>
+
+<body class="@ViewBag.BodyClass" data-page-type="@seoData.PageType">
+    <!-- Skip to main content -->
+    <a href="#main-content" class="sr-only focus:not-sr-only">Skip to main content</a>
+    
+    <!-- Header -->
+    <header class="header" role="banner">
+        <div class="container">
+            @await Html.PartialAsync("_GlobalNavigation", Model.Navigation)
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main id="main-content" role="main" tabindex="-1">
+        @RenderBody()
+    </main>
+    
+    <!-- Footer -->
+    <footer class="footer" role="contentinfo">
+        <div class="container">
+            @await Html.PartialAsync("_Footer", Model.Footer)
+        </div>
+    </footer>
+    
+    <!-- JavaScript -->
+    <script src="@AssetService.GetAssetUrl("js/vendor.js")" defer></script>
+    <script src="@AssetService.GetAssetUrl("js/main.js")" defer></script>
+    
+    @await RenderSectionAsync("Scripts", required: false)
+    
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js');
+            });
+        }
+    </script>
+</body>
+</html>
+
+/* Responsive CSS Grid Layout */
+.layout-grid {
+    display: grid;
+    grid-template-areas: 
+        "header header"
+        "main sidebar"
+        "footer footer";
+    grid-template-rows: auto 1fr auto;
+    grid-template-columns: 1fr 300px;
+    min-height: 100vh;
+}
+
+@media (max-width: 768px) {
+    .layout-grid {
+        grid-template-areas: 
+            "header"
+            "main"
+            "sidebar"
+            "footer";
+        grid-template-columns: 1fr;
+    }
+}`,
         category: "project",
         component: "layout_view",
         sdlcStage: "development",
@@ -761,7 +1137,95 @@ public class FeatureService : IFeatureService
         id: "project-site_configuration-development",
         title: "Site Configuration",
         description: "Project layer site configuration with multi-site support",
-        content: "Set up Project layer site configuration with multi-site support, environment-specific settings, and integration with Sitecore site definitions.",
+        content: `Set up Project layer site configuration with multi-site support, environment-specific settings, and integration with Sitecore site definitions.
+
+// Project layer site configuration
+<configuration>
+  <configSections>
+    <section name="sitecore" type="Sitecore.Configuration.ConfigReader, Sitecore.Kernel" />
+  </configSections>
+  
+  <sitecore>
+    <sites>
+      <site name="website" 
+            virtualFolder="/" 
+            physicalFolder="/" 
+            rootPath="/sitecore/content/Home" 
+            startItem="/Home" 
+            database="web" 
+            domain="extranet" 
+            allowDebug="true" 
+            cacheHtml="true" 
+            htmlCacheSize="50MB" 
+            registryCacheSize="0" 
+            viewStateCacheSize="0" 
+            xslCacheSize="25MB" 
+            filteredItemsCacheSize="10MB" 
+            enablePreview="true" 
+            enableWebEdit="true" 
+            enableDebugger="true" 
+            disableClientData="false" 
+            hostName="localhost" />
+            
+      <site name="corporate" 
+            virtualFolder="/corporate" 
+            physicalFolder="/corporate" 
+            rootPath="/sitecore/content/Corporate" 
+            startItem="/Home" 
+            database="web" 
+            domain="extranet" 
+            hostName="corporate.localhost" />
+    </sites>
+    
+    <settings>
+      <setting name="Analytics.Enabled" value="true" />
+      <setting name="Experience.Analytics.Enabled" value="true" />
+      <setting name="Caching.Enabled" value="true" />
+      <setting name="ContentSearch.Enabled" value="true" />
+    </settings>
+    
+    <pipelines>
+      <httpRequestBegin>
+        <processor type="Sitecore.Pipelines.HttpRequest.ItemResolver, Sitecore.Kernel" />
+        <processor type="Sitecore.Pipelines.HttpRequest.LayoutResolver, Sitecore.Kernel" />
+        <processor type="Sitecore.Pipelines.HttpRequest.RenderLayout, Sitecore.Kernel" />
+      </httpRequestBegin>
+    </pipelines>
+  </sitecore>
+</configuration>
+
+// C# Configuration Service
+public class SiteConfigurationService
+{
+    private readonly IConfiguration _configuration;
+    private readonly ISitecoreContext _sitecoreContext;
+    
+    public SiteConfigurationService(IConfiguration configuration, ISitecoreContext sitecoreContext)
+    {
+        _configuration = configuration;
+        _sitecoreContext = sitecoreContext;
+    }
+    
+    public SiteInfo GetCurrentSite()
+    {
+        var site = Sitecore.Context.Site;
+        return new SiteInfo
+        {
+            Name = site.Name,
+            HostName = site.HostName,
+            RootPath = site.RootPath,
+            StartItem = site.StartItem,
+            Database = site.Database?.Name
+        };
+    }
+    
+    public string GetSiteSpecificSetting(string key, string defaultValue = "")
+    {
+        var siteName = Sitecore.Context.Site?.Name ?? "default";
+        var siteSpecificKey = $"Sites:{siteName}:{key}";
+        return _configuration[siteSpecificKey] ?? _configuration[key] ?? defaultValue;
+    }
+}`,
         category: "project",
         component: "site_configuration",
         sdlcStage: "development",
@@ -773,7 +1237,152 @@ public class FeatureService : IFeatureService
         id: "project-global_navigation-development",
         title: "Global Navigation",
         description: "Site-wide navigation component with responsive behavior and accessibility",
-        content: "Create a global navigation component with responsive behavior, accessibility features, and integration with Sitecore content tree structure.",
+        content: `Create a global navigation component with responsive behavior, accessibility features, and integration with Sitecore content tree structure.
+
+// Global Navigation View Model
+public class GlobalNavigationViewModel
+{
+    public IEnumerable<NavigationItem> MainNavigation { get; set; }
+    public IEnumerable<NavigationItem> SecondaryNavigation { get; set; }
+    public NavigationItem HomeItem { get; set; }
+    public string CurrentPath { get; set; }
+    public bool IsMobileMenuOpen { get; set; }
+}
+
+public class NavigationItem
+{
+    public string Title { get; set; }
+    public string Url { get; set; }
+    public string Target { get; set; }
+    public bool IsActive { get; set; }
+    public bool HasChildren { get; set; }
+    public IEnumerable<NavigationItem> Children { get; set; }
+    public string CssClass { get; set; }
+    public int Level { get; set; }
+}
+
+// Navigation Service
+public interface INavigationService
+{
+    Task<GlobalNavigationViewModel> GetGlobalNavigationAsync();
+    Task<IEnumerable<NavigationItem>> GetBreadcrumbsAsync(string currentPath);
+    bool IsCurrentPage(string itemPath, string currentPath);
+}
+
+public class NavigationService : INavigationService
+{
+    private readonly ISitecoreContext _sitecoreContext;
+    private readonly ICacheService _cacheService;
+    
+    public NavigationService(ISitecoreContext sitecoreContext, ICacheService cacheService)
+    {
+        _sitecoreContext = sitecoreContext;
+        _cacheService = cacheService;
+    }
+    
+    public async Task<GlobalNavigationViewModel> GetGlobalNavigationAsync()
+    {
+        return await _cacheService.GetOrSetAsync("global-navigation", async () =>
+        {
+            var homeItem = _sitecoreContext.GetHomeItem<INavigationModel>();
+            var currentPath = _sitecoreContext.GetCurrentItem()?.Paths?.FullPath ?? string.Empty;
+            
+            return new GlobalNavigationViewModel
+            {
+                MainNavigation = BuildNavigationItems(homeItem.MainNavigation, currentPath, 1),
+                SecondaryNavigation = BuildNavigationItems(homeItem.SecondaryNavigation, currentPath, 1),
+                HomeItem = new NavigationItem
+                {
+                    Title = homeItem.NavigationTitle?.Value ?? homeItem.Title?.Value,
+                    Url = LinkManager.GetItemUrl(homeItem),
+                    IsActive = IsCurrentPage(homeItem.Paths.FullPath, currentPath)
+                },
+                CurrentPath = currentPath
+            };
+        }, TimeSpan.FromMinutes(30));
+    }
+    
+    private IEnumerable<NavigationItem> BuildNavigationItems(
+        IEnumerable<INavigationModel> items, 
+        string currentPath, 
+        int level)
+    {
+        if (items == null) return Enumerable.Empty<NavigationItem>();
+        
+        return items.Where(item => item.ShowInNavigation?.Value == true)
+                   .Select(item => new NavigationItem
+                   {
+                       Title = item.NavigationTitle?.Value ?? item.Title?.Value,
+                       Url = LinkManager.GetItemUrl(item),
+                       IsActive = IsCurrentPage(item.Paths.FullPath, currentPath),
+                       HasChildren = item.Children?.Any(child => child.ShowInNavigation?.Value == true) == true,
+                       Children = BuildNavigationItems(item.Children, currentPath, level + 1),
+                       Level = level,
+                       CssClass = $"nav-level-{level}"
+                   });
+    }
+    
+    public bool IsCurrentPage(string itemPath, string currentPath)
+    {
+        return string.Equals(itemPath, currentPath, StringComparison.OrdinalIgnoreCase) ||
+               currentPath.StartsWith(itemPath + "/", StringComparison.OrdinalIgnoreCase);
+    }
+}
+
+// Razor View
+@model GlobalNavigationViewModel
+
+<nav class="global-navigation" role="navigation" aria-label="Main navigation">
+    <div class="nav-container">
+        <a href="@Model.HomeItem.Url" class="nav-home @(Model.HomeItem.IsActive ? "active" : "")">
+            @Model.HomeItem.Title
+        </a>
+        
+        <button class="mobile-menu-toggle" 
+                aria-expanded="@Model.IsMobileMenuOpen.ToString().ToLower()" 
+                aria-controls="main-menu">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="hamburger"></span>
+        </button>
+        
+        <ul class="nav-menu" id="main-menu" role="menubar">
+            @foreach (var item in Model.MainNavigation)
+            {
+                <li class="nav-item @item.CssClass @(item.IsActive ? "active" : "")" role="none">
+                    @if (item.HasChildren)
+                    {
+                        <button class="nav-link dropdown-toggle" 
+                                role="menuitem" 
+                                aria-haspopup="true" 
+                                aria-expanded="false">
+                            @item.Title
+                        </button>
+                        <ul class="dropdown-menu" role="menu">
+                            @foreach (var child in item.Children)
+                            {
+                                <li role="none">
+                                    <a href="@child.Url" 
+                                       class="dropdown-link @(child.IsActive ? "active" : "")" 
+                                       role="menuitem">
+                                        @child.Title
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <a href="@item.Url" 
+                           class="nav-link @(item.IsActive ? "active" : "")" 
+                           role="menuitem">
+                            @item.Title
+                        </a>
+                    }
+                </li>
+            }
+        </ul>
+    </div>
+</nav>`,
         category: "project",
         component: "global_navigation",
         sdlcStage: "development",
@@ -785,7 +1394,211 @@ public class FeatureService : IFeatureService
         id: "project-asset_pipeline-development",
         title: "Asset Pipeline",
         description: "Asset optimization and bundling configuration for Project layer",
-        content: "Configure asset pipeline with bundling, minification, CDN integration, and cache busting for optimal web performance.",
+        content: `Configure asset pipeline with bundling, minification, CDN integration, and cache busting for optimal web performance.
+
+// Asset Pipeline Configuration - webpack.config.js
+const path = require('path');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
+const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+
+module.exports = (env, argv) => {
+    const isProduction = argv.mode === 'production';
+    
+    return {
+        entry: {
+            main: './src/js/main.js',
+            vendor: './src/js/vendor.js'
+        },
+        
+        output: {
+            path: path.resolve(__dirname, 'dist'),
+            filename: isProduction ? '[name].[contenthash].js' : '[name].js',
+            publicPath: process.env.CDN_URL || '/dist/',
+            clean: true
+        },
+        
+        module: {
+            rules: [
+                {
+                    test: /\.js$/,
+                    exclude: /node_modules/,
+                    use: {
+                        loader: 'babel-loader',
+                        options: {
+                            presets: ['@babel/preset-env']
+                        }
+                    }
+                },
+                {
+                    test: /\.scss$/,
+                    use: [
+                        isProduction ? MiniCssExtractPlugin.loader : 'style-loader',
+                        'css-loader',
+                        'postcss-loader',
+                        'sass-loader'
+                    ]
+                },
+                {
+                    test: /\.(png|jpg|jpeg|gif|svg)$/,
+                    type: 'asset',
+                    parser: {
+                        dataUrlCondition: {
+                            maxSize: 8 * 1024 // 8kb
+                        }
+                    },
+                    generator: {
+                        filename: 'images/[name].[contenthash][ext]'
+                    }
+                }
+            ]
+        },
+        
+        plugins: [
+            new CleanWebpackPlugin(),
+            new MiniCssExtractPlugin({
+                filename: isProduction ? '[name].[contenthash].css' : '[name].css'
+            })
+        ],
+        
+        optimization: {
+            splitChunks: {
+                chunks: 'all',
+                cacheGroups: {
+                    vendor: {
+                        test: /[\\/]node_modules[\\/]/,
+                        name: 'vendors',
+                        chunks: 'all'
+                    }
+                }
+            },
+            minimizer: isProduction ? [
+                new TerserPlugin({
+                    terserOptions: {
+                        compress: {
+                            drop_console: true
+                        }
+                    }
+                }),
+                new OptimizeCSSAssetsPlugin()
+            ] : []
+        },
+        
+        devtool: isProduction ? 'source-map' : 'eval-source-map'
+    };
+};
+
+// Asset Helper Service - C#
+public interface IAssetService
+{
+    string GetAssetUrl(string assetPath);
+    string GetCriticalCss();
+    IEnumerable<string> GetPreloadAssets();
+}
+
+public class AssetService : IAssetService
+{
+    private readonly IConfiguration _configuration;
+    private readonly IWebHostEnvironment _environment;
+    private readonly ICacheService _cache;
+    private static readonly Dictionary<string, string> _manifest = new();
+    
+    public AssetService(
+        IConfiguration configuration, 
+        IWebHostEnvironment environment,
+        ICacheService cache)
+    {
+        _configuration = configuration;
+        _environment = environment;
+        _cache = cache;
+        LoadManifest();
+    }
+    
+    public string GetAssetUrl(string assetPath)
+    {
+        var cdnUrl = _configuration["CDN:BaseUrl"];
+        var hashedPath = _manifest.ContainsKey(assetPath) ? _manifest[assetPath] : assetPath;
+        
+        if (!string.IsNullOrEmpty(cdnUrl))
+        {
+            return $"{cdnUrl.TrimEnd('/')}/{hashedPath.TrimStart('/')}";
+        }
+        
+        return $"/{hashedPath.TrimStart('/')}";
+    }
+    
+    public string GetCriticalCss()
+    {
+        return _cache.GetOrSet("critical-css", () =>
+        {
+            var criticalCssPath = Path.Combine(_environment.WebRootPath, "css", "critical.css");
+            return File.Exists(criticalCssPath) ? File.ReadAllText(criticalCssPath) : string.Empty;
+        }, TimeSpan.FromHours(1));
+    }
+    
+    public IEnumerable<string> GetPreloadAssets()
+    {
+        return new[]
+        {
+            GetAssetUrl("css/main.css"),
+            GetAssetUrl("js/main.js"),
+            GetAssetUrl("fonts/main.woff2")
+        };
+    }
+    
+    private void LoadManifest()
+    {
+        var manifestPath = Path.Combine(_environment.WebRootPath, "manifest.json");
+        if (File.Exists(manifestPath))
+        {
+            var manifestContent = File.ReadAllText(manifestPath);
+            var manifest = JsonSerializer.Deserialize<Dictionary<string, string>>(manifestContent);
+            
+            foreach (var kvp in manifest)
+            {
+                _manifest[kvp.Key] = kvp.Value;
+            }
+        }
+    }
+}
+
+// Razor Helper
+@using Microsoft.AspNetCore.Mvc.TagHelpers
+@inject IAssetService AssetService
+
+@{
+    var preloadAssets = AssetService.GetPreloadAssets();
+    var criticalCss = AssetService.GetCriticalCss();
+}
+
+<head>
+    <!-- Critical CSS inlined -->
+    @if (!string.IsNullOrEmpty(criticalCss))
+    {
+        <style>@Html.Raw(criticalCss)</style>
+    }
+    
+    <!-- Preload critical assets -->
+    @foreach (var asset in preloadAssets)
+    {
+        @if (asset.EndsWith(".css"))
+        {
+            <link rel="preload" href="@asset" as="style" onload="this.onload=null;this.rel='stylesheet'">
+        }
+        else if (asset.EndsWith(".js"))
+        {
+            <link rel="preload" href="@asset" as="script">
+        }
+        else if (asset.Contains("font"))
+        {
+            <link rel="preload" href="@asset" as="font" type="font/woff2" crossorigin>
+        }
+    }
+    
+    <!-- Non-critical CSS -->
+    <link rel="stylesheet" href="@AssetService.GetAssetUrl("css/main.css")">
+</head>`,
         category: "project",
         component: "asset_pipeline",
         sdlcStage: "development",
