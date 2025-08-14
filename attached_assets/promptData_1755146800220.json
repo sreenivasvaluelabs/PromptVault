@@ -1,0 +1,516 @@
+{
+  "metadata": {
+    "version": "2.0.0",
+    "description": "Cognizant DXP Prompt Library for Sitecore 10.4 with Helix Architecture - Complete Component Suite",
+    "platform": "Sitecore 10.4",
+    "architecture": "Helix",
+    "created": "2025-07-04",
+    "updated": "2025-08-10",
+    "author": "Cognizant DXP Team"
+  },
+  "categories": {
+    "foundation": {
+      "service_interface": {
+        "name": "Service Interface",
+        "description": "Foundation service interface with dependency injection and logging",
+        "prompts": {
+          "development": {
+            "prompt": "Create a foundation service interface following Helix architecture principles. Include async methods, error handling, and comprehensive logging.",
+            "context": "implementation",
+            "tags": ["foundation", "service", "interface", "async", "logging"]
+          }
+        }
+      },
+      "logging_service": {
+        "name": "Logging Service",
+        "description": "Advanced logging service with performance, user action, and security event tracking",
+        "prompts": {
+          "development": {
+            "prompt": "Implement an advanced logging service that extends basic logging with performance tracking, user actions, and security events for Sitecore applications.",
+            "context": "implementation",
+            "tags": ["foundation", "logging", "performance", "security", "tracking"]
+          }
+        }
+      },
+      "cache_service": {
+        "name": "Cache Service",
+        "description": "Comprehensive caching service with Redis integration and cache invalidation",
+        "prompts": {
+          "development": {
+            "prompt": "Create a robust caching service with Redis integration, cache warming, invalidation strategies, and performance monitoring for Sitecore applications.",
+            "context": "implementation",
+            "tags": ["foundation", "cache", "redis", "performance", "invalidation"]
+          }
+        }
+      },
+      "configuration_service": {
+        "name": "Configuration Service",
+        "description": "Environment-aware configuration service with caching and Sitecore integration",
+        "prompts": {
+          "development": {
+            "prompt": "Implement a configuration service that supports environment-specific settings, caching, and integration with Sitecore configuration systems.",
+            "context": "implementation",
+            "tags": ["foundation", "configuration", "environment", "caching", "sitecore"]
+          }
+        }
+      },
+      "di_configuration": {
+        "name": "DI Configuration",
+        "description": "Dependency injection configuration for Foundation layer services",
+        "prompts": {
+          "development": {
+            "prompt": "Set up comprehensive dependency injection configuration for Foundation layer services with proper scoping and lifecycle management.",
+            "context": "implementation",
+            "tags": ["foundation", "di", "dependency-injection", "configuration", "lifecycle"]
+          }
+        }
+      }
+    },
+    "feature": {
+      "controller_action": {
+        "name": "Controller Action",
+        "description": "Feature controller action with comprehensive error handling and logging",
+        "prompts": {
+          "development": {
+            "prompt": "Create a Sitecore MVC controller action with proper error handling, logging, dependency injection, and response handling following Helix architecture.",
+            "context": "implementation",
+            "tags": ["feature", "mvc", "controller", "error-handling", "logging"]
+          }
+        }
+      },
+      "view_model": {
+        "name": "View Model",
+        "description": "Feature view model with validation and display logic",
+        "prompts": {
+          "development": {
+            "prompt": "Implement a comprehensive view model with validation attributes, display formatting, and business logic for Sitecore Feature layer components.",
+            "context": "implementation",
+            "tags": ["feature", "viewmodel", "validation", "display", "business-logic"]
+          }
+        }
+      },
+      "glass_mapper_model": {
+        "name": "Glass Mapper Model",
+        "description": "Glass Mapper model with comprehensive field mapping and inheritance",
+        "prompts": {
+          "development": {
+            "prompt": "Create a Glass Mapper model interface with comprehensive field mappings, inheritance from base templates, and proper Sitecore field handling.",
+            "context": "implementation",
+            "tags": ["feature", "glass-mapper", "model", "mapping", "inheritance"]
+          }
+        }
+      },
+      "service_layer": {
+        "name": "Service Layer",
+        "description": "Feature service layer with async operations, caching, and validation",
+        "prompts": {
+          "development": {
+            "prompt": "Implement a feature service layer with async operations, caching integration, input validation, and comprehensive error handling.",
+            "context": "implementation",
+            "tags": ["feature", "service", "async", "caching", "validation"]
+          }
+        }
+      },
+      "razor_view": {
+        "name": "Razor View",
+        "description": "Accessible Razor view with SEO optimization and responsive design",
+        "prompts": {
+          "development": {
+            "prompt": "Create a Razor view with accessibility features, SEO optimization, responsive design, and integration with Sitecore Experience Editor.",
+            "context": "implementation",
+            "tags": ["feature", "razor", "view", "accessibility", "seo", "responsive"]
+          }
+        }
+      }
+    },
+    "project": {
+      "site_controller": {
+        "name": "Site Controller",
+        "description": "Project layer site controller with authentication and site-specific logic",
+        "prompts": {
+          "development": {
+            "prompt": "Create a Project layer site controller with authentication, authorization, site-specific business logic, and proper error handling.",
+            "context": "implementation",
+            "tags": ["project", "controller", "authentication", "authorization", "site-specific"]
+          }
+        }
+      },
+      "layout_view": {
+        "name": "Layout View",
+        "description": "Main layout view with navigation, SEO, and performance optimization",
+        "prompts": {
+          "development": {
+            "prompt": "Implement a master layout view with navigation, SEO meta tags, performance optimization, and responsive design for the Project layer.",
+            "context": "implementation",
+            "tags": ["project", "layout", "navigation", "seo", "performance", "responsive"]
+          }
+        }
+      },
+      "site_configuration": {
+        "name": "Site Configuration",
+        "description": "Project layer site configuration with multi-site support",
+        "prompts": {
+          "development": {
+            "prompt": "Set up Project layer site configuration with multi-site support, environment-specific settings, and integration with Sitecore site definitions.",
+            "context": "implementation",
+            "tags": ["project", "configuration", "multi-site", "environment", "sitecore"]
+          }
+        }
+      },
+      "global_navigation": {
+        "name": "Global Navigation",
+        "description": "Site-wide navigation component with responsive behavior and accessibility",
+        "prompts": {
+          "development": {
+            "prompt": "Create a global navigation component with responsive behavior, accessibility features, and integration with Sitecore content tree structure.",
+            "context": "implementation",
+            "tags": ["project", "navigation", "responsive", "accessibility", "sitecore"]
+          }
+        }
+      },
+      "asset_pipeline": {
+        "name": "Asset Pipeline",
+        "description": "Asset optimization and bundling configuration for Project layer",
+        "prompts": {
+          "development": {
+            "prompt": "Configure asset pipeline with bundling, minification, CDN integration, and cache busting for optimal web performance.",
+            "context": "implementation",
+            "tags": ["project", "assets", "bundling", "cdn", "performance", "optimization"]
+          }
+        }
+      }
+    },
+    "components": {
+      "carousel": {
+        "name": "Carousel Component",
+        "description": "Advanced carousel component with responsive behavior and accessibility",
+        "prompts": {
+          "development": {
+            "prompt": "Implement an advanced carousel component with responsive behavior, touch support, accessibility features, and Sitecore integration.",
+            "context": "implementation",
+            "tags": ["component", "carousel", "responsive", "accessibility", "touch"]
+          }
+        }
+      },
+      "custom_forms": {
+        "name": "Form Component",
+        "description": "Dynamic form component with validation and submission handling",
+        "prompts": {
+          "development": {
+            "prompt": "Create a dynamic form component with client/server validation, AJAX submission, file upload support, and integration with Sitecore Forms.",
+            "context": "implementation",
+            "tags": ["component", "forms", "validation", "ajax", "file-upload"]
+          }
+        }
+      },
+      "navigation": {
+        "name": "Navigation Component",
+        "description": "Multi-level responsive navigation with breadcrumbs and search",
+        "prompts": {
+          "development": {
+            "prompt": "Implement a responsive navigation component with multi-level menus, breadcrumbs, search integration, and mobile-first design.",
+            "context": "implementation",
+            "tags": ["component", "navigation", "responsive", "breadcrumbs", "search", "mobile"]
+          }
+        }
+      },
+      "search": {
+        "name": "Search Component",
+        "description": "Intelligent search with auto-complete and faceted filtering",
+        "prompts": {
+          "development": {
+            "prompt": "Create an intelligent search component with auto-complete, faceted filtering, result highlighting, and integration with Sitecore Content Search.",
+            "context": "implementation",
+            "tags": ["component", "search", "autocomplete", "faceting", "solr", "content-search"]
+          }
+        }
+      },
+      "media_gallery": {
+        "name": "Media Gallery",
+        "description": "Responsive media gallery with lazy loading and lightbox functionality",
+        "prompts": {
+          "development": {
+            "prompt": "Implement a responsive media gallery with lazy loading, lightbox functionality, image optimization, and integration with Sitecore Media Library.",
+            "context": "implementation",
+            "tags": ["component", "media", "gallery", "lazy-loading", "lightbox", "optimization"]
+          }
+        }
+      }
+    },
+    "testing": {
+      "unit_test": {
+        "name": "Unit Test",
+        "description": "Comprehensive unit test with mocking and coverage",
+        "prompts": {
+          "development": {
+            "prompt": "Create comprehensive unit tests with proper mocking, test data builders, and coverage for Sitecore components following AAA pattern.",
+            "context": "unit_testing",
+            "tags": ["testing", "unit-test", "mocking", "coverage", "aaa-pattern"]
+          }
+        }
+      },
+      "integration_test": {
+        "name": "Integration Test",
+        "description": "Integration test for Sitecore components with real dependencies",
+        "prompts": {
+          "development": {
+            "prompt": "Implement integration tests for Sitecore components with real dependencies, database interactions, and end-to-end scenarios.",
+            "context": "integration_testing",
+            "tags": ["testing", "integration-test", "database", "end-to-end", "sitecore"]
+          }
+        }
+      },
+      "test_data_builder": {
+        "name": "Test Data Builder",
+        "description": "Test data builder pattern for creating test objects",
+        "prompts": {
+          "development": {
+            "prompt": "Create test data builders using the builder pattern for generating consistent test data across unit and integration tests.",
+            "context": "unit_testing",
+            "tags": ["testing", "test-data", "builder-pattern", "consistency", "maintainability"]
+          }
+        }
+      },
+      "mock_configuration": {
+        "name": "Mock Configuration",
+        "description": "Mock configuration for Sitecore context and services",
+        "prompts": {
+          "development": {
+            "prompt": "Set up comprehensive mock configuration for Sitecore context, services, and dependencies for effective unit testing.",
+            "context": "unit_testing",
+            "tags": ["testing", "mocking", "sitecore-context", "dependencies", "configuration"]
+          }
+        }
+      },
+      "e2e_test": {
+        "name": "E2E Test",
+        "description": "End-to-end test with Selenium WebDriver and page object pattern",
+        "prompts": {
+          "development": {
+            "prompt": "Implement end-to-end tests using Selenium WebDriver with page object pattern, cross-browser testing, and CI/CD integration.",
+            "context": "integration_testing",
+            "tags": ["testing", "e2e", "selenium", "page-object", "cross-browser", "cicd"]
+          }
+        }
+      }
+    },
+    "styling": {
+      "scss_component": {
+        "name": "SCSS Component",
+        "description": "Component styling following BEM methodology with responsive design",
+        "prompts": {
+          "development": {
+            "prompt": "Create SCSS component styles following BEM methodology with responsive design, CSS Grid/Flexbox, and accessibility considerations.",
+            "context": "implementation",
+            "tags": ["styling", "scss", "bem", "responsive", "css-grid", "accessibility"]
+          }
+        }
+      }
+    },
+    "sdlc_templates": {
+      "user_story_template": {
+        "name": "User Story Template",
+        "description": "Comprehensive user story template with acceptance criteria and definition of done",
+        "prompts": {
+          "development": {
+            "prompt": "Create a comprehensive user story template following agile best practices with clear acceptance criteria and definition of done.",
+            "context": "requirements_analysis",
+            "tags": ["sdlc", "user-story", "agile", "requirements", "template"]
+          }
+        }
+      },
+      "unit_test_suite": {
+        "name": "Unit Test Suite",
+        "description": "Complete unit test suite template with mocking and test setup",
+        "prompts": {
+          "development": {
+            "prompt": "Generate a comprehensive unit test suite template with proper mocking, setup, and test structure for .NET applications.",
+            "context": "unit_testing",
+            "tags": ["sdlc", "testing", "unit-test", "mocking", "template"]
+          }
+        }
+      },
+      "azure_devops_pipeline": {
+        "name": "Azure DevOps Pipeline",
+        "description": "CI/CD pipeline template for Azure DevOps with build, test, and deployment stages",
+        "prompts": {
+          "development": {
+            "prompt": "Create a complete Azure DevOps CI/CD pipeline template with build, test, and deployment stages for .NET applications.",
+            "context": "deployment",
+            "tags": ["sdlc", "devops", "pipeline", "cicd", "azure", "template"]
+          }
+        }
+      },
+      "technical_requirements": {
+        "name": "Technical Requirements",
+        "description": "Comprehensive technical requirements document template",
+        "prompts": {
+          "development": {
+            "prompt": "Generate a detailed technical requirements document template covering functional, non-functional, and technical specifications.",
+            "context": "requirements_analysis",
+            "tags": ["sdlc", "requirements", "technical", "documentation", "template"]
+          }
+        }
+      },
+      "architecture_diagram": {
+        "name": "Architecture Diagram",
+        "description": "Sitecore Helix architecture documentation and diagram template",
+        "prompts": {
+          "development": {
+            "prompt": "Create comprehensive architecture documentation with Helix layer structure, dependencies, and component diagrams.",
+            "context": "technical_design",
+            "tags": ["sdlc", "architecture", "helix", "documentation", "diagram", "template"]
+          }
+        }
+      },
+      "api_specification": {
+        "name": "API Specification",
+        "description": "RESTful API specification template with OpenAPI documentation",
+        "prompts": {
+          "development": {
+            "prompt": "Generate a complete API specification template with endpoint documentation, authentication, and error handling.",
+            "context": "technical_design",
+            "tags": ["sdlc", "api", "specification", "openapi", "rest", "template"]
+          }
+        }
+      },
+      "data_model_design": {
+        "name": "Data Model Design",
+        "description": "Sitecore data template design and Glass Mapper model template",
+        "prompts": {
+          "development": {
+            "prompt": "Create comprehensive data model design documentation with Sitecore template hierarchy and Glass Mapper models.",
+            "context": "technical_design",
+            "tags": ["sdlc", "data-model", "sitecore", "templates", "glass-mapper", "template"]
+          }
+        }
+      },
+      "security_requirements": {
+        "name": "Security Requirements",
+        "description": "Security requirements and compliance documentation template",
+        "prompts": {
+          "development": {
+            "prompt": "Generate comprehensive security requirements documentation covering authentication, authorization, data protection, and compliance.",
+            "context": "requirements_analysis",
+            "tags": ["sdlc", "security", "requirements", "compliance", "documentation", "template"]
+          }
+        }
+      },
+      "performance_tests": {
+        "name": "Performance Tests",
+        "description": "Performance testing suite template with load testing and monitoring",
+        "prompts": {
+          "development": {
+            "prompt": "Create a comprehensive performance testing suite template with load testing, benchmarks, and monitoring setup.",
+            "context": "integration_testing",
+            "tags": ["sdlc", "performance", "testing", "load-testing", "monitoring", "template"]
+          }
+        }
+      },
+      "accessibility_testing": {
+        "name": "Accessibility Testing",
+        "description": "WCAG compliance and accessibility testing template",
+        "prompts": {
+          "development": {
+            "prompt": "Generate comprehensive accessibility testing template covering WCAG 2.1 AA compliance, testing tools, and validation procedures.",
+            "context": "integration_testing",
+            "tags": ["sdlc", "accessibility", "testing", "wcag", "compliance", "template"]
+          }
+        }
+      },
+      "docker_setup": {
+        "name": "Docker Setup",
+        "description": "Docker containerization configuration template for development and deployment",
+        "prompts": {
+          "development": {
+            "prompt": "Create comprehensive Docker setup template with Dockerfile, docker-compose, and container orchestration for development and production.",
+            "context": "deployment",
+            "tags": ["sdlc", "docker", "containerization", "deployment", "configuration", "template"]
+          }
+        }
+      },
+      "monitoring_setup": {
+        "name": "Monitoring Setup",
+        "description": "Application monitoring and observability configuration template",
+        "prompts": {
+          "development": {
+            "prompt": "Generate comprehensive monitoring setup template with application insights, health checks, logging, and alerting configuration.",
+            "context": "maintenance",
+            "tags": ["sdlc", "monitoring", "observability", "logging", "alerting", "template"]
+          }
+        }
+      },
+      "log_analysis": {
+        "name": "Log Analysis",
+        "description": "Log analysis and management system template with ELK stack integration",
+        "prompts": {
+          "development": {
+            "prompt": "Create comprehensive log analysis template with structured logging, ELK stack integration, and log management procedures.",
+            "context": "maintenance",
+            "tags": ["sdlc", "logging", "analysis", "elk-stack", "management", "template"]
+          }
+        }
+      }
+    }
+  },
+  "sdlc_stages": {
+    "requirements": {
+      "name": "Planning & Analysis",
+      "description": "Requirements gathering, architecture design, and project planning"
+    },
+    "design": {
+      "name": "Technical Design",
+      "description": "Creating architectural and detailed design specifications"
+    },
+    "development": {
+      "name": "Development & Implementation",
+      "description": "Coding, component development, and feature implementation"
+    },
+    "unit_testing": {
+      "name": "Testing & Quality Assurance",
+      "description": "Unit testing, integration testing, and quality validation"
+    },
+    "integration_testing": {
+      "name": "Integration Testing",
+      "description": "Testing component integration and system workflows"
+    },
+    "deployment": {
+      "name": "Deployment & DevOps",
+      "description": "CI/CD pipelines, deployment automation, and environment management"
+    },
+    "maintenance": {
+      "name": "Maintenance & Support",
+      "description": "Monitoring, troubleshooting, optimization, and ongoing support"
+    }
+  },
+  "component_snippets": {
+    "foundation": ["Service Interface", "Logging Service", "Cache Service", "Configuration Service", "DI Configuration"],
+    "feature": ["Controller Action", "View Model", "Glass Mapper Model", "Service Layer", "Razor View"],
+    "project": ["Site Controller", "Layout View", "Site Configuration", "Global Navigation", "Asset Pipeline"],
+    "components": ["Carousel Component", "Form Component", "Navigation Component", "Search Component", "Media Gallery"],
+    "testing": ["Unit Test", "Integration Test", "Test Data Builder", "Mock Configuration", "E2E Test"],
+    "styling": ["SCSS Component"],
+    "sdlc_templates": ["User Story Template", "Unit Test Suite", "Azure DevOps Pipeline", "Technical Requirements", "Architecture Diagram", "API Specification", "Data Model Design", "Security Requirements", "Performance Tests", "Accessibility Testing", "Docker Setup", "Monitoring Setup", "Log Analysis"]
+  },
+  "usage_instructions": {
+    "description": "How to use this prompt library with GitHub Copilot in VS Code",
+    "steps": [
+      "1. Use Command Palette (Ctrl+Shift+P) and search for 'DXP' commands",
+      "2. Select component type from Foundation, Feature, Project, or Component layers",
+      "3. Choose from available snippets like 'Configuration Service', 'Carousel Component', etc.",
+      "4. Generated code will be inserted at cursor position",
+      "5. Use the prompt manager for advanced search and filtering",
+      "6. Follow Helix architecture principles in the generated code"
+    ]
+  },
+  "extensions": {
+    "recommended_vscode_extensions": [
+      "ms-vscode.vscode-json",
+      "github.copilot",
+      "github.copilot-chat",
+      "ms-dotnettools.csharp",
+      "bradlc.vscode-tailwindcss",
+      "esbenp.prettier-vscode"
+    ]
+  }
+}
