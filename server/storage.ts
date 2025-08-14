@@ -5445,7 +5445,510 @@ class Carousel {
         id: "sdlc_templates-unit_test_suite-development",
         title: "Unit Test Suite",
         description: "Complete unit test suite template with mocking and test setup",
-        content: "Generate a comprehensive unit test suite template with proper mocking, setup, and test structure for .NET applications.",
+        content: `Generate a comprehensive unit test suite template with proper mocking, setup, and test structure for .NET applications.
+
+// Comprehensive Unit Test Suite Template
+// Complete testing framework with mocking, setup, and structured test organization
+
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Moq;
+using FluentAssertions;
+using Sitecore;
+using Sitecore.Data;
+using Sitecore.Data.Items;
+using Sitecore.FakeDb;
+using Glass.Mapper.Sc;
+using {{ProjectNamespace}}.Foundation.Testing;
+using {{ProjectNamespace}}.Feature.{{FeatureName}}.Services;
+using {{ProjectNamespace}}.Feature.{{FeatureName}}.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace {{ProjectNamespace}}.Feature.{{FeatureName}}.Tests
+{
+    [TestClass]
+    public class {{ServiceName}}Tests
+    {
+        private Mock<ISitecoreContext> _mockSitecoreContext;
+        private Mock<ILogService> _mockLogService;
+        private Mock<ICacheService> _mockCacheService;
+        private {{ServiceName}} _service;
+        private TestContext _testContext;
+        
+        [TestInitialize]
+        public void Setup()
+        {
+            // Initialize mocks
+            _mockSitecoreContext = new Mock<ISitecoreContext>();
+            _mockLogService = new Mock<ILogService>();
+            _mockCacheService = new Mock<ICacheService>();
+            
+            // Setup service under test
+            _service = new {{ServiceName}}(
+                _mockSitecoreContext.Object,
+                _mockLogService.Object,
+                _mockCacheService.Object
+            );
+        }
+        
+        [TestCleanup]
+        public void Cleanup()
+        {
+            // Clean up resources
+            _mockSitecoreContext.Reset();
+            _mockLogService.Reset();
+            _mockCacheService.Reset();
+        }
+        
+        #region GetItem Tests
+        
+        [TestMethod]
+        [TestCategory("Unit")]
+        public void GetItem_ValidId_ReturnsItem()
+        {
+            // Arrange
+            var itemId = Guid.NewGuid();
+            var expectedItem = CreateTestItem(itemId, "Test Item");
+            
+            _mockSitecoreContext
+                .Setup(x => x.GetItem<ITestModel>(itemId))
+                .Returns(expectedItem);
+            
+            // Act
+            var result = _service.GetItem(itemId);
+            
+            // Assert
+            result.Should().NotBeNull();
+            result.Id.Should().Be(itemId);
+            result.Name.Should().Be("Test Item");
+            
+            _mockSitecoreContext.Verify(x => x.GetItem<ITestModel>(itemId), Times.Once);
+        }
+        
+        [TestMethod]
+        [TestCategory("Unit")]
+        public void GetItem_InvalidId_ReturnsNull()
+        {
+            // Arrange
+            var itemId = Guid.Empty;
+            
+            _mockSitecoreContext
+                .Setup(x => x.GetItem<ITestModel>(itemId))
+                .Returns((ITestModel)null);
+            
+            // Act
+            var result = _service.GetItem(itemId);
+            
+            // Assert
+            result.Should().BeNull();
+            _mockSitecoreContext.Verify(x => x.GetItem<ITestModel>(itemId), Times.Once);
+        }
+        
+        [TestMethod]
+        [TestCategory("Unit")]
+        public void GetItem_ExceptionThrown_LogsErrorAndReturnsNull()
+        {
+            // Arrange
+            var itemId = Guid.NewGuid();
+            var exception = new Exception("Test exception");
+            
+            _mockSitecoreContext
+                .Setup(x => x.GetItem<ITestModel>(itemId))
+                .Throws(exception);
+            
+            // Act
+            var result = _service.GetItem(itemId);
+            
+            // Assert
+            result.Should().BeNull();
+            _mockLogService.Verify(x => x.Error(It.IsAny<string>(), exception), Times.Once);
+        }
+        
+        #endregion
+        
+        #region GetItems Tests
+        
+        [TestMethod]
+        [TestCategory("Unit")]
+        public void GetItems_ValidQuery_ReturnsItems()
+        {
+            // Arrange
+            var expectedItems = new List<ITestModel>
+            {
+                CreateTestItem(Guid.NewGuid(), "Item 1"),
+                CreateTestItem(Guid.NewGuid(), "Item 2"),
+                CreateTestItem(Guid.NewGuid(), "Item 3")
+            };
+            
+            var query = "fast:/sitecore/content/home//*[@@templatename='Test Template']";
+            
+            _mockSitecoreContext
+                .Setup(x => x.Query<ITestModel>(query))
+                .Returns(expectedItems);
+            
+            // Act
+            var result = _service.GetItems(query);
+            
+            // Assert
+            result.Should().NotBeNull();
+            result.Should().HaveCount(3);
+            result.First().Name.Should().Be("Item 1");
+            
+            _mockSitecoreContext.Verify(x => x.Query<ITestModel>(query), Times.Once);
+        }
+        
+        [TestMethod]
+        [TestCategory("Unit")]
+        public void GetItems_EmptyQuery_ReturnsEmptyCollection()
+        {
+            // Arrange
+            var query = string.Empty;
+            
+            // Act
+            var result = _service.GetItems(query);
+            
+            // Assert
+            result.Should().NotBeNull();
+            result.Should().BeEmpty();
+            _mockSitecoreContext.Verify(x => x.Query<ITestModel>(It.IsAny<string>()), Times.Never);
+        }
+        
+        #endregion
+        
+        #region Caching Tests
+        
+        [TestMethod]
+        [TestCategory("Unit")]
+        public void GetCachedItem_ItemInCache_ReturnsCachedItem()
+        {
+            // Arrange
+            var itemId = Guid.NewGuid();
+            var cachedItem = CreateTestItem(itemId, "Cached Item");
+            var cacheKey = $"test-item-{itemId}";
+            
+            _mockCacheService
+                .Setup(x => x.Get<ITestModel>(cacheKey))
+                .Returns(cachedItem);
+            
+            // Act
+            var result = _service.GetCachedItem(itemId);
+            
+            // Assert
+            result.Should().NotBeNull();
+            result.Should().Be(cachedItem);
+            
+            _mockCacheService.Verify(x => x.Get<ITestModel>(cacheKey), Times.Once);
+            _mockSitecoreContext.Verify(x => x.GetItem<ITestModel>(It.IsAny<Guid>()), Times.Never);
+        }
+        
+        [TestMethod]
+        [TestCategory("Unit")]
+        public void GetCachedItem_ItemNotInCache_FetchesAndCachesItem()
+        {
+            // Arrange
+            var itemId = Guid.NewGuid();
+            var freshItem = CreateTestItem(itemId, "Fresh Item");
+            var cacheKey = $"test-item-{itemId}";
+            
+            _mockCacheService
+                .Setup(x => x.Get<ITestModel>(cacheKey))
+                .Returns((ITestModel)null);
+            
+            _mockSitecoreContext
+                .Setup(x => x.GetItem<ITestModel>(itemId))
+                .Returns(freshItem);
+            
+            _mockCacheService
+                .Setup(x => x.Set(cacheKey, freshItem, TimeSpan.FromMinutes(30)))
+                .Verifiable();
+            
+            // Act
+            var result = _service.GetCachedItem(itemId);
+            
+            // Assert
+            result.Should().NotBeNull();
+            result.Should().Be(freshItem);
+            
+            _mockCacheService.Verify(x => x.Get<ITestModel>(cacheKey), Times.Once);
+            _mockCacheService.Verify(x => x.Set(cacheKey, freshItem, TimeSpan.FromMinutes(30)), Times.Once);
+            _mockSitecoreContext.Verify(x => x.GetItem<ITestModel>(itemId), Times.Once);
+        }
+        
+        #endregion
+        
+        #region Validation Tests
+        
+        [TestMethod]
+        [TestCategory("Unit")]
+        [DataRow("", false)]
+        [DataRow(null, false)]
+        [DataRow("Valid Name", true)]
+        [DataRow("Name with 123 numbers", true)]
+        public void ValidateItemName_VariousInputs_ReturnsExpectedResult(string name, bool expectedResult)
+        {
+            // Act
+            var result = _service.ValidateItemName(name);
+            
+            // Assert
+            result.Should().Be(expectedResult);
+        }
+        
+        [TestMethod]
+        [TestCategory("Unit")]
+        public void ValidateItem_ValidItem_ReturnsTrue()
+        {
+            // Arrange
+            var item = CreateTestItem(Guid.NewGuid(), "Valid Item");
+            item.Title = "Valid Title";
+            item.Description = "Valid Description";
+            
+            // Act
+            var result = _service.ValidateItem(item);
+            
+            // Assert
+            result.Should().BeTrue();
+        }
+        
+        [TestMethod]
+        [TestCategory("Unit")]
+        public void ValidateItem_NullItem_ReturnsFalse()
+        {
+            // Act
+            var result = _service.ValidateItem(null);
+            
+            // Assert
+            result.Should().BeFalse();
+        }
+        
+        #endregion
+        
+        #region Business Logic Tests
+        
+        [TestMethod]
+        [TestCategory("Unit")]
+        public void ProcessItems_ValidItems_ProcessesAllItems()
+        {
+            // Arrange
+            var items = new List<ITestModel>
+            {
+                CreateTestItem(Guid.NewGuid(), "Item 1"),
+                CreateTestItem(Guid.NewGuid(), "Item 2"),
+                CreateTestItem(Guid.NewGuid(), "Item 3")
+            };
+            
+            // Act
+            var result = _service.ProcessItems(items);
+            
+            // Assert
+            result.Should().NotBeNull();
+            result.ProcessedCount.Should().Be(3);
+            result.SuccessfulCount.Should().Be(3);
+            result.FailedCount.Should().Be(0);
+        }
+        
+        [TestMethod]
+        [TestCategory("Unit")]
+        public void ProcessItems_EmptyCollection_ReturnsEmptyResult()
+        {
+            // Arrange
+            var items = new List<ITestModel>();
+            
+            // Act
+            var result = _service.ProcessItems(items);
+            
+            // Assert
+            result.Should().NotBeNull();
+            result.ProcessedCount.Should().Be(0);
+            result.SuccessfulCount.Should().Be(0);
+            result.FailedCount.Should().Be(0);
+        }
+        
+        #endregion
+        
+        #region Helper Methods
+        
+        private ITestModel CreateTestItem(Guid id, string name)
+        {
+            var mock = new Mock<ITestModel>();
+            mock.Setup(x => x.Id).Returns(id);
+            mock.Setup(x => x.Name).Returns(name);
+            mock.Setup(x => x.Path).Returns($"/sitecore/content/test/{name.ToLower().Replace(" ", "-")}");
+            mock.Setup(x => x.CreatedDate).Returns(DateTime.UtcNow);
+            mock.Setup(x => x.ModifiedDate).Returns(DateTime.UtcNow);
+            return mock.Object;
+        }
+        
+        private void SetupSitecoreContext()
+        {
+            var mockDatabase = new Mock<Database>();
+            _mockSitecoreContext.Setup(x => x.Database).Returns(mockDatabase.Object);
+        }
+        
+        #endregion
+    }
+    
+    // Integration Tests with FakeDb
+    [TestClass]
+    public class {{ServiceName}}IntegrationTests
+    {
+        [TestMethod]
+        [TestCategory("Integration")]
+        public void GetItem_RealSitecoreItem_ReturnsCorrectData()
+        {
+            // Arrange
+            using (var db = new Db
+            {
+                new DbItem("Test Item", new ID(Guid.NewGuid()))
+                {
+                    new DbField("Title") { Value = "Integration Test Title" },
+                    new DbField("Description") { Value = "Integration test description" }
+                }
+            })
+            {
+                var item = db.GetItem("/sitecore/content/Test Item");
+                var context = new SitecoreContext();
+                var service = new {{ServiceName}}(context, new Mock<ILogService>().Object, new Mock<ICacheService>().Object);
+                
+                // Act
+                var result = service.GetItem(item.ID.Guid);
+                
+                // Assert
+                result.Should().NotBeNull();
+                result.Id.Should().Be(item.ID.Guid);
+            }
+        }
+        
+        [TestMethod]
+        [TestCategory("Integration")]
+        public void Query_RealDatabase_ReturnsItems()
+        {
+            // Arrange
+            using (var db = new Db
+            {
+                new DbItem("Item 1", new ID(Guid.NewGuid())) { TemplateID = TemplateIDs.Sample },
+                new DbItem("Item 2", new ID(Guid.NewGuid())) { TemplateID = TemplateIDs.Sample },
+                new DbItem("Item 3", new ID(Guid.NewGuid())) { TemplateID = TemplateIDs.Sample }
+            })
+            {
+                var context = new SitecoreContext();
+                var service = new {{ServiceName}}(context, new Mock<ILogService>().Object, new Mock<ICacheService>().Object);
+                var query = "fast:/sitecore/content//*";
+                
+                // Act
+                var result = service.GetItems(query);
+                
+                // Assert
+                result.Should().NotBeNull();
+                result.Should().HaveCountGreaterThan(0);
+            }
+        }
+    }
+    
+    // Performance Tests
+    [TestClass]
+    public class {{ServiceName}}PerformanceTests
+    {
+        private {{ServiceName}} _service;
+        private Stopwatch _stopwatch;
+        
+        [TestInitialize]
+        public void Setup()
+        {
+            var mockContext = new Mock<ISitecoreContext>();
+            var mockLogger = new Mock<ILogService>();
+            var mockCache = new Mock<ICacheService>();
+            
+            _service = new {{ServiceName}}(mockContext.Object, mockLogger.Object, mockCache.Object);
+            _stopwatch = new Stopwatch();
+        }
+        
+        [TestMethod]
+        [TestCategory("Performance")]
+        public void GetItem_PerformanceTest_CompletesWithinTimeLimit()
+        {
+            // Arrange
+            var itemId = Guid.NewGuid();
+            var timeLimit = TimeSpan.FromMilliseconds(100);
+            
+            // Act
+            _stopwatch.Start();
+            var result = _service.GetItem(itemId);
+            _stopwatch.Stop();
+            
+            // Assert
+            _stopwatch.Elapsed.Should().BeLessThan(timeLimit);
+        }
+        
+        [TestMethod]
+        [TestCategory("Performance")]
+        public void ProcessLargeItemSet_PerformanceTest_CompletesWithinTimeLimit()
+        {
+            // Arrange
+            var items = CreateLargeItemSet(1000);
+            var timeLimit = TimeSpan.FromSeconds(5);
+            
+            // Act
+            _stopwatch.Start();
+            var result = _service.ProcessItems(items);
+            _stopwatch.Stop();
+            
+            // Assert
+            _stopwatch.Elapsed.Should().BeLessThan(timeLimit);
+            result.ProcessedCount.Should().Be(1000);
+        }
+        
+        private List<ITestModel> CreateLargeItemSet(int count)
+        {
+            var items = new List<ITestModel>();
+            for (int i = 0; i < count; i++)
+            {
+                var mock = new Mock<ITestModel>();
+                mock.Setup(x => x.Id).Returns(Guid.NewGuid());
+                mock.Setup(x => x.Name).Returns($"Item {i}");
+                items.Add(mock.Object);
+            }
+            return items;
+        }
+    }
+}
+
+// Test Configuration and Setup
+public static class TestConfiguration
+{
+    public static void ConfigureTestDependencies(IServiceCollection services)
+    {
+        services.AddSingleton<ILogService, TestLogService>();
+        services.AddSingleton<ICacheService, TestCacheService>();
+        services.AddScoped<ISitecoreContext, TestSitecoreContext>();
+    }
+}
+
+// Test Data Builders
+public class TestModelBuilder
+{
+    private readonly Mock<ITestModel> _mock = new Mock<ITestModel>();
+    
+    public TestModelBuilder WithId(Guid id)
+    {
+        _mock.Setup(x => x.Id).Returns(id);
+        return this;
+    }
+    
+    public TestModelBuilder WithName(string name)
+    {
+        _mock.Setup(x => x.Name).Returns(name);
+        return this;
+    }
+    
+    public TestModelBuilder WithPath(string path)
+    {
+        _mock.Setup(x => x.Path).Returns(path);
+        return this;
+    }
+    
+    public ITestModel Build() => _mock.Object;
+}`,
         category: "sdlc_templates",
         component: "unit_test_suite",
         sdlcStage: "development",
@@ -5828,7 +6331,141 @@ stages:
         id: "sdlc_templates-technical_requirements-development",
         title: "Technical Requirements",
         description: "Comprehensive technical requirements document template",
-        content: "Generate a detailed technical requirements document template covering functional, non-functional, and technical specifications.",
+        content: `Generate a detailed technical requirements document template covering functional, non-functional, and technical specifications.
+
+# Technical Requirements Document
+## {{ProjectName}} - {{FeatureName}} Module
+
+### Document Information
+- **Document Version**: 1.0
+- **Created Date**: {{CurrentDate}}
+- **Created By**: {{AuthorName}}
+- **Last Modified**: {{LastModifiedDate}}
+- **Status**: {{DocumentStatus}}
+- **Stakeholders**: {{StakeholderList}}
+
+## 1. Executive Summary
+
+### 1.1 Project Overview
+{{ProjectDescription}}
+
+### 1.2 Scope
+This document defines the technical requirements for the {{FeatureName}} module within the {{ProjectName}} Sitecore solution. It covers functional specifications, non-functional requirements, technical constraints, and acceptance criteria.
+
+### 1.3 Objectives
+- **Primary Objective**: {{PrimaryObjective}}
+- **Secondary Objectives**: {{SecondaryObjectives}}
+- **Success Criteria**: {{SuccessCriteria}}
+
+## 2. Functional Requirements
+
+### 2.1 User Stories and Requirements
+
+#### FR-001: {{RequirementTitle}}
+**Priority**: {{Priority}}
+**User Story**: As a {{UserRole}}, I want to {{UserAction}} so that {{UserBenefit}}.
+
+**Detailed Requirements**:
+- The system shall {{FunctionalRequirement1}}
+- The system shall {{FunctionalRequirement2}}
+- The system shall {{FunctionalRequirement3}}
+
+**Business Rules**:
+- BR-001: {{BusinessRule1}}
+- BR-002: {{BusinessRule2}}
+
+**Acceptance Criteria**:
+- Given {{PreconditionState}}
+- When {{UserAction}}
+- Then {{ExpectedOutcome}}
+
+#### FR-002: Content Management
+**Priority**: High
+**User Story**: As a content editor, I want to manage content efficiently so that I can maintain up-to-date website information.
+
+**Detailed Requirements**:
+- The system shall provide a user-friendly content editing interface
+- The system shall support rich text editing with HTML formatting
+- The system shall allow media file uploads and management
+- The system shall provide content preview functionality
+- The system shall support content versioning and rollback
+
+**Business Rules**:
+- BR-003: Only authenticated users can edit content
+- BR-004: All content changes must be tracked with user and timestamp
+- BR-005: Content must be approved before publication
+
+**Acceptance Criteria**:
+- Given I am a logged-in content editor
+- When I navigate to the content editing interface
+- Then I should see all available content items with edit options
+- And I should be able to create, edit, and delete content items
+- And all changes should be automatically saved as drafts
+
+## 3. Non-Functional Requirements
+
+### 3.1 Performance Requirements
+- **Page Load Time**: All pages must load within 3 seconds on standard broadband connection
+- **API Response Time**: All API calls must respond within 500ms for 95% of requests
+- **Search Response Time**: Search results must be delivered within 2 seconds
+- **Database Query Time**: Individual database queries must complete within 100ms
+
+### 3.2 Security Requirements
+- **User Authentication**: All users must be authenticated via SSO integration
+- **Role-based Access**: Access control must be implemented based on user roles
+- **Data Encryption**: All data must be encrypted in transit and at rest
+- **Audit Trail**: All user actions must be logged for security auditing
+
+### 3.3 Availability and Reliability
+- **System Availability**: 99.9% uptime during business hours
+- **Disaster Recovery**: Recovery Time Objective (RTO) of 4 hours
+- **Data Recovery**: Recovery Point Objective (RPO) of 1 hour
+- **Error Handling**: Graceful degradation during partial failures
+
+## 4. Technical Constraints
+- **Platform**: Sitecore 10.4 on .NET Framework 4.8
+- **Database**: Microsoft SQL Server 2019
+- **Web Server**: IIS 10
+- **Frontend**: HTML5, CSS3, JavaScript ES6+
+- **Search**: Solr 8.11
+- **Caching**: Redis Cache
+
+## 5. Integration Requirements
+- **SSO Integration**: Active Directory Federation Services (ADFS)
+- **Analytics**: Google Analytics 4 integration
+- **CDN**: Azure CDN for static asset delivery
+- **Email**: SMTP integration for notifications
+- **Third-party APIs**: {{ExternalApiList}}
+
+## 6. Testing Requirements
+- **Unit Testing**: 90% code coverage for all business logic
+- **Integration Testing**: End-to-end workflow testing
+- **Performance Testing**: Load testing with simulated user scenarios
+- **Security Testing**: Penetration testing and vulnerability assessment
+- **User Acceptance Testing**: Business stakeholder validation
+
+## 7. Deployment Requirements
+- **Blue-Green Deployment**: Zero-downtime deployment strategy
+- **Automated Deployment**: CI/CD pipeline with Azure DevOps
+- **Database Updates**: Automated database schema migrations
+- **Configuration Management**: Environment-specific configuration files
+- **Rollback Strategy**: Automated rollback capability within 15 minutes
+
+## 8. Risk Assessment
+| Risk | Impact | Probability | Mitigation |
+|------|--------|-------------|------------|
+| Performance degradation under load | High | Medium | Load testing and performance optimization |
+| Third-party API failures | Medium | High | Circuit breaker pattern and fallback mechanisms |
+| Database connectivity issues | High | Low | Connection pooling and failover clustering |
+| Security vulnerabilities | High | Medium | Regular security audits and penetration testing |
+
+## 9. Approval Matrix
+| Role | Name | Signature | Date |
+|------|------|-----------|------|
+| Business Analyst | {{BAName}} |  |  |
+| Technical Lead | {{TechLeadName}} |  |  |
+| Project Manager | {{PMName}} |  |  |
+| Stakeholder | {{StakeholderName}} |  |  |`,
         category: "sdlc_templates",
         component: "technical_requirements",
         sdlcStage: "development",
@@ -6333,7 +6970,730 @@ public class ContentController : FoundationController
         id: "sdlc_templates-api_specification-development",
         title: "API Specification",
         description: "RESTful API specification template with OpenAPI documentation",
-        content: "Generate a complete API specification template with endpoint documentation, authentication, and error handling.",
+        content: `Generate a complete API specification template with endpoint documentation, authentication, and error handling.
+
+# API Specification Template
+## {{APITitle}} v{{APIVersion}}
+
+### Document Information
+- **API Name**: {{APITitle}}
+- **Version**: {{APIVersion}}
+- **Specification Version**: OpenAPI 3.0.3
+- **Base URL**: {{BaseURL}}
+- **Contact**: {{ContactEmail}}
+- **License**: {{LicenseType}}
+- **Last Updated**: {{LastUpdated}}
+- **Status**: {{APIStatus}}
+
+### API Overview
+
+#### Description
+{{APIDescription}}
+
+#### Key Features
+- {{KeyFeature1}}
+- {{KeyFeature2}}
+- {{KeyFeature3}}
+- {{KeyFeature4}}
+
+#### Architecture Overview
+**API Type**: {{APIType}}
+**Protocol**: {{Protocol}}
+**Data Format**: {{DataFormat}}
+**Authentication**: {{AuthenticationType}}
+**Rate Limiting**: {{RateLimiting}}
+
+### OpenAPI Specification
+
+\`\`\`yaml
+openapi: 3.0.3
+info:
+  title: {{APITitle}}
+  version: {{APIVersion}}
+  description: {{APIDescription}}
+  termsOfService: {{TermsOfServiceURL}}
+  contact:
+    name: {{ContactName}}
+    email: {{ContactEmail}}
+    url: {{ContactURL}}
+  license:
+    name: {{LicenseName}}
+    url: {{LicenseURL}}
+
+servers:
+  - url: {{ProductionURL}}
+    description: Production server
+  - url: {{StagingURL}}
+    description: Staging server
+  - url: {{DevelopmentURL}}
+    description: Development server
+
+paths:
+  /{{resourcePath}}:
+    get:
+      summary: {{GetSummary}}
+      description: {{GetDescription}}
+      operationId: {{GetOperationId}}
+      tags:
+        - {{ResourceTag}}
+      parameters:
+        - name: {{QueryParam1}}
+          in: query
+          required: {{Param1Required}}
+          schema:
+            type: {{Param1Type}}
+          description: {{Param1Description}}
+        - name: {{QueryParam2}}
+          in: query
+          required: {{Param2Required}}
+          schema:
+            type: {{Param2Type}}
+          description: {{Param2Description}}
+      responses:
+        '200':
+          description: {{SuccessDescription}}
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  {{ResponseProperty1}}:
+                    type: {{ResponseType1}}
+                    description: {{ResponseDescription1}}
+                  {{ResponseProperty2}}:
+                    type: {{ResponseType2}}
+                    description: {{ResponseDescription2}}
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    post:
+      summary: {{PostSummary}}
+      description: {{PostDescription}}
+      operationId: {{PostOperationId}}
+      tags:
+        - {{ResourceTag}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - {{RequiredField1}}
+                - {{RequiredField2}}
+              properties:
+                {{RequestField1}}:
+                  type: {{RequestType1}}
+                  description: {{RequestDescription1}}
+                {{RequestField2}}:
+                  type: {{RequestType2}}
+                  description: {{RequestDescription2}}
+                {{RequestField3}}:
+                  type: {{RequestType3}}
+                  description: {{RequestDescription3}}
+      responses:
+        '201':
+          description: {{CreateSuccessDescription}}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/{{ResourceSchema}}'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '401':
+          description: Unauthorized
+        '409':
+          description: Conflict
+        '500':
+          description: Internal Server Error
+
+  /{{resourcePath}}/{id}:
+    get:
+      summary: {{GetByIdSummary}}
+      description: {{GetByIdDescription}}
+      operationId: {{GetByIdOperationId}}
+      tags:
+        - {{ResourceTag}}
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: {{IdType}}
+          description: {{IdDescription}}
+      responses:
+        '200':
+          description: {{GetByIdSuccessDescription}}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/{{ResourceSchema}}'
+        '404':
+          description: {{ResourceName}} not found
+        '500':
+          description: Internal Server Error
+    
+    put:
+      summary: {{PutSummary}}
+      description: {{PutDescription}}
+      operationId: {{PutOperationId}}
+      tags:
+        - {{ResourceTag}}
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: {{IdType}}
+          description: {{IdDescription}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/{{UpdateSchema}}'
+      responses:
+        '200':
+          description: {{UpdateSuccessDescription}}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/{{ResourceSchema}}'
+        '400':
+          description: Bad Request
+        '404':
+          description: {{ResourceName}} not found
+        '500':
+          description: Internal Server Error
+    
+    delete:
+      summary: {{DeleteSummary}}
+      description: {{DeleteDescription}}
+      operationId: {{DeleteOperationId}}
+      tags:
+        - {{ResourceTag}}
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: {{IdType}}
+          description: {{IdDescription}}
+      responses:
+        '204':
+          description: {{DeleteSuccessDescription}}
+        '404':
+          description: {{ResourceName}} not found
+        '500':
+          description: Internal Server Error
+
+components:
+  schemas:
+    {{ResourceSchema}}:
+      type: object
+      required:
+        - {{RequiredProperty1}}
+        - {{RequiredProperty2}}
+      properties:
+        {{Property1}}:
+          type: {{PropertyType1}}
+          description: {{PropertyDescription1}}
+        {{Property2}}:
+          type: {{PropertyType2}}
+          description: {{PropertyDescription2}}
+        {{Property3}}:
+          type: {{PropertyType3}}
+          description: {{PropertyDescription3}}
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+    
+    {{UpdateSchema}}:
+      type: object
+      properties:
+        {{UpdateProperty1}}:
+          type: {{UpdateType1}}
+          description: {{UpdateDescription1}}
+        {{UpdateProperty2}}:
+          type: {{UpdateType2}}
+          description: {{UpdateDescription2}}
+    
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: string
+          description: Additional error details
+        timestamp:
+          type: string
+          format: date-time
+          description: Error occurrence time
+        path:
+          type: string
+          description: API path where error occurred
+    
+    ValidationError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+        - type: object
+          properties:
+            validationErrors:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                    description: Field that failed validation
+                  code:
+                    type: string
+                    description: Validation error code
+                  message:
+                    type: string
+                    description: Validation error message
+
+  securitySchemes:
+    {{AuthScheme1}}:
+      type: {{AuthType1}}
+      scheme: {{AuthScheme1Details}}
+      bearerFormat: {{BearerFormat}}
+    
+    {{AuthScheme2}}:
+      type: {{AuthType2}}
+      name: {{AuthHeaderName}}
+      in: {{AuthHeaderLocation}}
+
+security:
+  - {{AuthScheme1}}: []
+  - {{AuthScheme2}}: []
+
+tags:
+  - name: {{Tag1}}
+    description: {{Tag1Description}}
+  - name: {{Tag2}}
+    description: {{Tag2Description}}
+
+externalDocs:
+  description: {{ExternalDocsDescription}}
+  url: {{ExternalDocsURL}}
+\`\`\`
+
+### Authentication & Authorization
+
+#### Authentication Methods
+
+##### Method 1: {{AuthMethod1}}
+**Type**: {{AuthType1}}
+**Description**: {{AuthDescription1}}
+
+**Implementation**:
+\`\`\`javascript
+// Authentication example
+const authToken = await getAuthToken();
+const response = await fetch('{{BaseURL}}/{{endpoint}}', {
+  method: 'GET',
+  headers: {
+    'Authorization': \`{{AuthPrefix}} \${authToken}\`,
+    'Content-Type': 'application/json'
+  }
+});
+\`\`\`
+
+**Token Format**:
+\`\`\`json
+{
+  "access_token": "{{SampleAccessToken}}",
+  "token_type": "{{TokenType}}",
+  "expires_in": {{ExpiresIn}},
+  "refresh_token": "{{SampleRefreshToken}}"
+}
+\`\`\`
+
+##### Method 2: {{AuthMethod2}}
+**Type**: {{AuthType2}}
+**Description**: {{AuthDescription2}}
+
+**Headers Required**:
+- \`{{AuthHeader1}}\`: {{AuthHeaderDescription1}}
+- \`{{AuthHeader2}}\`: {{AuthHeaderDescription2}}
+
+#### Authorization Levels
+| Level | Description | Access |
+|-------|-------------|--------|
+| {{AuthLevel1}} | {{AuthLevelDescription1}} | {{AuthLevelAccess1}} |
+| {{AuthLevel2}} | {{AuthLevelDescription2}} | {{AuthLevelAccess2}} |
+| {{AuthLevel3}} | {{AuthLevelDescription3}} | {{AuthLevelAccess3}} |
+
+### Rate Limiting
+
+#### Rate Limit Configuration
+- **Requests per minute**: {{RateLimitPerMinute}}
+- **Requests per hour**: {{RateLimitPerHour}}
+- **Requests per day**: {{RateLimitPerDay}}
+- **Burst limit**: {{BurstLimit}}
+
+#### Rate Limit Headers
+\`\`\`
+X-RateLimit-Limit: {{RateLimitValue}}
+X-RateLimit-Remaining: {{RateLimitRemaining}}
+X-RateLimit-Reset: {{RateLimitReset}}
+X-RateLimit-Retry-After: {{RetryAfter}}
+\`\`\`
+
+#### Rate Limit Exceeded Response
+\`\`\`json
+{
+  "error": "rate_limit_exceeded",
+  "message": "API rate limit exceeded. Please retry after {{RetryAfter}} seconds.",
+  "details": "You have exceeded the allowed number of requests per {{TimeWindow}}.",
+  "retryAfter": {{RetryAfterSeconds}},
+  "limit": {{CurrentLimit}},
+  "remaining": 0,
+  "resetTime": "{{ResetTimestamp}}"
+}
+\`\`\`
+
+### API Endpoints Documentation
+
+#### Resource: {{ResourceName}}
+
+##### GET /{{resourcePath}}
+**Purpose**: {{GetPurpose}}
+**Authentication**: {{GetAuthentication}}
+**Rate Limit**: {{GetRateLimit}}
+
+**Query Parameters**:
+| Parameter | Type | Required | Description | Example |
+|-----------|------|----------|-------------|---------|
+| {{QueryParam1}} | {{Param1Type}} | {{Param1Required}} | {{Param1Description}} | {{Param1Example}} |
+| {{QueryParam2}} | {{Param2Type}} | {{Param2Required}} | {{Param2Description}} | {{Param2Example}} |
+
+**Request Example**:
+\`\`\`bash
+curl -X GET "{{BaseURL}}/{{resourcePath}}?{{QueryParam1}}={{ExampleValue1}}" \\
+  -H "Authorization: Bearer {{SampleToken}}" \\
+  -H "Content-Type: application/json"
+\`\`\`
+
+**Response Example (200 OK)**:
+\`\`\`json
+{
+  "data": [
+    {
+      "{{Property1}}": "{{ExampleValue1}}",
+      "{{Property2}}": "{{ExampleValue2}}",
+      "{{Property3}}": {{ExampleValue3}},
+      "createdAt": "{{CreatedAtExample}}",
+      "updatedAt": "{{UpdatedAtExample}}"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 100,
+    "pages": 5
+  },
+  "meta": {
+    "requestId": "{{RequestId}}",
+    "timestamp": "{{TimestampExample}}"
+  }
+}
+\`\`\`
+
+##### POST /{{resourcePath}}
+**Purpose**: {{PostPurpose}}
+**Authentication**: {{PostAuthentication}}
+**Rate Limit**: {{PostRateLimit}}
+
+**Request Body**:
+\`\`\`json
+{
+  "{{RequestField1}}": "{{RequestExample1}}",
+  "{{RequestField2}}": "{{RequestExample2}}",
+  "{{RequestField3}}": {{RequestExample3}}
+}
+\`\`\`
+
+**Request Example**:
+\`\`\`bash
+curl -X POST "{{BaseURL}}/{{resourcePath}}" \\
+  -H "Authorization: Bearer {{SampleToken}}" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "{{RequestField1}}": "{{RequestExample1}}",
+    "{{RequestField2}}": "{{RequestExample2}}"
+  }'
+\`\`\`
+
+**Response Example (201 Created)**:
+\`\`\`json
+{
+  "data": {
+    "id": "{{CreatedId}}",
+    "{{Property1}}": "{{CreatedValue1}}",
+    "{{Property2}}": "{{CreatedValue2}}",
+    "createdAt": "{{CreatedTimestamp}}",
+    "updatedAt": "{{CreatedTimestamp}}"
+  },
+  "meta": {
+    "requestId": "{{RequestId}}",
+    "timestamp": "{{TimestampExample}}"
+  }
+}
+\`\`\`
+
+### Error Handling
+
+#### Error Response Format
+All API errors follow a consistent format:
+
+\`\`\`json
+{
+  "error": "{{ErrorCode}}",
+  "message": "{{ErrorMessage}}",
+  "details": "{{ErrorDetails}}",
+  "timestamp": "{{ErrorTimestamp}}",
+  "path": "{{ErrorPath}}",
+  "requestId": "{{ErrorRequestId}}"
+}
+\`\`\`
+
+#### HTTP Status Codes
+| Code | Meaning | Description |
+|------|---------|-------------|
+| 200 | OK | Request successful |
+| 201 | Created | Resource created successfully |
+| 204 | No Content | Request successful, no content to return |
+| 400 | Bad Request | Invalid request data |
+| 401 | Unauthorized | Authentication required |
+| 403 | Forbidden | Access denied |
+| 404 | Not Found | Resource not found |
+| 409 | Conflict | Resource conflict |
+| 422 | Unprocessable Entity | Validation error |
+| 429 | Too Many Requests | Rate limit exceeded |
+| 500 | Internal Server Error | Server error |
+| 502 | Bad Gateway | Upstream service error |
+| 503 | Service Unavailable | Service temporarily unavailable |
+
+#### Common Error Examples
+
+**400 Bad Request**:
+\`\`\`json
+{
+  "error": "bad_request",
+  "message": "Invalid request parameters",
+  "details": "The request contains invalid or missing parameters",
+  "validationErrors": [
+    {
+      "field": "{{FieldName}}",
+      "code": "{{ValidationCode}}",
+      "message": "{{ValidationMessage}}"
+    }
+  ]
+}
+\`\`\`
+
+**401 Unauthorized**:
+\`\`\`json
+{
+  "error": "unauthorized",
+  "message": "Authentication required",
+  "details": "Valid authentication token is required to access this resource"
+}
+\`\`\`
+
+**404 Not Found**:
+\`\`\`json
+{
+  "error": "not_found",
+  "message": "Resource not found",
+  "details": "The requested {{ResourceType}} with ID {{ResourceId}} was not found"
+}
+\`\`\`
+
+### Data Models
+
+#### {{ResourceName}} Model
+\`\`\`typescript
+interface {{ResourceInterface}} {
+  {{Property1}}: {{PropertyType1}};
+  {{Property2}}: {{PropertyType2}};
+  {{Property3}}: {{PropertyType3}};
+  createdAt: string; // ISO 8601 datetime
+  updatedAt: string; // ISO 8601 datetime
+}
+\`\`\`
+
+#### {{CreateRequestInterface}} Model
+\`\`\`typescript
+interface {{CreateRequestInterface}} {
+  {{RequestField1}}: {{RequestType1}};
+  {{RequestField2}}: {{RequestType2}};
+  {{RequestField3}}?: {{RequestType3}}; // Optional field
+}
+\`\`\`
+
+#### {{UpdateRequestInterface}} Model
+\`\`\`typescript
+interface {{UpdateRequestInterface}} {
+  {{UpdateField1}}?: {{UpdateType1}};
+  {{UpdateField2}}?: {{UpdateType2}};
+  {{UpdateField3}}?: {{UpdateType3}};
+}
+\`\`\`
+
+### SDK and Client Libraries
+
+#### JavaScript/TypeScript SDK
+\`\`\`typescript
+import { {{APIClientClass}} } from '{{PackageName}}';
+
+const client = new {{APIClientClass}}({
+  baseUrl: '{{BaseURL}}',
+  apiKey: '{{APIKey}}',
+  timeout: {{Timeout}}
+});
+
+// Example usage
+const {{resourceVariable}} = await client.{{resourcePath}}.create({
+  {{RequestField1}}: '{{ExampleValue1}}',
+  {{RequestField2}}: '{{ExampleValue2}}'
+});
+
+const {{resourceList}} = await client.{{resourcePath}}.list({
+  {{QueryParam1}}: '{{FilterValue}}',
+  page: 1,
+  limit: 20
+});
+\`\`\`
+
+#### Python SDK
+\`\`\`python
+from {{package_name}} import {{APIClientClass}}
+
+client = {{APIClientClass}}(
+    base_url='{{BaseURL}}',
+    api_key='{{APIKey}}',
+    timeout={{Timeout}}
+)
+
+# Example usage
+{{resource_variable}} = client.{{resource_path}}.create({
+    '{{RequestField1}}': '{{ExampleValue1}}',
+    '{{RequestField2}}': '{{ExampleValue2}}'
+})
+
+{{resource_list}} = client.{{resource_path}}.list(
+    {{query_param_1}}='{{FilterValue}}',
+    page=1,
+    limit=20
+)
+\`\`\`
+
+### Testing and Validation
+
+#### API Testing Checklist
+- [ ] **Authentication**: All endpoints require proper authentication
+- [ ] **Authorization**: Role-based access control working correctly
+- [ ] **Input Validation**: Invalid inputs are properly rejected
+- [ ] **Rate Limiting**: Rate limits are enforced correctly
+- [ ] **Error Handling**: Consistent error responses
+- [ ] **Data Validation**: Response data matches schema
+- [ ] **Security**: No sensitive data exposed in responses
+- [ ] **Performance**: Response times meet SLA requirements
+
+#### Test Data Examples
+\`\`\`json
+{
+  "valid_{{resource_name}}": {
+    "{{RequestField1}}": "{{ValidValue1}}",
+    "{{RequestField2}}": "{{ValidValue2}}",
+    "{{RequestField3}}": {{ValidValue3}}
+  },
+  "invalid_{{resource_name}}": {
+    "{{RequestField1}}": "{{InvalidValue1}}",
+    "{{RequestField2}}": null,
+    "{{RequestField3}}": "{{InvalidValue3}}"
+  }
+}
+\`\`\`
+
+### Changelog and Versioning
+
+#### Version {{CurrentVersion}}
+**Release Date**: {{ReleaseDate}}
+**Changes**:
+- {{Change1}}
+- {{Change2}}
+- {{Change3}}
+
+#### Version {{PreviousVersion}}
+**Release Date**: {{PreviousReleaseDate}}
+**Changes**:
+- {{PreviousChange1}}
+- {{PreviousChange2}}
+
+### Support and Contact
+
+#### Support Information
+- **API Documentation**: {{DocumentationURL}}
+- **Support Portal**: {{SupportURL}}
+- **Community Forum**: {{ForumURL}}
+- **Status Page**: {{StatusPageURL}}
+
+#### Contact Details
+- **Technical Support**: {{SupportEmail}}
+- **API Team**: {{APITeamEmail}}
+- **Sales**: {{SalesEmail}}
+- **Emergency Contact**: {{EmergencyContact}}
+
+#### SLA and Availability
+- **Uptime Guarantee**: {{UptimeGuarantee}}%
+- **Response Time SLA**: {{ResponseTimeSLA}}ms
+- **Support Hours**: {{SupportHours}}
+- **Maintenance Windows**: {{MaintenanceWindows}}
+
+This comprehensive API specification provides developers with all necessary information to successfully integrate with the {{APITitle}} API.`,
         category: "sdlc_templates",
         component: "api_specification",
         sdlcStage: "development",
@@ -7527,7 +8887,697 @@ public class CustomMetrics
         id: "sdlc_templates-log_analysis-development",
         title: "Log Analysis",
         description: "Log analysis and management system template with ELK stack integration",
-        content: "Create comprehensive log analysis template with structured logging, ELK stack integration, and log management procedures.",
+        content: `Create comprehensive log analysis template with structured logging, ELK stack integration, and log management procedures.
+
+# Comprehensive Log Analysis Template
+## Structured Logging, ELK Stack Integration, and Log Management Procedures
+
+## 1. Log Analysis Overview
+
+### 1.1 Purpose
+This template provides a comprehensive framework for log analysis in Sitecore applications, including structured logging implementation, ELK stack integration, and automated log management procedures.
+
+### 1.2 Scope
+- Application logging configuration
+- ELK stack setup and integration
+- Log parsing and analysis procedures
+- Automated monitoring and alerting
+- Performance and security analysis
+
+## 2. Structured Logging Implementation
+
+### 2.1 Serilog Configuration
+\`\`\`csharp
+// Startup.cs or Program.cs
+public static void ConfigureLogging(IServiceCollection services, IConfiguration configuration)
+{
+    Log.Logger = new LoggerConfiguration()
+        .MinimumLevel.Information()
+        .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+        .MinimumLevel.Override("Sitecore", LogEventLevel.Information)
+        .Enrich.FromLogContext()
+        .Enrich.WithProperty("Application", "{{ApplicationName}}")
+        .Enrich.WithProperty("Environment", Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"))
+        .Enrich.WithMachineName()
+        .Enrich.WithProcessId()
+        .Enrich.WithThreadId()
+        .WriteTo.Console(new JsonFormatter())
+        .WriteTo.File(
+            path: "logs/application-.log",
+            rollingInterval: RollingInterval.Day,
+            formatter: new JsonFormatter(),
+            retainedFileCountLimit: 30)
+        .WriteTo.Elasticsearch(new ElasticsearchSinkOptions(new Uri(configuration["Elasticsearch:Uri"]))
+        {
+            IndexFormat = "{{ApplicationName}}-logs-{0:yyyy.MM.dd}",
+            AutoRegisterTemplate = true,
+            AutoRegisterTemplateVersion = AutoRegisterTemplateVersion.ESv7,
+            CustomFormatter = new ElasticsearchJsonFormatter(),
+            EmitEventFailure = EmitEventFailureHandling.WriteToSelfLog,
+            QueueSizeLimit = 5000,
+            BatchPostingLimit = 50,
+            Period = TimeSpan.FromSeconds(10)
+        })
+        .CreateLogger();
+
+    services.AddSingleton<Serilog.ILogger>(Log.Logger);
+}
+\`\`\`
+
+### 2.2 Custom Log Context Enrichers
+\`\`\`csharp
+public class SitecoreContextEnricher : ILogEventEnricher
+{
+    public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory)
+    {
+        if (Sitecore.Context.Item != null)
+        {
+            logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("SitecoreItemId", Sitecore.Context.Item.ID.ToString()));
+            logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("SitecoreItemPath", Sitecore.Context.Item.Paths.FullPath));
+            logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("SitecoreTemplateName", Sitecore.Context.Item.TemplateName));
+        }
+        
+        if (Sitecore.Context.User != null)
+        {
+            logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("SitecoreUser", Sitecore.Context.User.Name));
+            logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("SitecoreUserRoles", string.Join(",", Sitecore.Context.User.Roles.Select(r => r.Name))));
+        }
+        
+        if (Sitecore.Context.Site != null)
+        {
+            logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("SitecoreSite", Sitecore.Context.Site.Name));
+        }
+        
+        var httpContext = HttpContext.Current;
+        if (httpContext != null)
+        {
+            logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("RequestId", httpContext.Request.Headers["X-Request-ID"] ?? Guid.NewGuid().ToString()));
+            logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("UserAgent", httpContext.Request.UserAgent));
+            logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("RemoteIpAddress", GetClientIpAddress(httpContext)));
+            logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("RequestUrl", httpContext.Request.Url?.ToString()));
+            logEvent.AddPropertyIfAbsent(propertyFactory.CreateProperty("HttpMethod", httpContext.Request.HttpMethod));
+        }
+    }
+    
+    private string GetClientIpAddress(HttpContext context)
+    {
+        string ipAddress = context.Request.ServerVariables["HTTP_X_FORWARDED_FOR"];
+        
+        if (!string.IsNullOrEmpty(ipAddress))
+        {
+            string[] addresses = ipAddress.Split(',');
+            if (addresses.Length != 0)
+            {
+                return addresses[0];
+            }
+        }
+        
+        return context.Request.ServerVariables["REMOTE_ADDR"];
+    }
+}
+\`\`\`
+
+### 2.3 Performance Logging Middleware
+\`\`\`csharp
+public class PerformanceLoggingMiddleware
+{
+    private readonly RequestDelegate _next;
+    private readonly ILogger<PerformanceLoggingMiddleware> _logger;
+    
+    public PerformanceLoggingMiddleware(RequestDelegate next, ILogger<PerformanceLoggingMiddleware> logger)
+    {
+        _next = next;
+        _logger = logger;
+    }
+    
+    public async Task InvokeAsync(HttpContext context)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        var requestId = context.Request.Headers["X-Request-ID"].FirstOrDefault() ?? Guid.NewGuid().ToString();
+        
+        using (_logger.BeginScope(new Dictionary<string, object>
+        {
+            ["RequestId"] = requestId,
+            ["RequestPath"] = context.Request.Path,
+            ["RequestMethod"] = context.Request.Method
+        }))
+        {
+            _logger.LogInformation("Request started: {RequestMethod} {RequestPath}", 
+                context.Request.Method, context.Request.Path);
+            
+            try
+            {
+                await _next(context);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Request failed: {RequestMethod} {RequestPath}", 
+                    context.Request.Method, context.Request.Path);
+                throw;
+            }
+            finally
+            {
+                stopwatch.Stop();
+                
+                _logger.LogInformation("Request completed: {RequestMethod} {RequestPath} responded {StatusCode} in {ElapsedMilliseconds}ms",
+                    context.Request.Method, 
+                    context.Request.Path, 
+                    context.Response.StatusCode, 
+                    stopwatch.ElapsedMilliseconds);
+                    
+                // Log performance metrics
+                if (stopwatch.ElapsedMilliseconds > 5000) // Log slow requests
+                {
+                    _logger.LogWarning("Slow request detected: {RequestMethod} {RequestPath} took {ElapsedMilliseconds}ms",
+                        context.Request.Method, context.Request.Path, stopwatch.ElapsedMilliseconds);
+                }
+            }
+        }
+    }
+}
+\`\`\`
+
+## 3. ELK Stack Configuration
+
+### 3.1 Elasticsearch Index Template
+\`\`\`json
+{
+  "index_patterns": ["{{ApplicationName}}-logs-*"],
+  "template": {
+    "settings": {
+      "number_of_shards": 1,
+      "number_of_replicas": 1,
+      "index.refresh_interval": "30s",
+      "index.lifecycle.name": "{{ApplicationName}}-policy",
+      "index.lifecycle.rollover_alias": "{{ApplicationName}}-logs"
+    },
+    "mappings": {
+      "properties": {
+        "@timestamp": {
+          "type": "date",
+          "format": "strict_date_optional_time||epoch_millis"
+        },
+        "level": {
+          "type": "keyword"
+        },
+        "message": {
+          "type": "text",
+          "analyzer": "standard"
+        },
+        "fields": {
+          "properties": {
+            "Application": {"type": "keyword"},
+            "Environment": {"type": "keyword"},
+            "MachineName": {"type": "keyword"},
+            "ProcessId": {"type": "long"},
+            "ThreadId": {"type": "long"},
+            "RequestId": {"type": "keyword"},
+            "SitecoreItemId": {"type": "keyword"},
+            "SitecoreItemPath": {"type": "keyword"},
+            "SitecoreTemplateName": {"type": "keyword"},
+            "SitecoreUser": {"type": "keyword"},
+            "SitecoreSite": {"type": "keyword"},
+            "UserAgent": {"type": "text"},
+            "RemoteIpAddress": {"type": "ip"},
+            "RequestUrl": {"type": "keyword"},
+            "HttpMethod": {"type": "keyword"},
+            "ElapsedMilliseconds": {"type": "long"}
+          }
+        }
+      }
+    }
+  }
+}
+\`\`\`
+
+### 3.2 Logstash Configuration
+\`\`\`ruby
+input {
+  beats {
+    port => 5044
+  }
+  
+  file {
+    path => "/var/log/{{ApplicationName}}/*.log"
+    start_position => "beginning"
+    codec => json
+  }
+}
+
+filter {
+  # Parse timestamp
+  date {
+    match => [ "@timestamp", "ISO8601" ]
+  }
+  
+  # Extract request duration from message
+  grok {
+    match => { "message" => "Request completed.*in %{NUMBER:duration_ms:int}ms" }
+    tag_on_failure => []
+  }
+  
+  # Parse exception details
+  if [fields][Exception] {
+    mutate {
+      add_field => { "error_type" => "%{[fields][Exception][Type]}" }
+      add_field => { "error_message" => "%{[fields][Exception][Message]}" }
+      add_field => { "stack_trace" => "%{[fields][Exception][StackTrace]}" }
+    }
+  }
+  
+  # Categorize log levels
+  if [level] == "Error" or [level] == "Fatal" {
+    mutate { add_tag => ["error"] }
+  } else if [level] == "Warning" {
+    mutate { add_tag => ["warning"] }
+  } else if [level] == "Information" {
+    mutate { add_tag => ["info"] }
+  }
+  
+  # Performance categorization
+  if [duration_ms] {
+    if [duration_ms] > 10000 {
+      mutate { add_tag => ["very_slow"] }
+    } else if [duration_ms] > 5000 {
+      mutate { add_tag => ["slow"] }
+    } else if [duration_ms] > 2000 {
+      mutate { add_tag => ["moderate"] }
+    } else {
+      mutate { add_tag => ["fast"] }
+    }
+  }
+  
+  # Security analysis
+  if [fields][RemoteIpAddress] {
+    # Check for suspicious IPs (implement your logic)
+    if [fields][RemoteIpAddress] =~ /^(10\.|192\.168\.|172\.)/ {
+      mutate { add_tag => ["internal_network"] }
+    } else {
+      mutate { add_tag => ["external_network"] }
+    }
+  }
+  
+  # Bot detection
+  if [fields][UserAgent] {
+    if [fields][UserAgent] =~ /(bot|spider|crawler)/i {
+      mutate { add_tag => ["bot_traffic"] }
+    }
+  }
+}
+
+output {
+  elasticsearch {
+    hosts => ["elasticsearch:9200"]
+    index => "{{ApplicationName}}-logs-%{+YYYY.MM.dd}"
+  }
+  
+  # Send errors to separate index for alerting
+  if "error" in [tags] {
+    elasticsearch {
+      hosts => ["elasticsearch:9200"]
+      index => "{{ApplicationName}}-errors-%{+YYYY.MM.dd}"
+    }
+  }
+  
+  stdout { codec => rubydebug }
+}
+\`\`\`
+
+### 3.3 Kibana Dashboard Configuration
+\`\`\`json
+{
+  "dashboard": {
+    "title": "{{ApplicationName}} - Application Monitoring",
+    "visualizations": [
+      {
+        "title": "Request Volume Over Time",
+        "type": "line_chart",
+        "query": {
+          "bool": {
+            "filter": [
+              {"term": {"fields.Application": "{{ApplicationName}}"}},
+              {"range": {"@timestamp": {"gte": "now-24h"}}}
+            ]
+          }
+        },
+        "aggregation": {
+          "date_histogram": {
+            "field": "@timestamp",
+            "interval": "5m"
+          }
+        }
+      },
+      {
+        "title": "Error Rate",
+        "type": "metric",
+        "query": {
+          "bool": {
+            "filter": [
+              {"term": {"fields.Application": "{{ApplicationName}}"}},
+              {"terms": {"level": ["Error", "Fatal"]}},
+              {"range": {"@timestamp": {"gte": "now-1h"}}}
+            ]
+          }
+        }
+      },
+      {
+        "title": "Average Response Time",
+        "type": "metric",
+        "query": {
+          "bool": {
+            "filter": [
+              {"term": {"fields.Application": "{{ApplicationName}}"}},
+              {"exists": {"field": "fields.ElapsedMilliseconds"}},
+              {"range": {"@timestamp": {"gte": "now-1h"}}}
+            ]
+          }
+        },
+        "aggregation": {
+          "avg": {
+            "field": "fields.ElapsedMilliseconds"
+          }
+        }
+      },
+      {
+        "title": "Top Error Messages",
+        "type": "data_table",
+        "query": {
+          "bool": {
+            "filter": [
+              {"term": {"fields.Application": "{{ApplicationName}}"}},
+              {"terms": {"level": ["Error", "Fatal"]}},
+              {"range": {"@timestamp": {"gte": "now-24h"}}}
+            ]
+          }
+        },
+        "aggregation": {
+          "terms": {
+            "field": "message.keyword",
+            "size": 10
+          }
+        }
+      },
+      {
+        "title": "Slowest Requests",
+        "type": "data_table",
+        "query": {
+          "bool": {
+            "filter": [
+              {"term": {"fields.Application": "{{ApplicationName}}"}},
+              {"range": {"fields.ElapsedMilliseconds": {"gte": 2000}}},
+              {"range": {"@timestamp": {"gte": "now-1h"}}}
+            ]
+          }
+        },
+        "sort": [
+          {"fields.ElapsedMilliseconds": {"order": "desc"}}
+        ]
+      }
+    ]
+  }
+}
+\`\`\`
+
+## 4. Log Analysis Queries
+
+### 4.1 Performance Analysis Queries
+\`\`\`json
+# Find slowest endpoints in last hour
+{
+  "query": {
+    "bool": {
+      "filter": [
+        {"range": {"@timestamp": {"gte": "now-1h"}}},
+        {"exists": {"field": "fields.ElapsedMilliseconds"}},
+        {"term": {"fields.Application": "{{ApplicationName}}"}}
+      ]
+    }
+  },
+  "aggs": {
+    "slowest_endpoints": {
+      "terms": {
+        "field": "fields.RequestPath.keyword",
+        "size": 10
+      },
+      "aggs": {
+        "avg_response_time": {
+          "avg": {"field": "fields.ElapsedMilliseconds"}
+        },
+        "max_response_time": {
+          "max": {"field": "fields.ElapsedMilliseconds"}
+        }
+      }
+    }
+  },
+  "sort": [{"fields.ElapsedMilliseconds": {"order": "desc"}}],
+  "size": 20
+}
+
+# Database query performance analysis
+{
+  "query": {
+    "bool": {
+      "filter": [
+        {"range": {"@timestamp": {"gte": "now-4h"}}},
+        {"wildcard": {"message": "*SQL*"}},
+        {"term": {"level": "Information"}}
+      ]
+    }
+  },
+  "aggs": {
+    "query_performance": {
+      "range": {
+        "field": "fields.ElapsedMilliseconds",
+        "ranges": [
+          {"key": "fast", "to": 100},
+          {"key": "moderate", "from": 100, "to": 500},
+          {"key": "slow", "from": 500, "to": 2000},
+          {"key": "very_slow", "from": 2000}
+        ]
+      }
+    }
+  }
+}
+\`\`\`
+
+### 4.2 Security Analysis Queries
+\`\`\`json
+# Failed authentication attempts
+{
+  "query": {
+    "bool": {
+      "filter": [
+        {"range": {"@timestamp": {"gte": "now-24h"}}},
+        {"wildcard": {"message": "*authentication*failed*"}},
+        {"term": {"level": "Warning"}}
+      ]
+    }
+  },
+  "aggs": {
+    "failed_attempts_by_ip": {
+      "terms": {
+        "field": "fields.RemoteIpAddress",
+        "size": 20
+      }
+    },
+    "failed_attempts_by_user": {
+      "terms": {
+        "field": "fields.SitecoreUser.keyword",
+        "size": 20
+      }
+    }
+  }
+}
+
+# Suspicious activity detection
+{
+  "query": {
+    "bool": {
+      "filter": [
+        {"range": {"@timestamp": {"gte": "now-1h"}}},
+        {"terms": {"fields.HttpMethod": ["POST", "PUT", "DELETE"]}},
+        {"range": {"fields.ElapsedMilliseconds": {"gte": 10000}}}
+      ]
+    }
+  },
+  "aggs": {
+    "suspicious_ips": {
+      "terms": {
+        "field": "fields.RemoteIpAddress",
+        "min_doc_count": 50
+      }
+    }
+  }
+}
+\`\`\`
+
+### 4.3 Business Intelligence Queries
+\`\`\`json
+# Most accessed Sitecore items
+{
+  "query": {
+    "bool": {
+      "filter": [
+        {"range": {"@timestamp": {"gte": "now-24h"}}},
+        {"exists": {"field": "fields.SitecoreItemPath"}},
+        {"term": {"fields.HttpMethod": "GET"}}
+      ]
+    }
+  },
+  "aggs": {
+    "popular_content": {
+      "terms": {
+        "field": "fields.SitecoreItemPath.keyword",
+        "size": 20
+      },
+      "aggs": {
+        "unique_visitors": {
+          "cardinality": {"field": "fields.RemoteIpAddress"}
+        }
+      }
+    }
+  }
+}
+
+# User behavior analysis
+{
+  "query": {
+    "bool": {
+      "filter": [
+        {"range": {"@timestamp": {"gte": "now-7d"}}},
+        {"exists": {"field": "fields.SitecoreUser"}},
+        {"bool": {"must_not": [{"wildcard": {"fields.SitecoreUser": "*anonymous*"}}]}}
+      ]
+    }
+  },
+  "aggs": {
+    "active_users": {
+      "terms": {
+        "field": "fields.SitecoreUser.keyword",
+        "size": 50
+      },
+      "aggs": {
+        "sessions": {
+          "cardinality": {"field": "fields.RequestId"}
+        },
+        "pages_viewed": {
+          "value_count": {"field": "fields.SitecoreItemPath"}
+        }
+      }
+    }
+  }
+}
+\`\`\`
+
+## 5. Automated Alerting Rules
+
+### 5.1 Watcher Configurations
+\`\`\`json
+{
+  "watcher_rules": [
+    {
+      "name": "High Error Rate",
+      "schedule": {"interval": "5m"},
+      "condition": {
+        "compare": {
+          "ctx.payload.aggregations.error_rate.doc_count": {
+            "gt": 10
+          }
+        }
+      },
+      "actions": {
+        "send_email": {
+          "email": {
+            "to": ["devops@company.com"],
+            "subject": "{{ApplicationName}} - High Error Rate Alert",
+            "body": "Error rate exceeded threshold: {{ctx.payload.aggregations.error_rate.doc_count}} errors in last 5 minutes"
+          }
+        }
+      }
+    },
+    {
+      "name": "Performance Degradation",
+      "schedule": {"interval": "10m"},
+      "condition": {
+        "compare": {
+          "ctx.payload.aggregations.avg_response_time.value": {
+            "gt": 5000
+          }
+        }
+      },
+      "actions": {
+        "send_slack": {
+          "slack": {
+            "message": {
+              "to": ["#alerts"],
+              "text": "{{ApplicationName}} - Performance Alert: Average response time {{ctx.payload.aggregations.avg_response_time.value}}ms"
+            }
+          }
+        }
+      }
+    }
+  ]
+}
+\`\`\`
+
+## 6. Log Management Procedures
+
+### 6.1 Log Retention Policy
+- **Application Logs**: Retain for 90 days in hot storage, 1 year in cold storage
+- **Error Logs**: Retain for 1 year in hot storage, 3 years in cold storage  
+- **Security Logs**: Retain for 2 years in hot storage, 7 years in cold storage
+- **Performance Logs**: Retain for 30 days in hot storage, 6 months in cold storage
+
+### 6.2 Log Cleanup Scripts
+\`\`\`bash
+#!/bin/bash
+# automated-log-cleanup.sh
+
+# Delete indices older than retention period
+curl -X DELETE "elasticsearch:9200/{{ApplicationName}}-logs-$(date -d '90 days ago' '+%Y.%m.%d')"
+curl -X DELETE "elasticsearch:9200/{{ApplicationName}}-errors-$(date -d '365 days ago' '+%Y.%m.%d')"
+
+# Archive old logs to cold storage
+elasticdump --input=http://elasticsearch:9200/{{ApplicationName}}-logs-$(date -d '30 days ago' '+%Y.%m.%d') --output=s3://log-archive/{{ApplicationName}}/$(date -d '30 days ago' '+%Y-%m-%d').json
+
+# Update index lifecycle policies
+curl -X PUT "elasticsearch:9200/_ilm/policy/{{ApplicationName}}-policy" -H 'Content-Type: application/json' -d'
+{
+  "policy": {
+    "phases": {
+      "hot": {
+        "actions": {
+          "rollover": {
+            "max_size": "5GB",
+            "max_age": "1d"
+          }
+        }
+      },
+      "warm": {
+        "min_age": "7d",
+        "actions": {
+          "allocate": {
+            "number_of_replicas": 0
+          }
+        }
+      },
+      "cold": {
+        "min_age": "30d",
+        "actions": {
+          "allocate": {
+            "number_of_replicas": 0
+          }
+        }
+      },
+      "delete": {
+        "min_age": "90d"
+      }
+    }
+  }
+}'
+\`\`\`
+
+This comprehensive log analysis template provides structured logging, ELK stack integration, automated monitoring, and management procedures for enterprise Sitecore applications.`,
         category: "sdlc_templates",
         component: "log_analysis",
         sdlcStage: "development",
@@ -7541,7 +9591,307 @@ public class CustomMetrics
         id: "sdlc_templates-requirements_analysis-requirements",
         title: "Requirements Analysis Template",
         description: "Structured requirements gathering and analysis template",
-        content: "Create a structured requirements analysis template for gathering functional and non-functional requirements with stakeholder input.",
+        content: `Create a structured requirements analysis template for gathering functional and non-functional requirements with stakeholder input.
+
+# Requirements Analysis Template
+## Comprehensive Requirements Gathering Framework
+
+### Document Control
+- **Document Version**: 1.0
+- **Project**: {{ProjectName}}
+- **Created By**: {{RequirementsAnalyst}}
+- **Creation Date**: {{CreationDate}}
+- **Last Updated**: {{LastUpdatedDate}}
+- **Status**: {{DocumentStatus}}
+- **Approval**: {{ApprovalStatus}}
+
+## 1. Project Overview
+
+### 1.1 Project Background
+**Business Context**: {{BusinessContext}}
+**Project Drivers**: {{ProjectDrivers}}
+**Expected Outcomes**: {{ExpectedOutcomes}}
+
+### 1.2 Stakeholder Analysis
+| Stakeholder Group | Primary Contact | Role | Influence | Interest | Requirements Input |
+|-------------------|-----------------|------|-----------|----------|-------------------|
+| Business Sponsor | {{SponsorName}} | Executive | High | High | Strategic objectives |
+| Product Owner | {{ProductOwnerName}} | Business | High | High | Functional requirements |
+| End Users | {{EndUserRep}} | Operational | Medium | High | User experience requirements |
+| Technical Lead | {{TechnicalLeadName}} | Technical | Medium | Medium | Technical constraints |
+| Compliance Officer | {{ComplianceOfficer}} | Governance | Medium | Medium | Regulatory requirements |
+| IT Operations | {{ITOpsLead}} | Support | Low | Medium | Operational requirements |
+
+### 1.3 Business Objectives
+**Primary Objectives**:
+1. {{PrimaryObjective1}}
+2. {{PrimaryObjective2}}
+3. {{PrimaryObjective3}}
+
+**Success Metrics**:
+- {{SuccessMetric1}}
+- {{SuccessMetric2}}
+- {{SuccessMetric3}}
+
+**Key Performance Indicators**:
+- {{KPI1}}
+- {{KPI2}}
+- {{KPI3}}
+
+## 2. Requirements Gathering Methodology
+
+### 2.1 Information Gathering Techniques
+- **Stakeholder Interviews**: One-on-one sessions with key stakeholders
+- **Focus Groups**: Collaborative sessions with user groups
+- **Workshops**: Facilitated requirements elicitation sessions
+- **Document Analysis**: Review of existing systems and processes
+- **Observation**: Shadowing users in their work environment
+- **Surveys**: Structured questionnaires for broad input
+- **Prototyping**: Interactive mockups for validation
+
+### 2.2 Requirements Categories
+#### Functional Requirements (FR)
+- **User Functions**: What users need to accomplish
+- **System Functions**: What the system needs to do
+- **Business Rules**: Constraints and validation logic
+- **Data Requirements**: Information that needs to be managed
+
+#### Non-Functional Requirements (NFR)
+- **Performance**: Speed, throughput, response times
+- **Scalability**: Growth and load handling
+- **Security**: Authentication, authorization, data protection
+- **Usability**: User experience and accessibility
+- **Reliability**: Uptime, fault tolerance, recovery
+- **Compatibility**: Integration with existing systems
+- **Compliance**: Regulatory and standards adherence
+
+## 3. Functional Requirements Analysis
+
+### 3.1 User Story Framework
+\`\`\`
+As a [USER ROLE]
+I want to [CAPABILITY/FUNCTIONALITY]  
+So that [BUSINESS VALUE/BENEFIT]
+
+Acceptance Criteria:
+- Given [INITIAL CONTEXT]
+- When [EVENT OCCURS]
+- Then [EXPECTED OUTCOME]
+- And [ADDITIONAL OUTCOMES]
+\`\`\`
+
+### 3.2 Business Process Analysis
+#### Current State Process Map
+1. **Process**: {{CurrentProcessName}}
+   - **Steps**: {{CurrentProcessSteps}}
+   - **Pain Points**: {{CurrentPainPoints}}
+   - **Inefficiencies**: {{CurrentInefficiencies}}
+
+2. **Process**: {{CurrentProcessName2}}
+   - **Steps**: {{CurrentProcessSteps2}}
+   - **Pain Points**: {{CurrentPainPoints2}}
+   - **Inefficiencies**: {{CurrentInefficiencies2}}
+
+#### Future State Process Map
+1. **Process**: {{FutureProcessName}}
+   - **Improved Steps**: {{FutureProcessSteps}}
+   - **Automation Points**: {{AutomationOpportunities}}
+   - **Expected Benefits**: {{ProcessBenefits}}
+
+### 3.3 Data Requirements Analysis
+#### Data Entities
+| Entity Name | Description | Attributes | Data Volume | Criticality |
+|-------------|-------------|------------|-------------|-------------|
+| {{EntityName1}} | {{EntityDescription1}} | {{EntityAttributes1}} | {{DataVolume1}} | {{Criticality1}} |
+| {{EntityName2}} | {{EntityDescription2}} | {{EntityAttributes2}} | {{DataVolume2}} | {{Criticality2}} |
+| {{EntityName3}} | {{EntityDescription3}} | {{EntityAttributes3}} | {{DataVolume3}} | {{Criticality3}} |
+
+#### Data Flow Analysis
+\`\`\`
+[Source System] → [Validation] → [Transformation] → [Target System]
+     ↓                ↓               ↓               ↓
+[{{SourceSystem}}] → [{{ValidationRules}}] → [{{TransformationLogic}}] → [{{TargetSystem}}]
+\`\`\`
+
+### 3.4 Integration Requirements
+#### System Interfaces
+| Integration Point | Source System | Target System | Protocol | Data Format | Frequency |
+|-------------------|---------------|---------------|----------|-------------|-----------|
+| {{IntegrationName1}} | {{SourceSystem1}} | {{TargetSystem1}} | {{Protocol1}} | {{DataFormat1}} | {{Frequency1}} |
+| {{IntegrationName2}} | {{SourceSystem2}} | {{TargetSystem2}} | {{Protocol2}} | {{DataFormat2}} | {{Frequency2}} |
+
+## 4. Non-Functional Requirements Analysis
+
+### 4.1 Performance Requirements
+#### Response Time Requirements
+| Function | Expected Load | Response Time Target | Peak Load Response Time |
+|----------|---------------|---------------------|------------------------|
+| {{Function1}} | {{ExpectedLoad1}} | {{ResponseTime1}} | {{PeakResponseTime1}} |
+| {{Function2}} | {{ExpectedLoad2}} | {{ResponseTime2}} | {{PeakResponseTime2}} |
+| {{Function3}} | {{ExpectedLoad3}} | {{ResponseTime3}} | {{PeakResponseTime3}} |
+
+#### Throughput Requirements
+- **Concurrent Users**: {{ConcurrentUsers}}
+- **Transactions per Second**: {{TransactionsPerSecond}}
+- **Data Processing Volume**: {{DataProcessingVolume}}
+- **Peak Load Multiplier**: {{PeakLoadMultiplier}}
+
+### 4.2 Security Requirements
+#### Authentication Requirements
+- **User Authentication Method**: {{AuthenticationMethod}}
+- **Multi-Factor Authentication**: {{MFARequirement}}
+- **Session Management**: {{SessionManagement}}
+- **Password Policy**: {{PasswordPolicy}}
+
+#### Authorization Requirements
+- **Role-Based Access Control**: {{RBACRequirements}}
+- **Permissions Model**: {{PermissionsModel}}
+- **Data Access Controls**: {{DataAccessControls}}
+
+#### Data Protection Requirements
+- **Data Encryption**: {{EncryptionRequirements}}
+- **PII Handling**: {{PIIHandling}}
+- **Audit Trail**: {{AuditTrailRequirements}}
+- **Data Retention**: {{DataRetentionPolicy}}
+
+### 4.3 Usability Requirements
+#### User Experience Requirements
+- **User Interface Standards**: {{UIStandards}}
+- **Accessibility Compliance**: {{AccessibilityRequirements}}
+- **Browser Support**: {{BrowserSupport}}
+- **Mobile Responsiveness**: {{MobileRequirements}}
+
+#### Training and Support Requirements
+- **User Training**: {{TrainingRequirements}}
+- **Help Documentation**: {{DocumentationRequirements}}
+- **Support Model**: {{SupportModel}}
+
+### 4.4 Reliability and Availability
+#### Uptime Requirements
+- **Service Level Agreement**: {{SLARequirements}}
+- **Planned Downtime**: {{PlannedDowntimeWindow}}
+- **Recovery Time Objective**: {{RTORequirements}}
+- **Recovery Point Objective**: {{RPORequirements}}
+
+#### Error Handling Requirements
+- **Error Recovery**: {{ErrorRecoveryRequirements}}
+- **Graceful Degradation**: {{GracefulDegradationRequirements}}
+- **Error Messaging**: {{ErrorMessagingRequirements}}
+
+## 5. Requirements Prioritization
+
+### 5.1 MoSCoW Analysis
+#### Must Have (Critical)
+1. {{MustHaveRequirement1}}
+2. {{MustHaveRequirement2}}
+3. {{MustHaveRequirement3}}
+
+#### Should Have (Important)
+1. {{ShouldHaveRequirement1}}
+2. {{ShouldHaveRequirement2}}
+3. {{ShouldHaveRequirement3}}
+
+#### Could Have (Nice to Have)
+1. {{CouldHaveRequirement1}}
+2. {{CouldHaveRequirement2}}
+3. {{CouldHaveRequirement3}}
+
+#### Won't Have (Future Release)
+1. {{WontHaveRequirement1}}
+2. {{WontHaveRequirement2}}
+3. {{WontHaveRequirement3}}
+
+### 5.2 Risk-Value Matrix
+| Requirement | Business Value | Implementation Risk | Priority Score |
+|-------------|---------------|---------------------|----------------|
+| {{Requirement1}} | {{BusinessValue1}} | {{ImplementationRisk1}} | {{PriorityScore1}} |
+| {{Requirement2}} | {{BusinessValue2}} | {{ImplementationRisk2}} | {{PriorityScore2}} |
+| {{Requirement3}} | {{BusinessValue3}} | {{ImplementationRisk3}} | {{PriorityScore3}} |
+
+## 6. Constraints and Assumptions
+
+### 6.1 Technical Constraints
+- **Technology Stack**: {{TechnologyConstraints}}
+- **Integration Limitations**: {{IntegrationConstraints}}
+- **Performance Limitations**: {{PerformanceConstraints}}
+- **Security Constraints**: {{SecurityConstraints}}
+
+### 6.2 Business Constraints
+- **Budget Limitations**: {{BudgetConstraints}}
+- **Timeline Constraints**: {{TimelineConstraints}}
+- **Resource Constraints**: {{ResourceConstraints}}
+- **Regulatory Constraints**: {{RegulatoryConstraints}}
+
+### 6.3 Assumptions
+1. {{Assumption1}}
+2. {{Assumption2}}
+3. {{Assumption3}}
+4. {{Assumption4}}
+
+## 7. Requirements Validation
+
+### 7.1 Validation Criteria
+- **Completeness**: All requirements are fully specified
+- **Consistency**: No conflicting requirements
+- **Clarity**: Requirements are unambiguous
+- **Testability**: Requirements can be verified
+- **Traceability**: Requirements link to business objectives
+
+### 7.2 Validation Methods
+- **Requirements Review Sessions**: Structured walkthrough with stakeholders
+- **Prototype Validation**: Interactive demonstrations
+- **Requirements Traceability Matrix**: Mapping requirements to objectives
+- **Impact Analysis**: Assessment of requirement changes
+
+### 7.3 Sign-off Matrix
+| Stakeholder Role | Name | Review Date | Approval Date | Signature |
+|------------------|------|-------------|---------------|-----------|
+| Business Sponsor | {{SponsorName}} | {{ReviewDate1}} | {{ApprovalDate1}} | |
+| Product Owner | {{ProductOwnerName}} | {{ReviewDate2}} | {{ApprovalDate2}} | |
+| Technical Lead | {{TechnicalLeadName}} | {{ReviewDate3}} | {{ApprovalDate3}} | |
+| Quality Assurance | {{QALead}} | {{ReviewDate4}} | {{ApprovalDate4}} | |
+
+## 8. Requirements Traceability
+
+### 8.1 Business Objective Traceability
+| Business Objective | Related Requirements | Success Metrics |
+|-------------------|---------------------|-----------------|
+| {{BusinessObjective1}} | {{RelatedRequirements1}} | {{SuccessMetrics1}} |
+| {{BusinessObjective2}} | {{RelatedRequirements2}} | {{SuccessMetrics2}} |
+| {{BusinessObjective3}} | {{RelatedRequirements3}} | {{SuccessMetrics3}} |
+
+### 8.2 Stakeholder Requirements Matrix
+| Requirement ID | Requirement Description | Stakeholder | Priority | Status |
+|----------------|------------------------|-------------|----------|---------|
+| {{RequirementID1}} | {{RequirementDescription1}} | {{Stakeholder1}} | {{Priority1}} | {{Status1}} |
+| {{RequirementID2}} | {{RequirementDescription2}} | {{Stakeholder2}} | {{Priority2}} | {{Status2}} |
+| {{RequirementID3}} | {{RequirementDescription3}} | {{Stakeholder3}} | {{Priority3}} | {{Status3}} |
+
+## 9. Change Management
+
+### 9.1 Requirements Change Process
+1. **Change Request Submission**
+2. **Impact Analysis**
+3. **Stakeholder Review**
+4. **Change Approval/Rejection**
+5. **Requirements Update**
+6. **Communication to Team**
+
+### 9.2 Change Control Board
+| Role | Name | Responsibilities |
+|------|------|-----------------|
+| Change Control Manager | {{CCMName}} | Process oversight |
+| Business Representative | {{BusinessRep}} | Business impact assessment |
+| Technical Representative | {{TechnicalRep}} | Technical impact assessment |
+| Project Manager | {{ProjectManager}} | Schedule and resource impact |
+
+## 10. Appendices
+
+### Appendix A: Stakeholder Interview Templates
+### Appendix B: Requirements Gathering Worksheets  
+### Appendix C: Data Flow Diagrams
+### Appendix D: System Interface Specifications
+### Appendix E: Non-Functional Requirements Details`,
         category: "sdlc_templates",
         component: "requirements_analysis",
         sdlcStage: "requirements",
@@ -7553,7 +9903,114 @@ public class CustomMetrics
         id: "sdlc_templates-epic_template-requirements",
         title: "Epic Template",
         description: "Epic definition template with theme alignment and acceptance criteria",
-        content: "Define comprehensive epics with business value, acceptance criteria, and feature breakdown for agile development.",
+        content: `Define comprehensive epics with business value, acceptance criteria, and feature breakdown for agile development.
+
+# Epic Template
+## {{EpicTitle}}
+
+### Epic Overview
+- **Epic ID**: {{EpicID}}
+- **Epic Title**: {{EpicTitle}}
+- **Product**: {{ProductName}}
+- **Squad/Team**: {{TeamName}}
+- **Epic Owner**: {{EpicOwner}}
+- **Created Date**: {{CreatedDate}}
+- **Target Release**: {{TargetRelease}}
+- **Status**: {{EpicStatus}}
+- **Priority**: {{EpicPriority}}
+
+### Epic Statement
+**As a** {{UserPersona}}  
+**I want** {{DesiredCapability}}  
+**So that** {{BusinessValue}}
+
+### Business Context
+**Problem Statement**: {{ProblemStatement}}
+**Business Opportunity**: {{BusinessOpportunity}}  
+**Current State**: {{CurrentState}}
+**Desired Future State**: {{DesiredFutureState}}
+
+### Success Metrics
+**Key Performance Indicators**:
+- {{KPI1}}: {{KPITarget1}}
+- {{KPI2}}: {{KPITarget2}}
+- {{KPI3}}: {{KPITarget3}}
+
+**Definition of Done**:
+- [ ] {{DoneDefinition1}}
+- [ ] {{DoneDefinition2}}  
+- [ ] {{DoneDefinition3}}
+- [ ] All user stories completed and accepted
+- [ ] Quality gates passed (unit tests, integration tests, UAT)
+- [ ] Performance requirements met
+- [ ] Security requirements validated
+- [ ] Documentation completed
+
+### User Stories
+
+#### Story 1: {{UserStoryTitle1}}
+**Story ID**: {{StoryID1}}
+**Priority**: {{StoryPriority1}}
+**Estimate**: {{StoryEstimate1}}
+
+**User Story**: 
+As a {{UserRole1}}
+I want to {{UserCapability1}}
+So that {{UserBenefit1}}
+
+**Acceptance Criteria**:
+- [ ] **Given** {{PreconditionState1}}, **When** {{UserAction1}}, **Then** {{ExpectedOutcome1}}
+- [ ] **Given** {{PreconditionState2}}, **When** {{UserAction2}}, **Then** {{ExpectedOutcome2}}
+- [ ] **Given** {{PreconditionState3}}, **When** {{UserAction3}}, **Then** {{ExpectedOutcome3}}
+
+**Technical Considerations**:
+- {{TechnicalConsideration1}}
+- {{TechnicalConsideration2}}
+
+**Dependencies**:
+- {{Dependency1}}
+- {{Dependency2}}
+
+### Dependencies and Constraints
+
+#### Internal Dependencies
+| Dependency | Type | Owner | Status | Impact | Mitigation |
+|------------|------|-------|--------|--------|------------|
+| {{InternalDependency1}} | {{DependencyType1}} | {{Owner1}} | {{Status1}} | {{Impact1}} | {{Mitigation1}} |
+| {{InternalDependency2}} | {{DependencyType2}} | {{Owner2}} | {{Status2}} | {{Impact2}} | {{Mitigation2}} |
+
+#### External Dependencies
+| Dependency | Vendor/Team | SLA | Status | Risk Level | Contingency |
+|------------|-------------|-----|--------|------------|-------------|
+| {{ExternalDependency1}} | {{Vendor1}} | {{SLA1}} | {{Status1}} | {{Risk1}} | {{Contingency1}} |
+| {{ExternalDependency2}} | {{Vendor2}} | {{SLA2}} | {{Status2}} | {{Risk2}} | {{Contingency2}} |
+
+### Risk Assessment
+
+#### Risk Registry
+| Risk ID | Description | Probability | Impact | Risk Level | Owner | Mitigation Strategy | Status |
+|---------|-------------|-------------|--------|------------|-------|-------------------|---------|
+| {{RiskID1}} | {{RiskDescription1}} | {{Probability1}} | {{Impact1}} | {{RiskLevel1}} | {{RiskOwner1}} | {{MitigationStrategy1}} | {{RiskStatus1}} |
+| {{RiskID2}} | {{RiskDescription2}} | {{Probability2}} | {{Impact2}} | {{RiskLevel2}} | {{RiskOwner2}} | {{MitigationStrategy2}} | {{RiskStatus2}} |
+
+### Delivery Plan
+
+#### Sprint Breakdown
+**Sprint 1: {{Sprint1Title}}**
+- Sprint Goal: {{Sprint1Goal}}
+- Duration: {{Sprint1Duration}}
+- Stories: {{Story1}}, {{Story2}}, {{Story3}}
+
+**Sprint 2: {{Sprint2Title}}**
+- Sprint Goal: {{Sprint2Goal}}
+- Duration: {{Sprint2Duration}}
+- Stories: {{Story4}}, {{Story5}}
+
+### Success Criteria
+- [ ] All user stories meet acceptance criteria
+- [ ] Performance requirements satisfied
+- [ ] Security requirements validated
+- [ ] Stakeholder approval received`,
         category: "sdlc_templates",
         component: "epic_template",
         sdlcStage: "requirements",
@@ -7565,7 +10022,392 @@ public class CustomMetrics
         id: "sdlc_templates-feature_specification-design",
         title: "Feature Specification",
         description: "Detailed feature specification template with wireframes",
-        content: "Create detailed feature specifications with wireframes, user flows, and technical requirements.",
+        content: `Create detailed feature specifications with wireframes, user flows, and technical requirements.
+
+# Feature Specification Document
+## {{FeatureName}}
+
+### Document Information
+- **Feature Name**: {{FeatureName}}
+- **Feature ID**: {{FeatureID}}
+- **Product**: {{ProductName}}
+- **Version**: {{FeatureVersion}}
+- **Created By**: {{FeatureOwner}}
+- **Creation Date**: {{CreationDate}}
+- **Last Updated**: {{LastUpdated}}
+- **Status**: {{FeatureStatus}}
+- **Priority**: {{FeaturePriority}}
+
+### Feature Overview
+
+#### Business Context
+**Problem Statement**: {{ProblemStatement}}
+**Business Value**: {{BusinessValue}}
+**User Impact**: {{UserImpact}}
+**Strategic Alignment**: {{StrategicAlignment}}
+
+#### Feature Summary
+{{FeatureSummary}}
+
+### User Experience Design
+
+#### User Personas
+**Primary Persona**: {{PrimaryPersona}}
+- **Demographics**: {{PersonaDemographics}}
+- **Goals**: {{PersonaGoals}}
+- **Pain Points**: {{PersonaPainPoints}}
+- **Behavior Patterns**: {{BehaviorPatterns}}
+
+**Secondary Persona**: {{SecondaryPersona}}
+- **Demographics**: {{PersonaDemographics2}}
+- **Goals**: {{PersonaGoals2}}
+- **Pain Points**: {{PersonaPainPoints2}}
+
+#### User Journey Map
+\`\`\`
+Step 1: {{JourneyStep1}}
+├─ User Action: {{UserAction1}}
+├─ Pain Points: {{PainPoints1}}
+├─ Opportunities: {{Opportunities1}}
+└─ Touchpoints: {{Touchpoints1}}
+
+Step 2: {{JourneyStep2}}
+├─ User Action: {{UserAction2}}
+├─ Pain Points: {{PainPoints2}}
+├─ Opportunities: {{Opportunities2}}
+└─ Touchpoints: {{Touchpoints2}}
+
+Step 3: {{JourneyStep3}}
+├─ User Action: {{UserAction3}}
+├─ Pain Points: {{PainPoints3}}
+├─ Opportunities: {{Opportunities3}}
+└─ Touchpoints: {{Touchpoints3}}
+\`\`\`
+
+#### User Flow Diagram
+\`\`\`
+[Entry Point] → [Authentication Check] → [Feature Access]
+     ↓                    ↓                    ↓
+[Landing Page] → [Form Submission] → [Processing] → [Confirmation]
+     ↓                    ↓                    ↓           ↓
+[Help/Support] ← [Error Handling] ← [Validation] → [Success State]
+\`\`\`
+
+### Wireframes and UI Specifications
+
+#### Key Screens
+
+##### Screen 1: {{ScreenName1}}
+**Purpose**: {{ScreenPurpose1}}
+**Layout**: {{ScreenLayout1}}
+
+**UI Components**:
+- Header: {{HeaderDescription1}}
+- Navigation: {{NavigationDescription1}}
+- Main Content: {{MainContentDescription1}}
+- Sidebar: {{SidebarDescription1}}
+- Footer: {{FooterDescription1}}
+
+**Interactive Elements**:
+- Primary Actions: {{PrimaryActions1}}
+- Secondary Actions: {{SecondaryActions1}}
+- Form Elements: {{FormElements1}}
+- Data Display: {{DataDisplay1}}
+
+**Wireframe**:
+\`\`\`
++----------------------------------+
+|            Header                |
+|   Logo  |  Navigation  | User    |
++----------------------------------+
+| Sidebar |        Main Content    |
+|         |                        |
+|  Menu   |   {{ContentArea1}}     |
+|  Items  |                        |
+|         |   {{ContentArea2}}     |
+|         |                        |
+|         |   [Primary Button]     |
++----------------------------------+
+|            Footer                |
++----------------------------------+
+\`\`\`
+
+##### Screen 2: {{ScreenName2}}
+**Purpose**: {{ScreenPurpose2}}
+**Layout**: {{ScreenLayout2}}
+
+**UI Components**:
+- Header: {{HeaderDescription2}}
+- Main Content: {{MainContentDescription2}}
+- Action Panel: {{ActionPanelDescription2}}
+
+**Wireframe**:
+\`\`\`
++----------------------------------+
+|            Header                |
++----------------------------------+
+|                                  |
+|     {{MainContentArea}}          |
+|                                  |
+|  +---------------------------+   |
+|  |    {{ActionPanel}}        |   |
+|  |  [Button1] [Button2]     |   |
+|  +---------------------------+   |
++----------------------------------+
+\`\`\`
+
+### Functional Requirements
+
+#### Core Features
+
+##### Feature 1: {{CoreFeature1}}
+**Description**: {{CoreFeature1Description}}
+**User Story**: As a {{UserRole1}}, I want to {{Capability1}} so that {{Benefit1}}.
+
+**Functional Requirements**:
+- FR-1.1: The system shall {{Requirement1}}
+- FR-1.2: The system shall {{Requirement2}}
+- FR-1.3: The system shall {{Requirement3}}
+
+**Business Rules**:
+- BR-1.1: {{BusinessRule1}}
+- BR-1.2: {{BusinessRule2}}
+
+**Acceptance Criteria**:
+- [ ] Given {{GivenCondition1}}, when {{WhenAction1}}, then {{ThenResult1}}
+- [ ] Given {{GivenCondition2}}, when {{WhenAction2}}, then {{ThenResult2}}
+- [ ] Given {{GivenCondition3}}, when {{WhenAction3}}, then {{ThenResult3}}
+
+##### Feature 2: {{CoreFeature2}}
+**Description**: {{CoreFeature2Description}}
+**User Story**: As a {{UserRole2}}, I want to {{Capability2}} so that {{Benefit2}}.
+
+**Functional Requirements**:
+- FR-2.1: The system shall {{Requirement4}}
+- FR-2.2: The system shall {{Requirement5}}
+- FR-2.3: The system shall {{Requirement6}}
+
+**Business Rules**:
+- BR-2.1: {{BusinessRule3}}
+- BR-2.2: {{BusinessRule4}}
+
+**Acceptance Criteria**:
+- [ ] Given {{GivenCondition4}}, when {{WhenAction4}}, then {{ThenResult4}}
+- [ ] Given {{GivenCondition5}}, when {{WhenAction5}}, then {{ThenResult5}}
+
+#### Supporting Features
+
+##### Feature 3: {{SupportingFeature1}}
+**Description**: {{SupportingFeature1Description}}
+**User Story**: As a {{UserRole3}}, I want to {{Capability3}} so that {{Benefit3}}.
+
+**Functional Requirements**:
+- FR-3.1: The system shall {{Requirement7}}
+- FR-3.2: The system shall {{Requirement8}}
+
+### Technical Specifications
+
+#### Architecture Requirements
+**System Architecture**: {{SystemArchitecture}}
+**Design Patterns**: {{DesignPatterns}}
+**Integration Points**: {{IntegrationPoints}}
+
+#### Data Model
+\`\`\`sql
+-- Core Data Entities
+CREATE TABLE {{EntityName1}} (
+    Id uniqueidentifier PRIMARY KEY,
+    {{Field1}} {{DataType1}} {{Constraints1}},
+    {{Field2}} {{DataType2}} {{Constraints2}},
+    {{Field3}} {{DataType3}} {{Constraints3}},
+    CreatedDate datetime2 NOT NULL DEFAULT GETUTCDATE(),
+    ModifiedDate datetime2 NOT NULL DEFAULT GETUTCDATE(),
+    CreatedBy nvarchar(255) NOT NULL,
+    ModifiedBy nvarchar(255) NOT NULL
+);
+
+CREATE TABLE {{EntityName2}} (
+    Id uniqueidentifier PRIMARY KEY,
+    {{EntityName1}}Id uniqueidentifier NOT NULL,
+    {{Field1}} {{DataType1}} {{Constraints1}},
+    {{Field2}} {{DataType2}} {{Constraints2}},
+    FOREIGN KEY ({{EntityName1}}Id) REFERENCES {{EntityName1}}(Id)
+);
+\`\`\`
+
+#### API Specifications
+\`\`\`yaml
+# REST API Endpoints
+/api/{{resource}}:
+  get:
+    summary: {{GetSummary}}
+    parameters:
+      - name: {{ParamName1}}
+        in: query
+        required: {{Required1}}
+        schema:
+          type: {{ParamType1}}
+      - name: {{ParamName2}}
+        in: query
+        required: {{Required2}}
+        schema:
+          type: {{ParamType2}}
+    responses:
+      200:
+        description: {{SuccessDescription}}
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                {{PropertyName1}}:
+                  type: {{PropertyType1}}
+                {{PropertyName2}}:
+                  type: {{PropertyType2}}
+      400:
+        description: Bad request
+      404:
+        description: Resource not found
+      500:
+        description: Internal server error
+
+  post:
+    summary: {{PostSummary}}
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              {{RequestProperty1}}:
+                type: {{RequestType1}}
+              {{RequestProperty2}}:
+                type: {{RequestType2}}
+    responses:
+      201:
+        description: Resource created successfully
+      400:
+        description: Invalid request data
+      500:
+        description: Internal server error
+\`\`\`
+
+### Non-Functional Requirements
+
+#### Performance Requirements
+- **Response Time**: {{ResponseTimeRequirement}}
+- **Throughput**: {{ThroughputRequirement}}
+- **Concurrent Users**: {{ConcurrentUsersRequirement}}
+- **Data Volume**: {{DataVolumeRequirement}}
+
+#### Security Requirements
+- **Authentication**: {{AuthenticationRequirement}}
+- **Authorization**: {{AuthorizationRequirement}}
+- **Data Encryption**: {{EncryptionRequirement}}
+- **Audit Logging**: {{AuditRequirement}}
+
+#### Usability Requirements
+- **Accessibility**: {{AccessibilityRequirement}}
+- **Browser Support**: {{BrowserSupportRequirement}}
+- **Mobile Responsiveness**: {{MobileRequirement}}
+- **User Experience**: {{UXRequirement}}
+
+### Integration Requirements
+
+#### External Systems
+| System Name | Integration Type | Protocol | Data Exchange | Frequency |
+|-------------|------------------|----------|---------------|-----------|
+| {{ExternalSystem1}} | {{IntegrationType1}} | {{Protocol1}} | {{DataExchange1}} | {{Frequency1}} |
+| {{ExternalSystem2}} | {{IntegrationType2}} | {{Protocol2}} | {{DataExchange2}} | {{Frequency2}} |
+
+#### Internal Systems
+| System Name | Integration Point | Data Flow | Dependencies |
+|-------------|-------------------|-----------|--------------|
+| {{InternalSystem1}} | {{IntegrationPoint1}} | {{DataFlow1}} | {{Dependencies1}} |
+| {{InternalSystem2}} | {{IntegrationPoint2}} | {{DataFlow2}} | {{Dependencies2}} |
+
+### Testing Strategy
+
+#### Test Scenarios
+**Scenario 1: {{TestScenario1}}**
+- **Objective**: {{TestObjective1}}
+- **Steps**: {{TestSteps1}}
+- **Expected Result**: {{ExpectedResult1}}
+- **Pass Criteria**: {{PassCriteria1}}
+
+**Scenario 2: {{TestScenario2}}**
+- **Objective**: {{TestObjective2}}
+- **Steps**: {{TestSteps2}}
+- **Expected Result**: {{ExpectedResult2}}
+- **Pass Criteria**: {{PassCriteria2}}
+
+#### Test Types
+- **Unit Testing**: {{UnitTestingApproach}}
+- **Integration Testing**: {{IntegrationTestingApproach}}
+- **User Acceptance Testing**: {{UATApproach}}
+- **Performance Testing**: {{PerformanceTestingApproach}}
+- **Security Testing**: {{SecurityTestingApproach}}
+
+### Implementation Plan
+
+#### Development Phases
+**Phase 1: {{Phase1Name}}** ({{Phase1Duration}})
+- {{Phase1Objective}}
+- Deliverables: {{Phase1Deliverables}}
+- Success Criteria: {{Phase1SuccessCriteria}}
+
+**Phase 2: {{Phase2Name}}** ({{Phase2Duration}})
+- {{Phase2Objective}}
+- Deliverables: {{Phase2Deliverables}}
+- Success Criteria: {{Phase2SuccessCriteria}}
+
+**Phase 3: {{Phase3Name}}** ({{Phase3Duration}})
+- {{Phase3Objective}}
+- Deliverables: {{Phase3Deliverables}}
+- Success Criteria: {{Phase3SuccessCriteria}}
+
+#### Risk Assessment
+| Risk | Impact | Probability | Mitigation |
+|------|--------|-------------|------------|
+| {{Risk1}} | {{Impact1}} | {{Probability1}} | {{Mitigation1}} |
+| {{Risk2}} | {{Impact2}} | {{Probability2}} | {{Mitigation2}} |
+| {{Risk3}} | {{Impact3}} | {{Probability3}} | {{Mitigation3}} |
+
+### Success Metrics
+
+#### Key Performance Indicators
+- **User Adoption**: {{AdoptionMetric}}
+- **User Satisfaction**: {{SatisfactionMetric}}
+- **Performance**: {{PerformanceMetric}}
+- **Business Impact**: {{BusinessImpactMetric}}
+
+#### Acceptance Criteria
+- [ ] {{AcceptanceCriteria1}}
+- [ ] {{AcceptanceCriteria2}}
+- [ ] {{AcceptanceCriteria3}}
+- [ ] All functional requirements implemented
+- [ ] All non-functional requirements met
+- [ ] User acceptance testing passed
+- [ ] Performance benchmarks achieved
+- [ ] Security requirements validated
+
+### Appendices
+
+#### Appendix A: Design Assets
+- Wireframes: {{WireframeLocation}}
+- Mockups: {{MockupLocation}}
+- Style Guide: {{StyleGuideLocation}}
+
+#### Appendix B: Technical Documentation
+- API Documentation: {{APIDocLocation}}
+- Database Schema: {{SchemaDocLocation}}
+- Architecture Diagrams: {{ArchitectureDocLocation}}
+
+#### Appendix C: Testing Documentation
+- Test Plans: {{TestPlanLocation}}
+- Test Cases: {{TestCaseLocation}}
+- Test Results: {{TestResultLocation}}`,
         category: "sdlc_templates",
         component: "feature_specification",
         sdlcStage: "design",
@@ -7577,7 +10419,253 @@ public class CustomMetrics
         id: "sdlc_templates-code_review_checklist-development",
         title: "Code Review Checklist",
         description: "Comprehensive code review checklist template",
-        content: "Establish code review standards with security, performance, and maintainability checkpoints.",
+        content: `Establish code review standards with security, performance, and maintainability checkpoints.
+
+# Comprehensive Code Review Checklist
+## Quality Assurance and Best Practices Guide
+
+### Pre-Review Checklist
+
+#### Developer Self-Review
+- [ ] **Code Compilation**: Code compiles without errors or warnings
+- [ ] **Local Testing**: All tests pass locally
+- [ ] **Code Formatting**: Code follows established formatting standards
+- [ ] **Commit Messages**: Clear, descriptive commit messages following conventions
+- [ ] **Branch Strategy**: Feature branch is up-to-date with main/develop branch
+- [ ] **Documentation**: README and inline documentation updated as needed
+
+#### Pull Request Information
+- [ ] **Clear Description**: PR description explains what was changed and why
+- [ ] **Linked Issues**: References to related issues or tickets
+- [ ] **Screenshots/Demos**: Visual evidence for UI changes
+- [ ] **Breaking Changes**: Any breaking changes clearly documented
+- [ ] **Migration Notes**: Database or configuration changes documented
+
+### Code Quality Review
+
+#### Code Structure and Organization
+- [ ] **Single Responsibility**: Each function/class has a single, clear purpose
+- [ ] **DRY Principle**: No unnecessary code duplication
+- [ ] **SOLID Principles**: Code follows SOLID design principles where applicable
+- [ ] **Naming Conventions**: Variables, functions, and classes have meaningful names
+- [ ] **Code Organization**: Logical file and folder structure
+- [ ] **Complexity**: Functions are reasonably sized and not overly complex
+- [ ] **Abstraction**: Appropriate level of abstraction used
+
+#### Coding Standards Compliance
+- [ ] **Style Guide**: Code follows team/project style guide
+- [ ] **Indentation**: Consistent indentation throughout
+- [ ] **Line Length**: Lines don't exceed maximum length (typically 80-120 characters)
+- [ ] **Spacing**: Proper spacing around operators and after keywords
+- [ ] **Comments**: Code is appropriately commented, especially complex logic
+- [ ] **TODO/FIXME**: No temporary TODO/FIXME comments in production code
+
+### Functionality Review
+
+#### Logic and Implementation
+- [ ] **Requirements Met**: Code satisfies all stated requirements
+- [ ] **Edge Cases**: Edge cases and boundary conditions handled appropriately
+- [ ] **Error Scenarios**: Proper handling of error scenarios
+- [ ] **Input Validation**: All user inputs validated and sanitized
+- [ ] **Business Logic**: Business rules correctly implemented
+- [ ] **Data Flow**: Data flows correctly through the application
+- [ ] **State Management**: Application state managed consistently
+
+#### Algorithm Efficiency
+- [ ] **Time Complexity**: Algorithms have appropriate time complexity
+- [ ] **Space Complexity**: Memory usage is optimized
+- [ ] **Database Queries**: Efficient database queries without N+1 problems
+- [ ] **Caching Strategy**: Appropriate use of caching where beneficial
+- [ ] **Lazy Loading**: Expensive operations are lazy-loaded when possible
+
+### Security Review
+
+#### Authentication and Authorization
+- [ ] **Authentication**: User authentication properly implemented
+- [ ] **Authorization**: User permissions checked before sensitive operations
+- [ ] **Session Management**: Sessions handled securely
+- [ ] **Password Handling**: Passwords properly hashed and salted
+- [ ] **JWT Tokens**: Tokens have appropriate expiration and validation
+- [ ] **Role-Based Access**: Role-based access control implemented correctly
+
+#### Data Protection
+- [ ] **Input Sanitization**: All inputs sanitized to prevent injection attacks
+- [ ] **SQL Injection**: Protection against SQL injection attacks
+- [ ] **XSS Prevention**: Cross-site scripting vulnerabilities addressed
+- [ ] **CSRF Protection**: Cross-site request forgery protection implemented
+- [ ] **Data Encryption**: Sensitive data encrypted in transit and at rest
+- [ ] **PII Handling**: Personal information handled according to privacy regulations
+- [ ] **Logging Security**: No sensitive data logged in plain text
+
+#### Secure Coding Practices
+- [ ] **Hardcoded Secrets**: No hardcoded passwords, API keys, or secrets
+- [ ] **Environment Variables**: Sensitive configuration in environment variables
+- [ ] **Third-party Dependencies**: Dependencies are up-to-date and secure
+- [ ] **File Uploads**: File upload functionality secure against malicious files
+- [ ] **API Security**: APIs have proper rate limiting and authentication
+- [ ] **Headers Security**: Security headers properly configured
+
+### Performance Review
+
+#### Performance Optimization
+- [ ] **Database Performance**: Queries are optimized and indexed appropriately
+- [ ] **Memory Usage**: No memory leaks or excessive memory consumption
+- [ ] **Resource Cleanup**: Proper cleanup of resources (connections, files, etc.)
+- [ ] **Asynchronous Operations**: Appropriate use of async/await patterns
+- [ ] **Bulk Operations**: Bulk operations used instead of loops where applicable
+- [ ] **Caching Implementation**: Effective caching strategy implemented
+- [ ] **Connection Pooling**: Database connection pooling configured properly
+
+#### Scalability Considerations
+- [ ] **Load Handling**: Code can handle expected load
+- [ ] **Concurrent Access**: Thread-safe implementation where required
+- [ ] **Horizontal Scaling**: Code supports horizontal scaling
+- [ ] **Resource Utilization**: Efficient use of CPU and memory resources
+- [ ] **Background Jobs**: Long-running tasks moved to background processing
+- [ ] **API Rate Limiting**: Rate limiting implemented for public APIs
+
+### Testing Review
+
+#### Test Coverage
+- [ ] **Unit Tests**: Adequate unit test coverage (minimum 80%)
+- [ ] **Integration Tests**: Key integration points tested
+- [ ] **End-to-End Tests**: Critical user journeys covered by E2E tests
+- [ ] **Test Quality**: Tests are meaningful and test actual functionality
+- [ ] **Mock Usage**: Appropriate use of mocks and stubs
+- [ ] **Test Data**: Test data is representative and covers edge cases
+- [ ] **Test Isolation**: Tests are independent and don't interfere with each other
+
+#### Test Implementation
+- [ ] **Test Naming**: Test names clearly describe what is being tested
+- [ ] **Arrange-Act-Assert**: Tests follow AAA pattern
+- [ ] **Test Performance**: Tests run efficiently and don't slow down CI/CD
+- [ ] **Flaky Tests**: No flaky or intermittently failing tests
+- [ ] **Test Documentation**: Complex test scenarios documented
+- [ ] **Test Maintenance**: Tests are maintainable and readable
+
+### Documentation Review
+
+#### Code Documentation
+- [ ] **API Documentation**: Public APIs documented with examples
+- [ ] **Inline Comments**: Complex logic explained with comments
+- [ ] **Function Documentation**: Function parameters and return values documented
+- [ ] **Class Documentation**: Class purpose and usage documented
+- [ ] **Configuration Documentation**: Configuration options documented
+- [ ] **Architecture Documentation**: High-level architecture decisions documented
+
+#### User Documentation
+- [ ] **README Updates**: README file updated with new features
+- [ ] **User Guide**: User-facing documentation updated
+- [ ] **Migration Guide**: Migration instructions for breaking changes
+- [ ] **Deployment Notes**: Deployment and configuration notes
+- [ ] **Troubleshooting**: Common issues and solutions documented
+
+### Database Review
+
+#### Schema Changes
+- [ ] **Migration Scripts**: Database migrations are reversible
+- [ ] **Index Strategy**: Appropriate indexes created for query performance
+- [ ] **Constraint Validation**: Proper foreign key constraints and validations
+- [ ] **Data Types**: Appropriate data types for columns
+- [ ] **Normalization**: Database properly normalized to reduce redundancy
+- [ ] **Backup Considerations**: Impact on backup and recovery procedures
+- [ ] **Performance Impact**: Schema changes won't negatively impact performance
+
+#### Data Handling
+- [ ] **Data Integrity**: Data integrity maintained across operations
+- [ ] **Transaction Management**: Proper use of database transactions
+- [ ] **Concurrency Control**: Handling of concurrent data modifications
+- [ ] **Data Validation**: Server-side validation for all data changes
+- [ ] **Audit Trail**: Important data changes logged for audit purposes
+
+### DevOps and Deployment
+
+#### CI/CD Integration
+- [ ] **Build Process**: Code builds successfully in CI environment
+- [ ] **Test Automation**: All tests run automatically in CI pipeline
+- [ ] **Code Quality Gates**: Quality gates pass (coverage, static analysis)
+- [ ] **Security Scanning**: Security vulnerability scanning passes
+- [ ] **Dependency Checks**: Dependency vulnerability checks pass
+- [ ] **Environment Parity**: Development environment matches production
+
+#### Deployment Readiness
+- [ ] **Configuration Management**: Environment-specific configurations handled properly
+- [ ] **Feature Flags**: Feature flags used for gradual rollout if applicable
+- [ ] **Rollback Plan**: Clear rollback strategy defined
+- [ ] **Monitoring**: Appropriate logging and monitoring implemented
+- [ ] **Health Checks**: Health check endpoints implemented
+- [ ] **Resource Requirements**: Resource requirements documented
+
+### Review Process
+
+#### Reviewer Responsibilities
+- [ ] **Thorough Review**: All aspects of the checklist considered
+- [ ] **Constructive Feedback**: Feedback is constructive and educational
+- [ ] **Knowledge Sharing**: Opportunities for knowledge sharing identified
+- [ ] **Code Understanding**: Reviewer understands the changes being made
+- [ ] **Testing**: Manual testing performed where appropriate
+- [ ] **Documentation Review**: Associated documentation reviewed
+
+#### Review Outcomes
+- [ ] **Approval**: Code meets all quality standards
+- [ ] **Request Changes**: Specific issues identified and communicated
+- [ ] **Follow-up**: Action items for follow-up work identified
+- [ ] **Learning Notes**: Key learnings documented for team knowledge
+
+### Post-Review Actions
+
+#### After Approval
+- [ ] **Merge Strategy**: Appropriate merge strategy used
+- [ ] **Deployment**: Deployment process followed
+- [ ] **Monitoring**: Post-deployment monitoring performed
+- [ ] **Documentation Update**: Final documentation updates completed
+- [ ] **Team Communication**: Relevant team members notified of changes
+
+#### Continuous Improvement
+- [ ] **Process Feedback**: Feedback on review process collected
+- [ ] **Checklist Updates**: Checklist updated based on lessons learned
+- [ ] **Tool Improvement**: Suggestions for tooling improvements noted
+- [ ] **Training Needs**: Training needs identified and planned
+
+### Severity Levels
+
+#### Critical Issues (Must Fix)
+- Security vulnerabilities
+- Functionality breaks existing features
+- Performance regressions
+- Data loss or corruption risks
+- Compliance violations
+
+#### Major Issues (Should Fix)
+- Poor performance
+- Maintainability concerns
+- Missing test coverage
+- Documentation gaps
+- Non-compliance with coding standards
+
+#### Minor Issues (Consider Fixing)
+- Code style inconsistencies
+- Optimization opportunities
+- Refactoring suggestions
+- Enhanced error messages
+- Additional test cases
+
+### Review Sign-off
+
+#### Final Checklist
+- [ ] **All Critical Issues Resolved**
+- [ ] **Major Issues Addressed or Acknowledged**
+- [ ] **Tests Pass**: All automated tests passing
+- [ ] **Documentation Complete**: Required documentation completed
+- [ ] **Deployment Ready**: Code ready for deployment
+
+#### Reviewer Sign-off
+**Reviewer Name**: {{ReviewerName}}
+**Review Date**: {{ReviewDate}}
+**Approval Status**: {{ApprovalStatus}}
+**Additional Notes**: {{AdditionalNotes}}
+
+This comprehensive code review checklist ensures high-quality, secure, and maintainable code while promoting knowledge sharing and continuous improvement within the development team.`,
         category: "sdlc_templates",
         component: "code_review_checklist",
         sdlcStage: "development",
@@ -7613,7 +10701,435 @@ public class CustomMetrics
         id: "sdlc_templates-test_plan-unit_testing",
         title: "Test Plan Template",
         description: "Comprehensive test plan template with coverage requirements",
-        content: "Create structured test plans with coverage requirements, test cases, and execution strategies.",
+        content: `Create structured test plans with coverage requirements, test cases, and execution strategies.
+
+# Comprehensive Test Plan Template
+## {{ProjectName}} - {{TestingPhase}} Testing
+
+### Document Information
+- **Test Plan ID**: {{TestPlanID}}
+- **Project**: {{ProjectName}}
+- **Version**: {{ProjectVersion}}
+- **Test Manager**: {{TestManager}}
+- **Created Date**: {{CreationDate}}
+- **Last Updated**: {{LastUpdated}}
+- **Review Date**: {{ReviewDate}}
+- **Approval Date**: {{ApprovalDate}}
+- **Status**: {{TestPlanStatus}}
+
+### Test Plan Overview
+
+#### Scope and Objectives
+**Testing Scope**: {{TestingScope}}
+**Primary Objectives**:
+1. {{TestObjective1}}
+2. {{TestObjective2}}
+3. {{TestObjective3}}
+
+**Out of Scope**:
+- {{OutOfScope1}}
+- {{OutOfScope2}}
+- {{OutOfScope3}}
+
+#### Quality Goals
+- **Functionality**: Verify all functional requirements are implemented correctly
+- **Performance**: Ensure system meets performance requirements under expected load
+- **Security**: Validate security controls and data protection measures
+- **Usability**: Confirm user interface is intuitive and accessible
+- **Reliability**: Ensure system stability and error handling
+- **Compatibility**: Verify cross-browser and cross-platform compatibility
+
+### Application Under Test
+
+#### System Overview
+**Application Name**: {{ApplicationName}}
+**Application Type**: {{ApplicationType}}
+**Architecture**: {{SystemArchitecture}}
+**Technology Stack**: {{TechnologyStack}}
+**Database**: {{DatabaseType}}
+**Integration Points**: {{IntegrationPoints}}
+
+#### Features to be Tested
+| Feature | Priority | Complexity | Test Approach |
+|---------|----------|------------|---------------|
+| {{Feature1}} | {{Priority1}} | {{Complexity1}} | {{TestApproach1}} |
+| {{Feature2}} | {{Priority2}} | {{Complexity2}} | {{TestApproach2}} |
+| {{Feature3}} | {{Priority3}} | {{Complexity3}} | {{TestApproach3}} |
+| {{Feature4}} | {{Priority4}} | {{Complexity4}} | {{TestApproach4}} |
+
+#### Features Not to be Tested
+- {{ExcludedFeature1}}: {{ExclusionReason1}}
+- {{ExcludedFeature2}}: {{ExclusionReason2}}
+- {{ExcludedFeature3}}: {{ExclusionReason3}}
+
+### Test Strategy
+
+#### Test Levels
+**Unit Testing**
+- **Scope**: Individual components and functions
+- **Coverage Target**: 90% code coverage
+- **Tools**: {{UnitTestingTools}}
+- **Responsibility**: Development team
+- **Execution**: Automated in CI/CD pipeline
+
+**Integration Testing**
+- **Scope**: Component interactions and data flow
+- **Coverage**: All integration points
+- **Tools**: {{IntegrationTestingTools}}
+- **Responsibility**: Development and QA teams
+- **Execution**: Automated and manual testing
+
+**System Testing**
+- **Scope**: End-to-end system functionality
+- **Coverage**: All system requirements
+- **Tools**: {{SystemTestingTools}}
+- **Responsibility**: QA team
+- **Execution**: Manual and automated testing
+
+**User Acceptance Testing**
+- **Scope**: Business requirements validation
+- **Coverage**: Critical business workflows
+- **Tools**: {{UATTools}}
+- **Responsibility**: Business stakeholders
+- **Execution**: Manual testing with stakeholders
+
+#### Test Types
+
+##### Functional Testing
+**Smoke Testing**
+- **Purpose**: Basic functionality verification
+- **Scope**: Critical path workflows
+- **Execution**: After each deployment
+- **Duration**: 1-2 hours
+
+**Regression Testing**
+- **Purpose**: Ensure existing functionality unchanged
+- **Scope**: All previously tested features
+- **Execution**: After each major change
+- **Duration**: 4-8 hours
+
+**End-to-End Testing**
+- **Purpose**: Complete business workflow validation
+- **Scope**: User journeys from start to finish
+- **Execution**: Before each release
+- **Duration**: 8-16 hours
+
+##### Non-Functional Testing
+**Performance Testing**
+- **Load Testing**: Normal expected load
+- **Stress Testing**: Beyond normal capacity
+- **Volume Testing**: Large amounts of data
+- **Scalability Testing**: System growth capacity
+- **Tools**: {{PerformanceTestingTools}}
+
+**Security Testing**
+- **Authentication Testing**: Login and access controls
+- **Authorization Testing**: Role-based permissions
+- **Input Validation Testing**: Injection attacks prevention
+- **Session Management Testing**: Session security
+- **Tools**: {{SecurityTestingTools}}
+
+**Usability Testing**
+- **Navigation Testing**: User interface flow
+- **Content Testing**: Information clarity
+- **Accessibility Testing**: WCAG compliance
+- **Cross-Browser Testing**: Browser compatibility
+- **Tools**: {{UsabilityTestingTools}}
+
+### Test Environment
+
+#### Environment Configuration
+**Test Environment 1: Development**
+- **Purpose**: Developer testing and debugging
+- **URL**: {{DevEnvironmentURL}}
+- **Database**: {{DevDatabase}}
+- **Data**: Synthetic test data
+- **Access**: Development team
+
+**Test Environment 2: QA**
+- **Purpose**: Formal testing and validation
+- **URL**: {{QAEnvironmentURL}}
+- **Database**: {{QADatabase}}
+- **Data**: Production-like data (anonymized)
+- **Access**: QA team and stakeholders
+
+**Test Environment 3: Staging**
+- **Purpose**: Pre-production validation
+- **URL**: {{StagingEnvironmentURL}}
+- **Database**: {{StagingDatabase}}
+- **Data**: Production data copy
+- **Access**: Limited to release team
+
+#### Environment Requirements
+- **Hardware**: {{HardwareRequirements}}
+- **Software**: {{SoftwareRequirements}}
+- **Network**: {{NetworkRequirements}}
+- **Security**: {{SecurityRequirements}}
+
+#### Test Data Management
+**Test Data Categories**:
+- **Master Data**: {{MasterDataDescription}}
+- **Transactional Data**: {{TransactionalDataDescription}}
+- **Reference Data**: {{ReferenceDataDescription}}
+
+**Data Refresh Strategy**:
+- **Frequency**: {{DataRefreshFrequency}}
+- **Process**: {{DataRefreshProcess}}
+- **Validation**: {{DataValidationProcess}}
+
+### Test Schedule
+
+#### Test Phases Timeline
+| Phase | Start Date | End Date | Duration | Dependencies |
+|-------|------------|----------|----------|--------------|
+| Test Planning | {{PlanningStartDate}} | {{PlanningEndDate}} | {{PlanningDuration}} | Requirements finalized |
+| Test Design | {{DesignStartDate}} | {{DesignEndDate}} | {{DesignDuration}} | Test planning complete |
+| Test Execution | {{ExecutionStartDate}} | {{ExecutionEndDate}} | {{ExecutionDuration}} | Test environment ready |
+| Defect Resolution | {{DefectStartDate}} | {{DefectEndDate}} | {{DefectDuration}} | Defects identified |
+| Test Closure | {{ClosureStartDate}} | {{ClosureEndDate}} | {{ClosureDuration}} | All testing complete |
+
+#### Milestone Schedule
+- **Test Plan Approval**: {{TestPlanApprovalDate}}
+- **Test Case Review**: {{TestCaseReviewDate}}
+- **Test Execution Start**: {{ExecutionStartDate}}
+- **Performance Testing**: {{PerformanceTestingDate}}
+- **Security Testing**: {{SecurityTestingDate}}
+- **User Acceptance Testing**: {{UATDate}}
+- **Go-Live Decision**: {{GoLiveDecisionDate}}
+
+### Test Cases
+
+#### Test Case Design Standards
+**Test Case ID Format**: {{TestCaseIDFormat}}
+**Test Case Structure**:
+- Test Case ID
+- Test Case Title
+- Test Objective
+- Test Priority
+- Preconditions
+- Test Steps
+- Expected Results
+- Actual Results
+- Pass/Fail Status
+- Defect Links
+
+#### Test Case Categories
+
+##### Functional Test Cases
+**Category: User Management**
+| Test Case ID | Title | Priority | Status |
+|-------------|-------|----------|---------|
+| {{TC_ID_001}} | {{TC_Title_001}} | {{Priority_001}} | {{Status_001}} |
+| {{TC_ID_002}} | {{TC_Title_002}} | {{Priority_002}} | {{Status_002}} |
+| {{TC_ID_003}} | {{TC_Title_003}} | {{Priority_003}} | {{Status_003}} |
+
+**Category: Data Management**
+| Test Case ID | Title | Priority | Status |
+|-------------|-------|----------|---------|
+| {{TC_ID_101}} | {{TC_Title_101}} | {{Priority_101}} | {{Status_101}} |
+| {{TC_ID_102}} | {{TC_Title_102}} | {{Priority_102}} | {{Status_102}} |
+| {{TC_ID_103}} | {{TC_Title_103}} | {{Priority_103}} | {{Status_103}} |
+
+#### Sample Test Case
+**Test Case ID**: TC_LOGIN_001
+**Title**: Verify successful user login with valid credentials
+**Objective**: Ensure users can log in with correct username and password
+**Priority**: High
+**Category**: Authentication
+
+**Preconditions**:
+- User account exists in system
+- User has valid credentials
+- Login page is accessible
+
+**Test Steps**:
+1. Navigate to login page
+2. Enter valid username: "{{ValidUsername}}"
+3. Enter valid password: "{{ValidPassword}}"
+4. Click "Login" button
+5. Verify successful login
+
+**Expected Results**:
+- User is redirected to dashboard
+- Welcome message displays user name
+- Navigation menu is visible
+- Session is established
+
+**Test Data**:
+- Username: {{TestUsername}}
+- Password: {{TestPassword}}
+
+### Test Coverage
+
+#### Requirements Traceability
+| Requirement ID | Description | Test Cases | Coverage Status |
+|---------------|-------------|------------|-----------------|
+| {{REQ_001}} | {{ReqDescription_001}} | {{TestCases_001}} | {{Coverage_001}} |
+| {{REQ_002}} | {{ReqDescription_002}} | {{TestCases_002}} | {{Coverage_002}} |
+| {{REQ_003}} | {{ReqDescription_003}} | {{TestCases_003}} | {{Coverage_003}} |
+
+#### Code Coverage Targets
+- **Unit Tests**: 90% line coverage, 85% branch coverage
+- **Integration Tests**: 80% integration point coverage
+- **System Tests**: 100% critical path coverage
+- **User Acceptance Tests**: 100% business requirement coverage
+
+#### Test Coverage Metrics
+**Functional Coverage**:
+- Requirements covered: {{RequirementsCovered}} / {{TotalRequirements}}
+- Features tested: {{FeaturesTested}} / {{TotalFeatures}}
+- User stories validated: {{StoriesValidated}} / {{TotalStories}}
+
+**Technical Coverage**:
+- Code coverage: {{CodeCoverage}}%
+- API endpoints tested: {{APIsCovered}} / {{TotalAPIs}}
+- Database operations tested: {{DBOperationsTested}} / {{TotalDBOperations}}
+
+### Defect Management
+
+#### Defect Classification
+**Severity Levels**:
+- **Critical**: System crash, data corruption, security breach
+- **High**: Major functionality broken, no workaround
+- **Medium**: Functionality broken, workaround available  
+- **Low**: Minor issue, cosmetic problems
+
+**Priority Levels**:
+- **P1**: Fix immediately, blocks testing
+- **P2**: Fix before release
+- **P3**: Fix in next release
+- **P4**: Fix when resources available
+
+#### Defect Workflow
+1. **Discovery**: Defect identified during testing
+2. **Logging**: Defect logged in tracking system
+3. **Triage**: Severity and priority assigned
+4. **Assignment**: Defect assigned to developer
+5. **Resolution**: Developer fixes defect
+6. **Verification**: QA verifies fix
+7. **Closure**: Defect closed if verified
+
+#### Defect Metrics
+**Target Metrics**:
+- **Defect Leakage**: < 5% defects found in production
+- **Defect Removal Efficiency**: > 95%
+- **Critical Defects**: 0 critical defects in production
+- **Defect Resolution Time**: < 2 days for critical, < 5 days for high
+
+### Test Execution
+
+#### Test Execution Process
+1. **Environment Preparation**: Set up test environment and data
+2. **Test Case Execution**: Execute test cases according to schedule
+3. **Result Recording**: Document actual results and pass/fail status
+4. **Defect Reporting**: Log defects for failed test cases
+5. **Progress Tracking**: Update test execution progress
+6. **Status Reporting**: Provide regular status updates
+
+#### Test Execution Schedule
+**Week 1: Smoke Testing**
+- Execute critical path test cases
+- Verify basic functionality
+- Validate environment stability
+
+**Week 2-3: Functional Testing**
+- Execute all functional test cases
+- Perform integration testing
+- Conduct API testing
+
+**Week 4: Non-Functional Testing**
+- Performance testing
+- Security testing
+- Usability testing
+
+**Week 5: User Acceptance Testing**
+- Business stakeholder testing
+- End-user workflow validation
+- Sign-off activities
+
+### Risk Assessment
+
+#### Test Risks
+| Risk | Impact | Probability | Mitigation |
+|------|--------|-------------|------------|
+| {{TestRisk1}} | {{Impact1}} | {{Probability1}} | {{Mitigation1}} |
+| {{TestRisk2}} | {{Impact2}} | {{Probability2}} | {{Mitigation2}} |
+| {{TestRisk3}} | {{Impact3}} | {{Probability3}} | {{Mitigation3}} |
+
+#### Contingency Plans
+**Risk**: Test environment unavailable
+**Contingency**: Use backup environment or extend timeline
+
+**Risk**: Key personnel unavailable
+**Contingency**: Cross-train team members, use external resources
+
+**Risk**: Major defects discovered late
+**Contingency**: Implement phased release approach
+
+### Entry and Exit Criteria
+
+#### Test Phase Entry Criteria
+- [ ] Requirements baseline established
+- [ ] Test environment configured and validated
+- [ ] Test data prepared and loaded
+- [ ] Test team trained and ready
+- [ ] Code deployment completed
+- [ ] Smoke test passed
+
+#### Test Phase Exit Criteria
+- [ ] All planned test cases executed
+- [ ] {{ExitCriteriaPercentage}}% of test cases passed
+- [ ] No critical or high priority defects open
+- [ ] Performance benchmarks met
+- [ ] Security requirements validated
+- [ ] User acceptance testing completed
+- [ ] Test closure report approved
+
+### Deliverables
+
+#### Test Deliverables
+- **Test Plan Document**: This document
+- **Test Case Repository**: Detailed test cases
+- **Test Execution Reports**: Daily/weekly progress reports
+- **Defect Reports**: Defect tracking and resolution status
+- **Test Coverage Report**: Requirements and code coverage analysis
+- **Performance Test Report**: Load and performance testing results
+- **Security Test Report**: Security testing findings
+- **User Acceptance Test Report**: Business stakeholder sign-off
+- **Test Closure Report**: Final summary and recommendations
+
+### Team and Responsibilities
+
+#### Test Team Structure
+| Role | Name | Responsibilities |
+|------|------|-----------------|
+| Test Manager | {{TestManagerName}} | Overall test planning and coordination |
+| Senior QA Analyst | {{SeniorQAName}} | Test design and execution oversight |
+| QA Analyst | {{QAAnalystName}} | Test case execution and defect reporting |
+| Performance Tester | {{PerformanceTesterName}} | Performance and load testing |
+| Security Tester | {{SecurityTesterName}} | Security testing and vulnerability assessment |
+| Automation Engineer | {{AutomationEngineerName}} | Test automation framework and scripts |
+
+#### RACI Matrix
+| Activity | Test Manager | Senior QA | QA Analyst | Dev Team | Business |
+|----------|-------------|-----------|------------|----------|----------|
+| Test Planning | R | A | C | C | I |
+| Test Design | A | R | R | C | C |
+| Test Execution | A | R | R | C | I |
+| Defect Management | A | R | R | R | I |
+| User Acceptance | I | A | C | C | R |
+
+### Approval and Sign-off
+
+#### Review and Approval
+| Role | Name | Review Date | Approval Date | Signature |
+|------|------|-------------|---------------|-----------|
+| Test Manager | {{TestManagerName}} | {{ReviewDate1}} | {{ApprovalDate1}} | |
+| Project Manager | {{ProjectManagerName}} | {{ReviewDate2}} | {{ApprovalDate2}} | |
+| Development Lead | {{DevLeadName}} | {{ReviewDate3}} | {{ApprovalDate3}} | |
+| Business Analyst | {{BAName}} | {{ReviewDate4}} | {{ApprovalDate4}} | |
+
+This comprehensive test plan ensures thorough testing coverage and quality assurance for the project deliverables.`,
         category: "sdlc_templates",
         component: "test_plan",
         sdlcStage: "unit_testing",
@@ -7649,7 +11165,217 @@ public class CustomMetrics
         id: "sdlc_templates-release_notes-deployment",
         title: "Release Notes Template",
         description: "Release notes template with feature highlights and breaking changes",
-        content: "Structure release notes with feature highlights, bug fixes, breaking changes, and migration guides.",
+        content: `Structure release notes with feature highlights, bug fixes, breaking changes, and migration guides.
+
+# Release Notes Template
+## {{ProductName}} Version {{ReleaseVersion}}
+
+### Release Information
+- **Release Version**: {{ReleaseVersion}}
+- **Release Date**: {{ReleaseDate}}
+- **Release Type**: {{ReleaseType}}
+- **Build Number**: {{BuildNumber}}
+- **Release Manager**: {{ReleaseManager}}
+- **Development Team**: {{DevelopmentTeam}}
+
+### Executive Summary
+{{ExecutiveSummary}}
+
+This release includes {{FeatureCount}} new features, {{EnhancementCount}} enhancements, and {{BugFixCount}} bug fixes. The release focuses on {{ReleaseFocus}} while maintaining backward compatibility with previous versions.
+
+**Key Highlights**:
+- {{KeyHighlight1}}
+- {{KeyHighlight2}}
+- {{KeyHighlight3}}
+
+### What's New
+
+#### New Features
+
+##### Feature 1: {{NewFeature1}}
+**Description**: {{NewFeature1Description}}
+**Benefit**: {{NewFeature1Benefit}}
+**Availability**: {{NewFeature1Availability}}
+
+**How to Use**:
+1. {{Usage1Step1}}
+2. {{Usage1Step2}}
+3. {{Usage1Step3}}
+
+##### Feature 2: {{NewFeature2}}
+**Description**: {{NewFeature2Description}}
+**Benefit**: {{NewFeature2Benefit}}
+**Availability**: {{NewFeature2Availability}}
+
+**Configuration Requirements**:
+\`\`\`json
+{
+  "{{ConfigKey1}}": "{{ConfigValue1}}",
+  "{{ConfigKey2}}": "{{ConfigValue2}}",
+  "{{ConfigKey3}}": {{ConfigValue3}}
+}
+\`\`\`
+
+### Enhancements
+
+#### Performance Improvements
+- **{{PerformanceImprovement1}}**: {{PerformanceDescription1}}
+  - Performance Gain: {{PerformanceGain1}}
+  - Impact: {{PerformanceImpact1}}
+  
+- **{{PerformanceImprovement2}}**: {{PerformanceDescription2}}
+  - Performance Gain: {{PerformanceGain2}}
+  - Impact: {{PerformanceImpact2}}
+
+#### Security Enhancements
+- **{{SecurityEnhancement1}}**: {{SecurityDescription1}}
+  - Security Level: {{SecurityLevel1}}
+  - Compliance: {{ComplianceImpact1}}
+
+### Bug Fixes
+
+#### Critical Bug Fixes
+| Bug ID | Description | Impact | Resolution |
+|--------|-------------|---------|------------|
+| {{BugID1}} | {{BugDescription1}} | {{BugImpact1}} | {{BugResolution1}} |
+| {{BugID2}} | {{BugDescription2}} | {{BugImpact2}} | {{BugResolution2}} |
+| {{BugID3}} | {{BugDescription3}} | {{BugImpact3}} | {{BugResolution3}} |
+
+### Breaking Changes
+
+#### API Changes
+**Deprecated APIs** (will be removed in {{DeprecationVersion}}):
+- \`{{DeprecatedAPI1}}\`: Use \`{{ReplacementAPI1}}\` instead
+- \`{{DeprecatedAPI2}}\`: Use \`{{ReplacementAPI2}}\` instead
+
+**Modified APIs**:
+- \`{{ModifiedAPI1}}\`: {{APIChangeDescription1}}
+  - **Before**: \`{{APIBefore1}}\`
+  - **After**: \`{{APIAfter1}}\`
+  - **Migration**: {{MigrationSteps1}}
+
+### Installation and Upgrade
+
+#### New Installation
+**Step 1: Download and Extract**
+\`\`\`bash
+# Download the release
+wget {{DownloadURL}}
+
+# Extract the files
+tar -xzf {{ReleasePackage}}
+cd {{InstallationDirectory}}
+\`\`\`
+
+**Step 2: Configuration**
+\`\`\`bash
+# Copy configuration template
+cp config/{{ConfigTemplate}} config/{{ConfigFile}}
+
+# Edit configuration file
+nano config/{{ConfigFile}}
+\`\`\`
+
+#### Upgrade from Previous Version
+**Preparation**:
+1. **Backup Current Installation**
+   \`\`\`bash
+   ./scripts/backup.sh
+   \`\`\`
+
+2. **Stop Services**
+   \`\`\`bash
+   ./scripts/stop.sh
+   \`\`\`
+
+**Upgrade Process**:
+1. **Extract New Version**
+   \`\`\`bash
+   tar -xzf {{ReleasePackage}} --strip-components=1 -C {{InstallationDirectory}}
+   \`\`\`
+
+2. **Run Database Migrations**
+   \`\`\`bash
+   ./scripts/migrate-database.sh
+   \`\`\`
+
+3. **Start Services**
+   \`\`\`bash
+   ./scripts/start.sh
+   \`\`\`
+
+### Known Issues
+
+#### Open Issues
+| Issue ID | Description | Severity | Workaround | Target Fix |
+|----------|-------------|----------|------------|-------------|
+| {{IssueID1}} | {{IssueDescription1}} | {{IssueSeverity1}} | {{Workaround1}} | {{TargetFix1}} |
+| {{IssueID2}} | {{IssueDescription2}} | {{IssueSeverity2}} | {{Workaround2}} | {{TargetFix2}} |
+
+#### Browser Compatibility
+| Browser | Version | Support Level | Known Issues |
+|---------|---------|---------------|--------------|
+| Chrome | {{ChromeVersion}}+ | Full Support | None |
+| Firefox | {{FirefoxVersion}}+ | Full Support | {{FirefoxIssues}} |
+| Safari | {{SafariVersion}}+ | Full Support | {{SafariIssues}} |
+| Edge | {{EdgeVersion}}+ | Full Support | None |
+
+### System Requirements
+
+#### Minimum Requirements
+- **Operating System**: {{MinimumOS}}
+- **Memory**: {{MinimumRAM}} GB RAM
+- **Storage**: {{MinimumStorage}} GB free space
+- **Processor**: {{MinimumProcessor}}
+- **Network**: {{MinimumNetwork}}
+
+#### Dependencies
+| Dependency | Minimum Version | Recommended Version | Notes |
+|------------|-----------------|---------------------|-------|
+| {{Dependency1}} | {{MinVersion1}} | {{RecVersion1}} | {{Notes1}} |
+| {{Dependency2}} | {{MinVersion2}} | {{RecVersion2}} | {{Notes2}} |
+
+### Support and Documentation
+
+#### Documentation Updates
+- **User Guide**: Updated with new features and workflows
+- **API Documentation**: Complete API reference with examples
+- **Administrator Guide**: Installation and configuration guide
+
+#### Support Information
+- **Support Portal**: {{SupportPortalURL}}
+- **Documentation**: {{DocumentationURL}}
+- **Community Forum**: {{CommunityForumURL}}
+- **Bug Reporting**: {{BugReportingURL}}
+
+### Contributors
+
+#### Development Team
+- {{Developer1}}: {{Developer1Contribution}}
+- {{Developer2}}: {{Developer2Contribution}}
+- {{Developer3}}: {{Developer3Contribution}}
+
+#### Quality Assurance Team
+- {{QAEngineer1}}: {{QAEngineer1Contribution}}
+- {{QAEngineer2}}: {{QAEngineer2Contribution}}
+
+### Legal and Compliance
+
+#### License Information
+This software is released under {{LicenseType}}. See LICENSE file for details.
+
+#### Third-Party Components
+| Component | Version | License | Changes |
+|-----------|---------|---------|---------|
+| {{Component1}} | {{ComponentVersion1}} | {{ComponentLicense1}} | {{ComponentChanges1}} |
+| {{Component2}} | {{ComponentVersion2}} | {{ComponentLicense2}} | {{ComponentChanges2}} |
+
+---
+
+**Note**: For technical support or questions about this release, please contact our support team at {{SupportEmail}} or visit {{SupportURL}}.
+
+**Release Team**: {{ReleaseTeam}}
+**Release Date**: {{ReleaseDateFinal}}`,
         category: "sdlc_templates",
         component: "release_notes",
         sdlcStage: "deployment",
