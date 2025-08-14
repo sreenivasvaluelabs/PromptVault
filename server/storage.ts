@@ -230,7 +230,72 @@ public class RedisCacheService : ICacheService
         id: "foundation-configuration_service-development",
         title: "Configuration Service",
         description: "Environment-aware configuration service with caching and Sitecore integration",
-        content: "Implement a configuration service that supports environment-specific settings, caching, and integration with Sitecore configuration systems.",
+        content: `Implement a configuration service that supports environment-specific settings, caching, and integration with Sitecore configuration systems.
+
+// Configuration service with environment awareness
+public interface IConfigurationService
+{
+    T GetSetting<T>(string key, T defaultValue = default(T));
+    Task<T> GetSettingAsync<T>(string key, T defaultValue = default(T));
+    void RefreshCache();
+    bool IsFeatureEnabled(string featureName);
+}
+
+public class SitecoreConfigurationService : IConfigurationService
+{
+    private readonly ICacheService _cache;
+    private readonly ILogger<SitecoreConfigurationService> _logger;
+    private readonly IConfiguration _configuration;
+    private readonly string _environment;
+
+    public SitecoreConfigurationService(
+        ICacheService cache,
+        ILogger<SitecoreConfigurationService> logger,
+        IConfiguration configuration)
+    {
+        _cache = cache;
+        _logger = logger;
+        _configuration = configuration;
+        _environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+    }
+
+    public T GetSetting<T>(string key, T defaultValue = default(T))
+    {
+        try
+        {
+            var cacheKey = $"config:{_environment}:{key}";
+            return _cache.GetOrSet(cacheKey, () =>
+            {
+                var envKey = $"{key}:{_environment}";
+                var value = _configuration[envKey] ?? _configuration[key];
+                
+                if (value == null) return defaultValue;
+                return (T)Convert.ChangeType(value, typeof(T));
+            }, TimeSpan.FromMinutes(30));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting configuration setting: {Key}", key);
+            return defaultValue;
+        }
+    }
+
+    public async Task<T> GetSettingAsync<T>(string key, T defaultValue = default(T))
+    {
+        return await Task.FromResult(GetSetting(key, defaultValue));
+    }
+
+    public void RefreshCache()
+    {
+        _cache.RemoveByPattern($"config:{_environment}:*");
+        _logger.LogInformation("Configuration cache refreshed for environment: {Environment}", _environment);
+    }
+
+    public bool IsFeatureEnabled(string featureName)
+    {
+        return GetSetting($"Features:{featureName}:Enabled", false);
+    }
+}`,
         category: "foundation",
         component: "configuration_service",
         sdlcStage: "development",
@@ -242,7 +307,72 @@ public class RedisCacheService : ICacheService
         id: "foundation-di_configuration-development",
         title: "DI Configuration",
         description: "Dependency injection configuration for Foundation layer services",
-        content: "Set up comprehensive dependency injection configuration for Foundation layer services with proper scoping and lifecycle management.",
+        content: `Set up comprehensive dependency injection configuration for Foundation layer services with proper scoping and lifecycle management.
+
+// Dependency injection configuration
+public static class FoundationLayerDependencyInjection
+{
+    public static IServiceCollection AddFoundationLayer(this IServiceCollection services, IConfiguration configuration)
+    {
+        // Core services
+        services.AddScoped<ILoggingService, AdvancedLoggingService>();
+        services.AddScoped<ICacheService, RedisCacheService>();
+        services.AddScoped<IConfigurationService, SitecoreConfigurationService>();
+        
+        // Redis configuration
+        services.AddStackExchangeRedisCache(options =>
+        {
+            options.Configuration = configuration.GetConnectionString("Redis");
+            options.InstanceName = configuration["ApplicationName"] ?? "SitecoreApp";
+        });
+        
+        // Connection multiplexer for Redis
+        services.AddSingleton<IConnectionMultiplexer>(provider =>
+        {
+            var connectionString = configuration.GetConnectionString("Redis");
+            return ConnectionMultiplexer.Connect(connectionString);
+        });
+        
+        // Performance tracking
+        services.AddScoped<IPerformanceTracker, PerformanceTracker>();
+        
+        // HTTP clients
+        services.AddHttpClient<IExternalApiService, ExternalApiService>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(30);
+            client.DefaultRequestHeaders.Add("User-Agent", "SitecoreApp/1.0");
+        });
+        
+        // Background services
+        services.AddHostedService<CacheWarmupService>();
+        
+        // Health checks
+        services.AddHealthChecks()
+            .AddRedis(configuration.GetConnectionString("Redis"))
+            .AddCheck<DatabaseHealthCheck>("database")
+            .AddCheck<ExternalApiHealthCheck>("external-api");
+            
+        return services;
+    }
+}
+
+// Service registration extension
+public static class ServiceCollectionExtensions
+{
+    public static IServiceCollection AddSitecoreServices(this IServiceCollection services, IConfiguration configuration)
+    {
+        // Foundation layer
+        services.AddFoundationLayer(configuration);
+        
+        // Feature layer
+        services.AddFeatureLayer();
+        
+        // Project layer
+        services.AddProjectLayer();
+        
+        return services;
+    }
+}`,
         category: "foundation",
         component: "di_configuration",
         sdlcStage: "development",
@@ -286,7 +416,104 @@ public ActionResult {{ActionName}}()
         id: "feature-view_model-development",
         title: "View Model",
         description: "Feature view model with validation and display logic",
-        content: "Implement a comprehensive view model with validation attributes, display formatting, and business logic for Sitecore Feature layer components.",
+        content: `Implement a comprehensive view model with validation attributes, display formatting, and business logic for Sitecore Feature layer components.
+
+// Feature view model with validation
+public class ProductFeatureViewModel : BaseViewModel
+{
+    [Required(ErrorMessage = "Product name is required")]
+    [StringLength(100, ErrorMessage = "Product name cannot exceed 100 characters")]
+    [Display(Name = "Product Name")]
+    public string Name { get; set; }
+
+    [Required(ErrorMessage = "Price is required")]
+    [Range(0.01, 99999.99, ErrorMessage = "Price must be between $0.01 and $99,999.99")]
+    [Display(Name = "Price")]
+    [DisplayFormat(DataFormatString = "{0:C}", ApplyFormatInEditMode = true)]
+    public decimal Price { get; set; }
+
+    [StringLength(500, ErrorMessage = "Description cannot exceed 500 characters")]
+    [Display(Name = "Description")]
+    public string Description { get; set; }
+
+    [Display(Name = "Available")]
+    public bool IsAvailable { get; set; }
+
+    [Display(Name = "Category")]
+    public string CategoryName { get; set; }
+
+    [Display(Name = "Product Image")]
+    public string ImageUrl { get; set; }
+
+    [Display(Name = "Alt Text")]
+    public string ImageAltText { get; set; }
+
+    // Constructor from datasource
+    public ProductFeatureViewModel(IProductModel datasource) : base(datasource)
+    {
+        if (datasource != null)
+        {
+            Name = datasource.Name?.Value ?? string.Empty;
+            Price = datasource.Price?.Value ?? 0;
+            Description = datasource.Description?.Value ?? string.Empty;
+            IsAvailable = datasource.IsAvailable?.Value ?? false;
+            CategoryName = datasource.Category?.Item?.Name ?? string.Empty;
+            ImageUrl = datasource.Image?.Src ?? string.Empty;
+            ImageAltText = datasource.Image?.Alt ?? string.Empty;
+        }
+    }
+
+    // Business logic methods
+    public string GetFormattedPrice()
+    {
+        return Price.ToString("C");
+    }
+
+    public string GetAvailabilityText()
+    {
+        return IsAvailable ? "In Stock" : "Out of Stock";
+    }
+
+    public string GetAvailabilityClass()
+    {
+        return IsAvailable ? "available" : "unavailable";
+    }
+
+    public bool HasImage()
+    {
+        return !string.IsNullOrEmpty(ImageUrl);
+    }
+
+    public string GetTruncatedDescription(int maxLength = 150)
+    {
+        if (string.IsNullOrEmpty(Description) || Description.Length <= maxLength)
+            return Description;
+            
+        return Description.Substring(0, maxLength) + "...";
+    }
+}
+
+// Base view model class
+public abstract class BaseViewModel
+{
+    public Guid ItemId { get; set; }
+    public string ItemName { get; set; }
+    public bool HasContent { get; set; }
+
+    protected BaseViewModel(IBaseModel datasource)
+    {
+        if (datasource != null)
+        {
+            ItemId = datasource.Id;
+            ItemName = datasource.Name;
+            HasContent = true;
+        }
+        else
+        {
+            HasContent = false;
+        }
+    }
+}`,
         category: "feature",
         component: "view_model",
         sdlcStage: "development",
@@ -926,7 +1153,55 @@ class Carousel {
         id: "sdlc_templates-security_requirements-development",
         title: "Security Requirements",
         description: "Security requirements and compliance documentation template",
-        content: "Generate comprehensive security requirements documentation covering authentication, authorization, data protection, and compliance.",
+        content: `Generate comprehensive security requirements documentation covering authentication, authorization, data protection, and compliance.
+
+## Security Requirements Template
+
+### Authentication Requirements
+- [ ] **Multi-Factor Authentication (MFA)**: Required for admin users
+- [ ] **Password Policy**: Minimum 12 characters, complexity requirements
+- [ ] **Session Management**: 30-minute timeout for inactive sessions
+- [ ] **Account Lockout**: 5 failed attempts trigger 15-minute lockout
+
+### Authorization Requirements
+\`\`\`csharp
+// Role-based access control
+[Authorize(Roles = "Admin,Editor")]
+public class SecureController : Controller
+{
+    [Authorize(Policy = "CanEditContent")]
+    public ActionResult EditContent() { }
+    
+    [Authorize(Policy = "CanPublishContent")]
+    public ActionResult PublishContent() { }
+}
+\`\`\`
+
+### Data Protection Requirements
+- [ ] **Data Encryption**: AES-256 for data at rest
+- [ ] **Transport Security**: TLS 1.3 for data in transit
+- [ ] **PII Handling**: GDPR compliance for personal data
+- [ ] **Data Retention**: 7-year retention policy with secure deletion
+
+### Compliance Requirements
+- [ ] **GDPR**: Right to be forgotten, data portability
+- [ ] **WCAG 2.1 AA**: Accessibility compliance
+- [ ] **OWASP Top 10**: Security vulnerability mitigation
+- [ ] **SOC 2 Type II**: Security and availability controls
+
+### Security Headers
+\`\`\`csharp
+// Security middleware
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.Add("X-Content-Type-Options", "nosniff");
+    context.Response.Headers.Add("X-Frame-Options", "DENY");
+    context.Response.Headers.Add("X-XSS-Protection", "1; mode=block");
+    context.Response.Headers.Add("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    context.Response.Headers.Add("Content-Security-Policy", "default-src 'self'");
+    await next();
+});
+\`\`\``,
         category: "sdlc_templates",
         component: "security_requirements",
         sdlcStage: "development",
@@ -938,7 +1213,82 @@ class Carousel {
         id: "sdlc_templates-performance_tests-development",
         title: "Performance Tests",
         description: "Performance testing suite template with load testing and monitoring",
-        content: "Create a comprehensive performance testing suite template with load testing, benchmarks, and monitoring setup.",
+        content: `Create a comprehensive performance testing suite template with load testing, benchmarks, and monitoring setup.
+
+## Performance Testing Suite
+
+### Load Testing with Artillery
+\`\`\`yaml
+# artillery-config.yml
+config:
+  target: 'https://{{site-url}}'
+  phases:
+    - duration: 60
+      arrivalRate: 10
+      name: "Warm up"
+    - duration: 300
+      arrivalRate: 50
+      name: "Ramp up"
+    - duration: 600
+      arrivalRate: 100
+      name: "Sustained load"
+  plugins:
+    metrics-by-endpoint: {}
+
+scenarios:
+  - name: "Homepage Load Test"
+    weight: 70
+    flow:
+      - get:
+          url: "/"
+          expect:
+            - statusCode: 200
+            - hasHeader: 'content-type'
+      - think: 2
+      - get:
+          url: "/search?q=test"
+\`\`\`
+
+### Performance Benchmarks
+\`\`\`csharp
+// Performance monitoring
+public class PerformanceMiddleware
+{
+    public async Task InvokeAsync(HttpContext context, RequestDelegate next)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        
+        await next(context);
+        
+        stopwatch.Stop();
+        var responseTime = stopwatch.ElapsedMilliseconds;
+        
+        // Log slow requests
+        if (responseTime > 2000)
+        {
+            _logger.LogWarning("Slow request: {Path} took {ResponseTime}ms", 
+                context.Request.Path, responseTime);
+        }
+        
+        // Track metrics
+        _telemetryClient.TrackMetric("RequestDuration", responseTime, 
+            new Dictionary<string, string>
+            {
+                ["Path"] = context.Request.Path,
+                ["Method"] = context.Request.Method
+            });
+    }
+}
+\`\`\`
+
+### Performance Targets
+- **Page Load Time**: < 2 seconds
+- **Time to First Byte**: < 500ms
+- **Largest Contentful Paint**: < 2.5 seconds
+- **Cumulative Layout Shift**: < 0.1
+- **First Input Delay**: < 100ms
+- **Throughput**: > 1000 requests/second
+- **Error Rate**: < 0.1%`,
         category: "sdlc_templates",
         component: "performance_tests",
         sdlcStage: "development",
@@ -950,7 +1300,80 @@ class Carousel {
         id: "sdlc_templates-accessibility_testing-development",
         title: "Accessibility Testing",
         description: "WCAG compliance and accessibility testing template",
-        content: "Generate comprehensive accessibility testing template covering WCAG 2.1 AA compliance, testing tools, and validation procedures.",
+        content: `Generate comprehensive accessibility testing template covering WCAG 2.1 AA compliance, testing tools, and validation procedures.
+
+## Accessibility Testing Template
+
+### WCAG 2.1 AA Compliance Checklist
+
+#### Perceivable
+- [ ] **1.1.1** All images have meaningful alt text
+- [ ] **1.2.1** Captions provided for all video content
+- [ ] **1.3.1** Information and relationships conveyed through markup
+- [ ] **1.4.1** Color is not the only means of conveying information
+- [ ] **1.4.3** Text has contrast ratio of at least 4.5:1
+
+#### Operable
+- [ ] **2.1.1** All functionality available via keyboard
+- [ ] **2.2.1** Users can extend or disable time limits
+- [ ] **2.3.1** No content flashes more than 3 times per second
+- [ ] **2.4.1** Skip links provided to main content
+- [ ] **2.4.3** Focus order is logical and intuitive
+
+#### Understandable
+- [ ] **3.1.1** Language of page is programmatically determined
+- [ ] **3.2.1** Focus doesn't trigger unexpected context changes
+- [ ] **3.3.1** Error identification is clear and descriptive
+- [ ] **3.3.2** Labels provided for all form inputs
+
+#### Robust
+- [ ] **4.1.1** Markup is valid and well-formed
+- [ ] **4.1.2** Name, role, value available for all UI components
+
+### Automated Testing Tools
+\`\`\`bash
+# Install accessibility testing tools
+npm install -D @axe-core/playwright
+npm install -D pa11y
+npm install -D lighthouse
+
+# Run accessibility tests
+npx pa11y --standard WCAG2AA {{url}}
+npx lighthouse {{url}} --only-categories=accessibility --output json
+\`\`\`
+
+### Accessibility Test Implementation
+\`\`\`csharp
+// Accessibility testing in Playwright
+[Test]
+public async Task HomePage_ShouldMeetA11yStandards()
+{
+    await Page.GotoAsync("/");
+    
+    var results = await Page.RunAxeAsync();
+    
+    Assert.That(results.Violations, Is.Empty, 
+        $"Accessibility violations found: {string.Join(", ", results.Violations.Select(v => v.Id))}");
+}
+
+// Manual testing checklist
+[Test]
+public async Task Navigation_ShouldBeKeyboardAccessible()
+{
+    await Page.GotoAsync("/");
+    
+    // Test keyboard navigation
+    await Page.Keyboard.PressAsync("Tab");
+    var focusedElement = await Page.EvaluateAsync<string>("document.activeElement.tagName");
+    Assert.That(focusedElement, Is.Not.Null);
+}
+\`\`\`
+
+### Screen Reader Testing
+- Test with NVDA (Windows) or VoiceOver (Mac)
+- Verify all content is announced correctly
+- Check heading structure makes sense
+- Ensure form labels are properly associated`,
         category: "sdlc_templates",
         component: "accessibility_testing",
         sdlcStage: "development",
@@ -962,7 +1385,162 @@ class Carousel {
         id: "sdlc_templates-docker_setup-development",
         title: "Docker Setup",
         description: "Docker containerization configuration template for development and deployment",
-        content: "Create comprehensive Docker setup template with Dockerfile, docker-compose, and container orchestration for development and production.",
+        content: `Create comprehensive Docker setup template with Dockerfile, docker-compose, and container orchestration for development and production.
+
+## Docker Configuration Template
+
+### Dockerfile
+\`\`\`dockerfile
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+WORKDIR /app
+EXPOSE 80
+EXPOSE 443
+
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+COPY ["SitecoreApp.csproj", "."]
+RUN dotnet restore "SitecoreApp.csproj"
+COPY . .
+WORKDIR "/src/."
+RUN dotnet build "SitecoreApp.csproj" -c Release -o /app/build
+
+FROM build AS publish
+RUN dotnet publish "SitecoreApp.csproj" -c Release -o /app/publish
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+
+# Install required packages
+RUN apt-get update && apt-get install -y \\
+    curl \\
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+RUN chown -R appuser:appuser /app
+USER appuser
+
+ENTRYPOINT ["dotnet", "SitecoreApp.dll"]
+\`\`\`
+
+### Docker Compose - Development
+\`\`\`yaml
+version: '3.8'
+services:
+  web:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:80"
+      - "8443:443"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=db;Database=SitecoreDB;User=sa;Password=Password123!;TrustServerCertificate=true
+      - ConnectionStrings__Redis=redis:6379
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - sitecore-network
+    
+  db:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=Password123!
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqldata:/var/opt/mssql
+    networks:
+      - sitecore-network
+      
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    networks:
+      - sitecore-network
+    command: redis-server --appendonly yes
+
+volumes:
+  sqldata:
+  redisdata:
+
+networks:
+  sitecore-network:
+    driver: bridge
+\`\`\`
+
+### Production Configuration
+\`\`\`yaml
+# docker-compose.prod.yml
+version: '3.8'
+services:
+  web:
+    build: 
+      context: .
+      dockerfile: Dockerfile.prod
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=https://+:443;http://+:80
+    deploy:
+      replicas: 3
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+\`\`\`
+
+### Multi-stage Production Dockerfile
+\`\`\`dockerfile
+# Dockerfile.prod
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+WORKDIR /app
+EXPOSE 80
+EXPOSE 443
+
+# Install security updates
+RUN apt-get update && apt-get upgrade -y \\
+    && apt-get clean \\
+    && rm -rf /var/lib/apt/lists/*
+
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+COPY ["*.csproj", "./"]
+RUN dotnet restore
+COPY . .
+RUN dotnet build -c Release -o /app/build
+
+FROM build AS test
+RUN dotnet test --logger trx --results-directory /testresults
+
+FROM build AS publish
+RUN dotnet publish -c Release -o /app/publish --no-restore
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+RUN chown -R appuser:appuser /app
+USER appuser
+ENTRYPOINT ["dotnet", "SitecoreApp.dll"]
+\`\`\``,
         category: "sdlc_templates",
         component: "docker_setup",
         sdlcStage: "development",
@@ -974,7 +1552,151 @@ class Carousel {
         id: "sdlc_templates-monitoring_setup-development",
         title: "Monitoring Setup",
         description: "Application monitoring and observability configuration template",
-        content: "Generate comprehensive monitoring setup template with application insights, health checks, logging, and alerting configuration.",
+        content: `Generate comprehensive monitoring setup template with application insights, health checks, logging, and alerting configuration.
+
+## Monitoring & Observability Setup
+
+### Application Insights Configuration
+\`\`\`csharp
+// Program.cs
+builder.Services.AddApplicationInsightsTelemetry();
+builder.Services.AddHealthChecks()
+    .AddSqlServer(connectionString)
+    .AddRedis(redisConnection)
+    .AddCheck<SitecoreHealthCheck>("sitecore");
+
+// Custom telemetry
+public class TelemetryService
+{
+    private readonly TelemetryClient _telemetryClient;
+    
+    public void TrackCustomEvent(string eventName, Dictionary<string, string> properties)
+    {
+        _telemetryClient.TrackEvent(eventName, properties);
+    }
+    
+    public void TrackCustomMetric(string metricName, double value)
+    {
+        _telemetryClient.TrackMetric(metricName, value);
+    }
+    
+    public void TrackDependency(string dependencyName, string commandName, 
+        DateTime startTime, TimeSpan duration, bool success)
+    {
+        _telemetryClient.TrackDependency(dependencyName, commandName, 
+            startTime, duration, success);
+    }
+}
+\`\`\`
+
+### Health Checks Implementation
+\`\`\`csharp
+public class SitecoreHealthCheck : IHealthCheck
+{
+    private readonly ISitecoreContext _context;
+    private readonly ICacheService _cache;
+    
+    public async Task<HealthCheckResult> CheckHealthAsync(
+        HealthCheckContext context, 
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Check Sitecore database connectivity
+            var homeItem = _context.GetHomeItem();
+            if (homeItem == null)
+                return HealthCheckResult.Degraded("Cannot access Sitecore home item");
+            
+            // Check cache connectivity
+            await _cache.GetOrSetAsync("health-check", 
+                () => Task.FromResult("OK"), TimeSpan.FromMinutes(1));
+            
+            return HealthCheckResult.Healthy("All systems operational");
+        }
+        catch (Exception ex)
+        {
+            return HealthCheckResult.Unhealthy("Health check failed", ex);
+        }
+    }
+}
+\`\`\`
+
+### Structured Logging with Serilog
+\`\`\`csharp
+// Program.cs
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .Enrich.FromLogContext()
+    .Enrich.WithEnvironmentName()
+    .Enrich.WithMachineName()
+    .WriteTo.Console(new JsonFormatter())
+    .WriteTo.ApplicationInsights(TelemetryConfiguration.CreateDefault(), 
+        TelemetryConverter.Traces)
+    .WriteTo.File("logs/app-.log", 
+        rollingInterval: RollingInterval.Day,
+        formatter: new JsonFormatter())
+    .CreateLogger();
+
+builder.Host.UseSerilog();
+\`\`\`
+
+### Prometheus Metrics
+\`\`\`csharp
+// Startup.cs
+public void Configure(IApplicationBuilder app)
+{
+    app.UseMetricServer(); // /metrics endpoint
+    app.UseHttpMetrics();
+}
+
+// Custom metrics
+public class CustomMetrics
+{
+    private static readonly Counter PageViews = Metrics
+        .CreateCounter("page_views_total", "Total page views", "page");
+        
+    private static readonly Histogram RequestDuration = Metrics
+        .CreateHistogram("request_duration_seconds", "Request duration");
+        
+    public void IncrementPageView(string pageName)
+    {
+        PageViews.WithLabels(pageName).Inc();
+    }
+    
+    public void RecordRequestDuration(double seconds)
+    {
+        RequestDuration.Observe(seconds);
+    }
+}
+\`\`\`
+
+### Alert Rules Configuration
+\`\`\`json
+{
+  "alertRules": [
+    {
+      "name": "High Response Time",
+      "condition": "avg(http_request_duration_seconds) > 2",
+      "for": "5m",
+      "severity": "warning",
+      "annotations": {
+        "summary": "High response time detected",
+        "description": "Average response time is {{ $value }} seconds"
+      }
+    },
+    {
+      "name": "High Error Rate",
+      "condition": "rate(http_requests_total{status=~'5..'}[5m]) > 0.05",
+      "for": "2m",
+      "severity": "critical",
+      "annotations": {
+        "summary": "High error rate detected",
+        "description": "Error rate is {{ $value | humanizePercentage }}"
+      }
+    }
+  ]
+}
+\`\`\``,
         category: "sdlc_templates",
         component: "monitoring_setup",
         sdlcStage: "development",
