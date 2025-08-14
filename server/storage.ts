@@ -554,7 +554,145 @@ public interface I{{ModelName}}
         id: "feature-service_layer-development",
         title: "Service Layer",
         description: "Feature service layer with async operations, caching, and validation",
-        content: "Implement a feature service layer with async operations, caching integration, input validation, and comprehensive error handling.",
+        content: `Implement a feature service layer with async operations, caching integration, input validation, and comprehensive error handling.
+
+// Feature service layer implementation
+public interface IFeatureService
+{
+    Task<TResult> ProcessAsync<T, TResult>(T input) where T : class;
+    Task<IEnumerable<TResult>> GetItemsAsync<TResult>(int pageSize = 10, int page = 1);
+    Task<bool> ValidateInputAsync<T>(T input) where T : class;
+    Task ClearCacheAsync(string pattern);
+}
+
+public class FeatureService : IFeatureService
+{
+    private readonly ICacheService _cacheService;
+    private readonly ILoggingService _loggingService;
+    private readonly IValidator<object> _validator;
+    private readonly ISitecoreContext _sitecoreContext;
+
+    public FeatureService(
+        ICacheService cacheService,
+        ILoggingService loggingService,
+        IValidator<object> validator,
+        ISitecoreContext sitecoreContext)
+    {
+        _cacheService = cacheService;
+        _loggingService = loggingService;
+        _validator = validator;
+        _sitecoreContext = sitecoreContext;
+    }
+
+    public async Task<TResult> ProcessAsync<T, TResult>(T input) where T : class
+    {
+        try
+        {
+            // Input validation
+            var isValid = await ValidateInputAsync(input);
+            if (!isValid)
+            {
+                throw new ValidationException("Input validation failed");
+            }
+
+            // Check cache first
+            var cacheKey = GenerateCacheKey<T>(input);
+            var cachedResult = await _cacheService.GetOrSetAsync<TResult>(cacheKey, async () =>
+            {
+                _loggingService.LogInformation("Processing request for type {Type}", typeof(T).Name);
+                
+                // Business logic processing
+                var result = await ProcessBusinessLogicAsync<T, TResult>(input);
+                
+                _loggingService.LogInformation("Successfully processed {Type}", typeof(T).Name);
+                return result;
+            }, TimeSpan.FromMinutes(15));
+
+            return cachedResult;
+        }
+        catch (Exception ex)
+        {
+            _loggingService.LogError(ex, "Error processing {Type}", typeof(T).Name);
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<TResult>> GetItemsAsync<TResult>(int pageSize = 10, int page = 1)
+    {
+        var cacheKey = $"items:{typeof(TResult).Name}:page:{page}:size:{pageSize}";
+        
+        return await _cacheService.GetOrSetAsync(cacheKey, async () =>
+        {
+            _loggingService.LogInformation("Fetching items for {Type}, Page: {Page}, Size: {PageSize}", 
+                typeof(TResult).Name, page, pageSize);
+
+            // Implement your data fetching logic here
+            var items = await FetchItemsFromDataSourceAsync<TResult>(pageSize, page);
+            
+            return items;
+        }, TimeSpan.FromMinutes(10));
+    }
+
+    public async Task<bool> ValidateInputAsync<T>(T input) where T : class
+    {
+        if (input == null)
+        {
+            _loggingService.LogWarning("Null input provided for validation");
+            return false;
+        }
+
+        try
+        {
+            var validationResult = await _validator.ValidateAsync(input);
+            if (!validationResult.IsValid)
+            {
+                _loggingService.LogWarning("Validation failed for {Type}: {Errors}", 
+                    typeof(T).Name, 
+                    string.Join(", ", validationResult.Errors.Select(e => e.ErrorMessage)));
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _loggingService.LogError(ex, "Error during validation for {Type}", typeof(T).Name);
+            return false;
+        }
+    }
+
+    public async Task ClearCacheAsync(string pattern)
+    {
+        await _cacheService.RemoveByPatternAsync(pattern);
+        _loggingService.LogInformation("Cache cleared for pattern: {Pattern}", pattern);
+    }
+
+    private string GenerateCacheKey<T>(T input)
+    {
+        // Generate a unique cache key based on input properties
+        var hash = input.GetHashCode();
+        return $"{typeof(T).Name}:{hash}";
+    }
+
+    private async Task<TResult> ProcessBusinessLogicAsync<T, TResult>(T input)
+    {
+        // Implement your specific business logic here
+        // This is where you would interact with Sitecore APIs, databases, external services, etc.
+        await Task.Delay(1); // Placeholder for async operation
+        
+        // Example business logic
+        return default(TResult);
+    }
+
+    private async Task<IEnumerable<TResult>> FetchItemsFromDataSourceAsync<TResult>(int pageSize, int page)
+    {
+        // Implement data fetching logic
+        // This could be from Sitecore, database, API, etc.
+        await Task.Delay(1); // Placeholder for async operation
+        
+        return new List<TResult>();
+    }
+}`,
         category: "feature",
         component: "service_layer",
         sdlcStage: "development",
