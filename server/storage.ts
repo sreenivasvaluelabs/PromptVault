@@ -22,16 +22,9 @@ export class MemStorage implements IStorage {
   }
 
   private initializePrompts(): void {
-    // Initialize with all 75 prompts from the complete Cognizant DXP Prompt Library
-    const promptsData = [
-      // Foundation Layer (5 prompts)
-      {
-        id: "foundation-service_interface-development",
-        title: "Service Interface",
-        description: "Foundation service interface with dependency injection and logging",
-        content: `Create a foundation service interface following Helix architecture principles. Include async methods, error handling, and comprehensive logging.
-
-// Foundation service interface
+    // Load the actual JSON data from Cognizant DXP Prompt Library
+    const codeSnippets = {
+      foundation_service_interface: `// Foundation service interface
 public interface I{{ServiceName}}Service
 {
     Task<{{ReturnType}}> {{MethodName}}Async({{Parameters}});
@@ -68,6 +61,181 @@ public class {{ServiceName}}Service : I{{ServiceName}}Service
         _logger.LogInformation("Operation: {Operation}, Data: {@Data}", operation, data);
     }
 }`,
+      foundation_logging_service: `// Advanced logging service with performance tracking
+public interface IAdvancedLoggingService : ILoggingService
+{
+    Task LogPerformanceAsync(string operation, TimeSpan duration, object additionalData = null);
+    Task LogUserActionAsync(string userId, string action, object metadata = null);
+    Task LogSecurityEventAsync(string eventType, string details, object context = null);
+}
+
+public class AdvancedLoggingService : IAdvancedLoggingService
+{
+    private readonly ILogger<AdvancedLoggingService> _logger;
+    private readonly IPerformanceTracker _performanceTracker;
+
+    public AdvancedLoggingService(
+        ILogger<AdvancedLoggingService> logger,
+        IPerformanceTracker performanceTracker)
+    {
+        _logger = logger;
+        _performanceTracker = performanceTracker;
+    }
+
+    public async Task LogPerformanceAsync(string operation, TimeSpan duration, object additionalData = null)
+    {
+        _logger.LogInformation("Performance: {Operation} completed in {Duration}ms", operation, duration.TotalMilliseconds);
+        await _performanceTracker.RecordAsync(operation, duration, additionalData);
+    }
+
+    public async Task LogUserActionAsync(string userId, string action, object metadata = null)
+    {
+        _logger.LogInformation("User Action: {UserId} performed {Action}", userId, action);
+        // Additional tracking logic
+    }
+
+    public async Task LogSecurityEventAsync(string eventType, string details, object context = null)
+    {
+        _logger.LogWarning("Security Event: {EventType} - {Details}", eventType, details);
+        // Security event handling
+    }
+}`,
+      feature_controller_action: `// Feature controller action
+public ActionResult {{ActionName}}()
+{
+    try
+    {
+        var datasource = GetDatasource<I{{ModelName}}>();
+        var viewModel = new {{ViewModelName}}(datasource);
+        
+        _loggingService.LogInformation($"{{ActionName}} rendered for item: {datasource?.Id}");
+        return View(viewModel);
+    }
+    catch (Exception ex)
+    {
+        _loggingService.LogError("Error rendering {{ActionName}}", ex);
+        return View(new {{ViewModelName}}(null));
+    }
+}`,
+      glass_mapper_model: `// Glass Mapper model interface
+[SitecoreType(TemplateId = "{{{TemplateId}}}", AutoMap = true)]
+public interface I{{ModelName}}
+{
+    [SitecoreId]
+    Guid Id { get; set; }
+
+    [SitecoreField("{{FieldName}}")]
+    string {{PropertyName}} { get; set; }
+
+    [SitecoreField("{{ImageFieldName}}")]
+    Glass.Mapper.Sc.Fields.Image {{ImagePropertyName}} { get; set; }
+
+    [SitecoreField("{{LinkFieldName}}")]
+    Glass.Mapper.Sc.Fields.Link {{LinkPropertyName}} { get; set; }
+}`,
+      razor_view: `@model {{Namespace}}.{{ViewModelName}}
+
+@if (Model.HasContent)
+{
+    <div class="{{cssClass}}" role="region" aria-label="{{AriaLabel}}">
+        <h2 class="{{cssClass}}__title">@Model.{{TitleProperty}}</h2>
+        
+        @if (!string.IsNullOrEmpty(Model.{{DescriptionProperty}}))
+        {
+            <p class="{{cssClass}}__description">@Model.{{DescriptionProperty}}</p>
+        }
+        
+        @if (Model.{{ImageProperty}} != null)
+        {
+            @Html.Glass().RenderImage(Model.{{ImageProperty}}, new { @class = "{{cssClass}}__image", alt = Model.{{AltTextProperty}} })
+        }
+    </div>
+}`,
+      unit_test: `// Unit test for {{ComponentName}}
+[TestMethod]
+public void {{TestMethodName}}_{{Scenario}}_{{ExpectedResult}}()
+{
+    // Arrange
+    var mockContext = new Mock<ISitecoreContext>();
+    var mockLogger = new Mock<ILoggingService>();
+    var controller = new {{ControllerName}}(mockContext.Object, mockLogger.Object);
+    
+    var testData = new {{ModelName}}
+    {
+        {{PropertyName}} = "{{TestValue}}"
+    };
+    
+    mockContext.Setup(x => x.GetCurrentItem<I{{ModelName}}>()).Returns(testData);
+    
+    // Act
+    var result = controller.{{ActionName}}() as ViewResult;
+    
+    // Assert
+    Assert.IsNotNull(result);
+    Assert.IsInstanceOfType(result.Model, typeof({{ViewModelName}}));
+    var viewModel = result.Model as {{ViewModelName}};
+    Assert.AreEqual("{{ExpectedValue}}", viewModel.{{PropertyName}});
+}`,
+      scss_component: `// {{ComponentName}} component styles (BEM methodology)
+.{{componentName}} {
+  // Base styles
+  display: block;
+  margin: 0;
+  padding: 0;
+
+  &__title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--color-text-primary);
+  }
+
+  &__description {
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+    color: var(--color-text-secondary);
+  }
+
+  &__image {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--border-radius);
+  }
+
+  // Modifiers
+  &--featured {
+    background-color: var(--color-background-highlight);
+    padding: 2rem;
+  }
+
+  // States
+  &:hover {
+    transform: translateY(-2px);
+    transition: transform 0.2s ease;
+  }
+
+  // Responsive
+  @media (max-width: 768px) {
+    padding: 1rem;
+    
+    &__title {
+      font-size: 1.25rem;
+    }
+  }
+}`
+    };
+
+    // Initialize with all 75 prompts from the actual JSON structure
+    const promptsData = [
+      // Foundation Layer (5 prompts)
+      {
+        id: "foundation-service_interface-development",
+        title: "Service Interface",
+        description: "Foundation service interface with dependency injection and logging",
+        content: `Create a foundation service interface following Helix architecture principles. Include async methods, error handling, and comprehensive logging.
+
+${codeSnippets.foundation_service_interface}`,
         category: "foundation",
         component: "service_interface",
         sdlcStage: "development",
@@ -79,7 +247,9 @@ public class {{ServiceName}}Service : I{{ServiceName}}Service
         id: "foundation-logging_service-development",
         title: "Logging Service",
         description: "Advanced logging service with performance, user action, and security event tracking",
-        content: "Implement an advanced logging service that extends basic logging with performance tracking, user actions, and security events for Sitecore applications.",
+        content: `Implement an advanced logging service that extends basic logging with performance tracking, user actions, and security events for Sitecore applications.
+
+${codeSnippets.foundation_logging_service}`,
         category: "foundation",
         component: "logging_service",
         sdlcStage: "development",
@@ -131,46 +301,7 @@ public class {{ServiceName}}Service : I{{ServiceName}}Service
         description: "Feature controller action with comprehensive error handling and logging",
         content: `Create a Sitecore MVC controller action with proper error handling, logging, dependency injection, and response handling following Helix architecture.
 
-// Feature controller action
-public ActionResult {{ActionName}}()
-{
-    try
-    {
-        var datasource = GetDatasource<I{{ModelName}}>();
-        var viewModel = new {{ViewModelName}}(datasource);
-        
-        _loggingService.LogInformation($"{{ActionName}} rendered for item: {datasource?.Id}");
-        return View(viewModel);
-    }
-    catch (Exception ex)
-    {
-        _loggingService.LogError("Error rendering {{ActionName}}", ex);
-        return View(new {{ViewModelName}}(null));
-    }
-}
-
-[HttpPost]
-[ValidateAntiForgeryToken]
-public ActionResult {{ActionName}}Post({{ViewModelName}} model)
-{
-    if (!ModelState.IsValid)
-    {
-        return View(model);
-    }
-    
-    try
-    {
-        await _{{serviceName}}Service.ProcessAsync(model);
-        _loggingService.LogInformation("{{ActionName}} processed successfully");
-        return RedirectToAction("Success");
-    }
-    catch (Exception ex)
-    {
-        _loggingService.LogError(ex, "Error processing {{ActionName}}");
-        ModelState.AddModelError("", "An error occurred while processing your request.");
-        return View(model);
-    }
-}`,
+${codeSnippets.feature_controller_action}`,
         category: "feature",
         component: "controller_action",
         sdlcStage: "development",
@@ -196,55 +327,7 @@ public ActionResult {{ActionName}}Post({{ViewModelName}} model)
         description: "Glass Mapper model with comprehensive field mapping and inheritance",
         content: `Create a Glass Mapper model interface with comprehensive field mappings, inheritance from base templates, and proper Sitecore field handling.
 
-// Glass Mapper model interface
-[SitecoreType(TemplateId = "{{{TemplateId}}}", AutoMap = true)]
-public interface I{{ModelName}}
-{
-    [SitecoreId]
-    Guid Id { get; set; }
-
-    [SitecoreField("{{FieldName}}")]
-    string {{PropertyName}} { get; set; }
-
-    [SitecoreField("{{ImageFieldName}}")]
-    Glass.Mapper.Sc.Fields.Image {{ImagePropertyName}} { get; set; }
-
-    [SitecoreField("{{LinkFieldName}}")]
-    Glass.Mapper.Sc.Fields.Link {{LinkPropertyName}} { get; set; }
-
-    [SitecoreField("{{RichTextFieldName}}")]
-    string {{RichTextPropertyName}} { get; set; }
-
-    [SitecoreField("{{DateFieldName}}")]
-    DateTime {{DatePropertyName}} { get; set; }
-
-    [SitecoreField("{{CheckboxFieldName}}")]
-    bool {{CheckboxPropertyName}} { get; set; }
-
-    [SitecoreChildren]
-    IEnumerable<I{{ChildModelName}}> {{ChildrenPropertyName}} { get; set; }
-
-    [SitecoreParent]
-    I{{ParentModelName}} {{ParentPropertyName}} { get; set; }
-}
-
-// Implementation class for additional business logic
-public class {{ModelName}} : I{{ModelName}}
-{
-    public Guid Id { get; set; }
-    public string {{PropertyName}} { get; set; }
-    public Glass.Mapper.Sc.Fields.Image {{ImagePropertyName}} { get; set; }
-    public Glass.Mapper.Sc.Fields.Link {{LinkPropertyName}} { get; set; }
-    public string {{RichTextPropertyName}} { get; set; }
-    public DateTime {{DatePropertyName}} { get; set; }
-    public bool {{CheckboxPropertyName}} { get; set; }
-    public IEnumerable<I{{ChildModelName}}> {{ChildrenPropertyName}} { get; set; }
-    public I{{ParentModelName}} {{ParentPropertyName}} { get; set; }
-
-    // Business logic methods
-    public bool IsValid => !string.IsNullOrEmpty({{PropertyName}});
-    public string FormattedDate => {{DatePropertyName}}.ToString("yyyy-MM-dd");
-}`,
+${codeSnippets.glass_mapper_model}`,
         category: "feature",
         component: "glass_mapper_model",
         sdlcStage: "development",
@@ -270,38 +353,7 @@ public class {{ModelName}} : I{{ModelName}}
         description: "Accessible Razor view with SEO optimization and responsive design",
         content: `Create a Razor view with accessibility features, SEO optimization, responsive design, and integration with Sitecore Experience Editor.
 
-@model {{Namespace}}.{{ViewModelName}}
-
-@if (Model.HasContent)
-{
-    <div class="{{cssClass}}" role="region" aria-label="{{AriaLabel}}">
-        <h2 class="{{cssClass}}__title">@Model.{{TitleProperty}}</h2>
-        
-        @if (!string.IsNullOrEmpty(Model.{{DescriptionProperty}}))
-        {
-            <p class="{{cssClass}}__description">@Model.{{DescriptionProperty}}</p>
-        }
-        
-        @if (Model.{{ImageProperty}} != null)
-        {
-            @Html.Glass().RenderImage(Model.{{ImageProperty}}, new { @class = "{{cssClass}}__image", alt = Model.{{AltTextProperty}} })
-        }
-        
-        @if (Model.{{LinkProperty}} != null && !string.IsNullOrEmpty(Model.{{LinkProperty}}.Url))
-        {
-            <a href="@Model.{{LinkProperty}}.Url" class="{{cssClass}}__link" 
-               @if (Model.{{LinkProperty}}.Target != null) { <text>target="@Model.{{LinkProperty}}.Target"</text> }>
-                @(!string.IsNullOrEmpty(Model.{{LinkProperty}}.Text) ? Model.{{LinkProperty}}.Text : "Read More")
-            </a>
-        }
-    </div>
-}
-else if (Sitecore.Context.PageMode.IsExperienceEditor)
-{
-    <div class="{{cssClass}} {{cssClass}}--empty">
-        <p>No content available. Please add content using the Experience Editor.</p>
-    </div>
-}`,
+${codeSnippets.razor_view}`,
         category: "feature",
         component: "razor_view",
         sdlcStage: "development",
@@ -439,7 +491,9 @@ else if (Sitecore.Context.PageMode.IsExperienceEditor)
         id: "testing-unit_test-development",
         title: "Unit Test",
         description: "Comprehensive unit test with mocking and coverage",
-        content: "Create comprehensive unit tests with proper mocking, test data builders, and coverage for Sitecore components following AAA pattern.",
+        content: `Create comprehensive unit tests with proper mocking, test data builders, and coverage for Sitecore components following AAA pattern.
+
+${codeSnippets.unit_test}`,
         category: "testing",
         component: "unit_test",
         sdlcStage: "development",
@@ -501,7 +555,9 @@ else if (Sitecore.Context.PageMode.IsExperienceEditor)
         id: "styling-scss_component-development",
         title: "SCSS Component",
         description: "Component styling following BEM methodology with responsive design",
-        content: "Create SCSS component styles following BEM methodology with responsive design, CSS Grid/Flexbox, and accessibility considerations.",
+        content: `Create SCSS component styles following BEM methodology with responsive design, CSS Grid/Flexbox, and accessibility considerations.
+
+${codeSnippets.scss_component}`,
         category: "styling",
         component: "scss_component",
         sdlcStage: "development",
