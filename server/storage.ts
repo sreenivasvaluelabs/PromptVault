@@ -22,9 +22,18 @@ export class MemStorage implements IStorage {
   }
 
   private initializePrompts(): void {
-    // Load the actual JSON data from Cognizant DXP Prompt Library
-    const codeSnippets = {
-      foundation_service_interface: `// Foundation service interface
+    // Initialize with authentic data from Cognizant DXP Prompt Library JSON
+    // This creates all 75 prompts (39 components + 36 SDLC templates) with real code snippets
+    
+    const promptsData = [
+      // Foundation Layer (5 prompts)
+      {
+        id: "foundation-service_interface-development",
+        title: "Service Interface",
+        description: "Foundation service interface with dependency injection and logging",
+        content: `Create a foundation service interface following Helix architecture principles. Include async methods, error handling, and comprehensive logging.
+
+// Foundation service interface
 public interface I{{ServiceName}}Service
 {
     Task<{{ReturnType}}> {{MethodName}}Async({{Parameters}});
@@ -61,7 +70,20 @@ public class {{ServiceName}}Service : I{{ServiceName}}Service
         _logger.LogInformation("Operation: {Operation}, Data: {@Data}", operation, data);
     }
 }`,
-      foundation_logging_service: `// Advanced logging service with performance tracking
+        category: "foundation",
+        component: "service_interface",
+        sdlcStage: "development",
+        tags: ["foundation", "service", "interface", "async", "logging"],
+        context: "implementation",
+        metadata: { layer: "foundation", complexity: "medium" }
+      },
+      {
+        id: "foundation-logging_service-development",
+        title: "Logging Service",
+        description: "Advanced logging service with performance, user action, and security event tracking",
+        content: `Implement an advanced logging service that extends basic logging with performance tracking, user actions, and security events for Sitecore applications.
+
+// Advanced logging service with performance tracking
 public interface IAdvancedLoggingService : ILoggingService
 {
     Task LogPerformanceAsync(string operation, TimeSpan duration, object additionalData = null);
@@ -100,160 +122,106 @@ public class AdvancedLoggingService : IAdvancedLoggingService
         // Security event handling
     }
 }`,
-      feature_controller_action: `// Feature controller action
-public ActionResult {{ActionName}}()
-{
-    try
-    {
-        var datasource = GetDatasource<I{{ModelName}}>();
-        var viewModel = new {{ViewModelName}}(datasource);
-        
-        _loggingService.LogInformation($"{{ActionName}} rendered for item: {datasource?.Id}");
-        return View(viewModel);
-    }
-    catch (Exception ex)
-    {
-        _loggingService.LogError("Error rendering {{ActionName}}", ex);
-        return View(new {{ViewModelName}}(null));
-    }
-}`,
-      glass_mapper_model: `// Glass Mapper model interface
-[SitecoreType(TemplateId = "{{{TemplateId}}}", AutoMap = true)]
-public interface I{{ModelName}}
-{
-    [SitecoreId]
-    Guid Id { get; set; }
-
-    [SitecoreField("{{FieldName}}")]
-    string {{PropertyName}} { get; set; }
-
-    [SitecoreField("{{ImageFieldName}}")]
-    Glass.Mapper.Sc.Fields.Image {{ImagePropertyName}} { get; set; }
-
-    [SitecoreField("{{LinkFieldName}}")]
-    Glass.Mapper.Sc.Fields.Link {{LinkPropertyName}} { get; set; }
-}`,
-      razor_view: `@model {{Namespace}}.{{ViewModelName}}
-
-@if (Model.HasContent)
-{
-    <div class="{{cssClass}}" role="region" aria-label="{{AriaLabel}}">
-        <h2 class="{{cssClass}}__title">@Model.{{TitleProperty}}</h2>
-        
-        @if (!string.IsNullOrEmpty(Model.{{DescriptionProperty}}))
-        {
-            <p class="{{cssClass}}__description">@Model.{{DescriptionProperty}}</p>
-        }
-        
-        @if (Model.{{ImageProperty}} != null)
-        {
-            @Html.Glass().RenderImage(Model.{{ImageProperty}}, new { @class = "{{cssClass}}__image", alt = Model.{{AltTextProperty}} })
-        }
-    </div>
-}`,
-      unit_test: `// Unit test for {{ComponentName}}
-[TestMethod]
-public void {{TestMethodName}}_{{Scenario}}_{{ExpectedResult}}()
-{
-    // Arrange
-    var mockContext = new Mock<ISitecoreContext>();
-    var mockLogger = new Mock<ILoggingService>();
-    var controller = new {{ControllerName}}(mockContext.Object, mockLogger.Object);
-    
-    var testData = new {{ModelName}}
-    {
-        {{PropertyName}} = "{{TestValue}}"
-    };
-    
-    mockContext.Setup(x => x.GetCurrentItem<I{{ModelName}}>()).Returns(testData);
-    
-    // Act
-    var result = controller.{{ActionName}}() as ViewResult;
-    
-    // Assert
-    Assert.IsNotNull(result);
-    Assert.IsInstanceOfType(result.Model, typeof({{ViewModelName}}));
-    var viewModel = result.Model as {{ViewModelName}};
-    Assert.AreEqual("{{ExpectedValue}}", viewModel.{{PropertyName}});
-}`,
-      scss_component: `// {{ComponentName}} component styles (BEM methodology)
-.{{componentName}} {
-  // Base styles
-  display: block;
-  margin: 0;
-  padding: 0;
-
-  &__title {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
-    color: var(--color-text-primary);
-  }
-
-  &__description {
-    font-size: 1rem;
-    line-height: 1.6;
-    margin-bottom: 1rem;
-    color: var(--color-text-secondary);
-  }
-
-  &__image {
-    max-width: 100%;
-    height: auto;
-    border-radius: var(--border-radius);
-  }
-
-  // Modifiers
-  &--featured {
-    background-color: var(--color-background-highlight);
-    padding: 2rem;
-  }
-
-  // States
-  &:hover {
-    transform: translateY(-2px);
-    transition: transform 0.2s ease;
-  }
-
-  // Responsive
-  @media (max-width: 768px) {
-    padding: 1rem;
-    
-    &__title {
-      font-size: 1.25rem;
-    }
-  }
-}`
-    };
-
-    // Initialize with all 75 prompts from the actual JSON structure
-    const promptsData = [
-      // Foundation Layer (5 prompts)
-      {
-        id: "foundation-service_interface-development",
-        title: "Service Interface",
-        description: "Foundation service interface with dependency injection and logging",
-        content: `Create a foundation service interface following Helix architecture principles. Include async methods, error handling, and comprehensive logging.
-
-${codeSnippets.foundation_service_interface}`,
-        category: "foundation",
-        component: "service_interface",
-        sdlcStage: "development",
-        tags: ["foundation", "service", "interface", "async", "logging"],
-        context: "implementation",
-        metadata: { layer: "foundation", complexity: "medium" }
-      },
-      {
-        id: "foundation-logging_service-development",
-        title: "Logging Service",
-        description: "Advanced logging service with performance, user action, and security event tracking",
-        content: `Implement an advanced logging service that extends basic logging with performance tracking, user actions, and security events for Sitecore applications.
-
-${codeSnippets.foundation_logging_service}`,
         category: "foundation",
         component: "logging_service",
         sdlcStage: "development",
         tags: ["foundation", "logging", "performance", "security", "tracking"],
+        context: "implementation",
+        metadata: { layer: "foundation", complexity: "high" }
+      },
+      {
+        id: "foundation-cache_service-development",
+        title: "Cache Service",
+        description: "Comprehensive caching service with Redis integration and cache invalidation",
+        content: `Create a robust caching service with Redis integration, cache warming, invalidation strategies, and performance monitoring for Sitecore applications.
+
+// Comprehensive caching service
+public interface ICacheService
+{
+    Task<T> GetOrSetAsync<T>(string key, Func<Task<T>> getItem, TimeSpan? expiry = null);
+    Task RemoveAsync(string key);
+    Task RemoveByPatternAsync(string pattern);
+    Task ClearAsync();
+    Task WarmupAsync(Dictionary<string, Func<Task<object>>> warmupItems);
+}
+
+public class RedisCacheService : ICacheService
+{
+    private readonly IDatabase _database;
+    private readonly ILogger<RedisCacheService> _logger;
+    private readonly IConnectionMultiplexer _redis;
+
+    public RedisCacheService(IConnectionMultiplexer redis, ILogger<RedisCacheService> logger)
+    {
+        _redis = redis;
+        _database = redis.GetDatabase();
+        _logger = logger;
+    }
+
+    public async Task<T> GetOrSetAsync<T>(string key, Func<Task<T>> getItem, TimeSpan? expiry = null)
+    {
+        var cachedValue = await _database.StringGetAsync(key);
+        
+        if (cachedValue.HasValue)
+        {
+            _logger.LogDebug("Cache hit for key: {Key}", key);
+            return JsonSerializer.Deserialize<T>(cachedValue);
+        }
+
+        _logger.LogDebug("Cache miss for key: {Key}", key);
+        var item = await getItem();
+        var serializedItem = JsonSerializer.Serialize(item);
+        
+        await _database.StringSetAsync(key, serializedItem, expiry ?? TimeSpan.FromHours(1));
+        return item;
+    }
+
+    public async Task RemoveAsync(string key)
+    {
+        await _database.KeyDeleteAsync(key);
+        _logger.LogDebug("Removed cache key: {Key}", key);
+    }
+
+    public async Task RemoveByPatternAsync(string pattern)
+    {
+        var server = _redis.GetServer(_redis.GetEndPoints().First());
+        var keys = server.Keys(pattern: pattern);
+        
+        foreach (var key in keys)
+        {
+            await _database.KeyDeleteAsync(key);
+        }
+        
+        _logger.LogDebug("Removed cache keys by pattern: {Pattern}", pattern);
+    }
+
+    public async Task ClearAsync()
+    {
+        var server = _redis.GetServer(_redis.GetEndPoints().First());
+        await server.FlushDatabaseAsync();
+        _logger.LogInformation("Cache cleared");
+    }
+
+    public async Task WarmupAsync(Dictionary<string, Func<Task<object>>> warmupItems)
+    {
+        foreach (var item in warmupItems)
+        {
+            try
+            {
+                await GetOrSetAsync(item.Key, item.Value);
+                _logger.LogDebug("Warmed up cache key: {Key}", item.Key);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to warm up cache key: {Key}", item.Key);
+            }
+        }
+    }
+}`,
+        category: "foundation",
+        component: "cache_service",
+        sdlcStage: "development",
+        tags: ["foundation", "cache", "redis", "performance", "invalidation"],
         context: "implementation",
         metadata: { layer: "foundation", complexity: "high" }
       },
@@ -301,7 +269,23 @@ ${codeSnippets.foundation_logging_service}`,
         description: "Feature controller action with comprehensive error handling and logging",
         content: `Create a Sitecore MVC controller action with proper error handling, logging, dependency injection, and response handling following Helix architecture.
 
-${codeSnippets.feature_controller_action}`,
+// Feature controller action
+public ActionResult {{ActionName}}()
+{
+    try
+    {
+        var datasource = GetDatasource<I{{ModelName}}>();
+        var viewModel = new {{ViewModelName}}(datasource);
+        
+        _loggingService.LogInformation($"{{ActionName}} rendered for item: {datasource?.Id}");
+        return View(viewModel);
+    }
+    catch (Exception ex)
+    {
+        _loggingService.LogError("Error rendering {{ActionName}}", ex);
+        return View(new {{ViewModelName}}(null));
+    }
+}`,
         category: "feature",
         component: "controller_action",
         sdlcStage: "development",
@@ -327,7 +311,22 @@ ${codeSnippets.feature_controller_action}`,
         description: "Glass Mapper model with comprehensive field mapping and inheritance",
         content: `Create a Glass Mapper model interface with comprehensive field mappings, inheritance from base templates, and proper Sitecore field handling.
 
-${codeSnippets.glass_mapper_model}`,
+// Glass Mapper model interface
+[SitecoreType(TemplateId = "{{{TemplateId}}}", AutoMap = true)]
+public interface I{{ModelName}}
+{
+    [SitecoreId]
+    Guid Id { get; set; }
+
+    [SitecoreField("{{FieldName}}")]
+    string {{PropertyName}} { get; set; }
+
+    [SitecoreField("{{ImageFieldName}}")]
+    Glass.Mapper.Sc.Fields.Image {{ImagePropertyName}} { get; set; }
+
+    [SitecoreField("{{LinkFieldName}}")]
+    Glass.Mapper.Sc.Fields.Link {{LinkPropertyName}} { get; set; }
+}`,
         category: "feature",
         component: "glass_mapper_model",
         sdlcStage: "development",
@@ -353,7 +352,24 @@ ${codeSnippets.glass_mapper_model}`,
         description: "Accessible Razor view with SEO optimization and responsive design",
         content: `Create a Razor view with accessibility features, SEO optimization, responsive design, and integration with Sitecore Experience Editor.
 
-${codeSnippets.razor_view}`,
+@model {{Namespace}}.{{ViewModelName}}
+
+@if (Model.HasContent)
+{
+    <div class="{{cssClass}}" role="region" aria-label="{{AriaLabel}}">
+        <h2 class="{{cssClass}}__title">@Model.{{TitleProperty}}</h2>
+        
+        @if (!string.IsNullOrEmpty(Model.{{DescriptionProperty}}))
+        {
+            <p class="{{cssClass}}__description">@Model.{{DescriptionProperty}}</p>
+        }
+        
+        @if (Model.{{ImageProperty}} != null)
+        {
+            @Html.Glass().RenderImage(Model.{{ImageProperty}}, new { @class = "{{cssClass}}__image", alt = Model.{{AltTextProperty}} })
+        }
+    </div>
+}`,
         category: "feature",
         component: "razor_view",
         sdlcStage: "development",
@@ -493,7 +509,31 @@ ${codeSnippets.razor_view}`,
         description: "Comprehensive unit test with mocking and coverage",
         content: `Create comprehensive unit tests with proper mocking, test data builders, and coverage for Sitecore components following AAA pattern.
 
-${codeSnippets.unit_test}`,
+// Unit test for {{ComponentName}}
+[TestMethod]
+public void {{TestMethodName}}_{{Scenario}}_{{ExpectedResult}}()
+{
+    // Arrange
+    var mockContext = new Mock<ISitecoreContext>();
+    var mockLogger = new Mock<ILoggingService>();
+    var controller = new {{ControllerName}}(mockContext.Object, mockLogger.Object);
+    
+    var testData = new {{ModelName}}
+    {
+        {{PropertyName}} = "{{TestValue}}"
+    };
+    
+    mockContext.Setup(x => x.GetCurrentItem<I{{ModelName}}>()).Returns(testData);
+    
+    // Act
+    var result = controller.{{ActionName}}() as ViewResult;
+    
+    // Assert
+    Assert.IsNotNull(result);
+    Assert.IsInstanceOfType(result.Model, typeof({{ViewModelName}}));
+    var viewModel = result.Model as {{ViewModelName}};
+    Assert.AreEqual("{{ExpectedValue}}", viewModel.{{PropertyName}});
+}`,
         category: "testing",
         component: "unit_test",
         sdlcStage: "development",
@@ -557,7 +597,54 @@ ${codeSnippets.unit_test}`,
         description: "Component styling following BEM methodology with responsive design",
         content: `Create SCSS component styles following BEM methodology with responsive design, CSS Grid/Flexbox, and accessibility considerations.
 
-${codeSnippets.scss_component}`,
+// {{ComponentName}} component styles (BEM methodology)
+.{{componentName}} {
+  // Base styles
+  display: block;
+  margin: 0;
+  padding: 0;
+
+  &__title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--color-text-primary);
+  }
+
+  &__description {
+    font-size: 1rem;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+    color: var(--color-text-secondary);
+  }
+
+  &__image {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--border-radius);
+  }
+
+  // Modifiers
+  &--featured {
+    background-color: var(--color-background-highlight);
+    padding: 2rem;
+  }
+
+  // States
+  &:hover {
+    transform: translateY(-2px);
+    transition: transform 0.2s ease;
+  }
+
+  // Responsive
+  @media (max-width: 768px) {
+    padding: 1rem;
+    
+    &__title {
+      font-size: 1.25rem;
+    }
+  }
+}`,
         category: "styling",
         component: "scss_component",
         sdlcStage: "development",
