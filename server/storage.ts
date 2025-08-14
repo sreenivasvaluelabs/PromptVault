@@ -10677,7 +10677,477 @@ This comprehensive code review checklist ensures high-quality, secure, and maint
         id: "sdlc_templates-git_workflow-development",
         title: "Git Workflow Template",
         description: "Git branching strategy and workflow template",
-        content: "Define Git workflow with branching strategy, merge policies, and release management procedures.",
+        content: `Define Git workflow with branching strategy, merge policies, and release management procedures.
+
+# Git Workflow Template
+## Branch Strategy and Development Process
+
+### Overview
+This document defines the Git workflow strategy, branching model, merge policies, and release management procedures for the project team.
+
+### Branch Strategy
+
+#### Main Branches
+
+##### main/master Branch
+- **Purpose**: Production-ready code
+- **Protection**: Protected branch with required reviews
+- **Merge Strategy**: Squash and merge from release branches
+- **Direct Commits**: Prohibited except for hotfixes
+- **Auto-Deploy**: Automatically deploys to production
+
+##### develop Branch
+- **Purpose**: Integration branch for features
+- **Protection**: Protected with required CI checks
+- **Merge Strategy**: Merge commits from feature branches
+- **Auto-Deploy**: Automatically deploys to staging environment
+
+#### Supporting Branches
+
+##### Feature Branches
+**Naming Convention**: \`feature/JIRA-123-short-description\`
+**Branch From**: develop
+**Merge To**: develop
+**Lifespan**: Until feature completion
+
+**Branch Creation**:
+\`\`\`bash
+# Create and switch to feature branch
+git checkout develop
+git pull origin develop
+git checkout -b feature/PROJ-123-user-authentication
+
+# Push to remote
+git push -u origin feature/PROJ-123-user-authentication
+\`\`\`
+
+##### Release Branches
+**Naming Convention**: \`release/v1.2.0\`
+**Branch From**: develop
+**Merge To**: main and develop
+**Lifespan**: Until release deployment
+
+**Branch Creation**:
+\`\`\`bash
+# Create release branch
+git checkout develop
+git pull origin develop
+git checkout -b release/v1.2.0
+
+# Update version numbers
+npm version minor --no-git-tag-version
+git add package.json package-lock.json
+git commit -m "Bump version to 1.2.0"
+git push -u origin release/v1.2.0
+\`\`\`
+
+##### Hotfix Branches
+**Naming Convention**: \`hotfix/v1.1.1-critical-bug-fix\`
+**Branch From**: main
+**Merge To**: main and develop
+**Lifespan**: Until hotfix deployment
+
+**Branch Creation**:
+\`\`\`bash
+# Create hotfix branch
+git checkout main
+git pull origin main
+git checkout -b hotfix/v1.1.1-security-patch
+
+# Apply fix and bump patch version
+npm version patch --no-git-tag-version
+git add .
+git commit -m "Fix: Security vulnerability in authentication"
+git push -u origin hotfix/v1.1.1-security-patch
+\`\`\`
+
+### Development Workflow
+
+#### Feature Development Process
+
+**Step 1: Create Feature Branch**
+\`\`\`bash
+# Sync with latest develop
+git checkout develop
+git pull origin develop
+
+# Create feature branch
+git checkout -b feature/PROJ-456-shopping-cart
+git push -u origin feature/PROJ-456-shopping-cart
+\`\`\`
+
+**Step 2: Development Work**
+\`\`\`bash
+# Regular commits with meaningful messages
+git add .
+git commit -m "feat: Add product to cart functionality
+
+- Implement AddToCart service method
+- Add cart state management
+- Include unit tests for cart operations
+- Update API documentation
+
+Closes PROJ-456"
+
+# Push changes regularly
+git push origin feature/PROJ-456-shopping-cart
+\`\`\`
+
+**Step 3: Keep Branch Updated**
+\`\`\`bash
+# Regularly sync with develop to avoid conflicts
+git checkout develop
+git pull origin develop
+git checkout feature/PROJ-456-shopping-cart
+git merge develop
+
+# Or use rebase for cleaner history
+git rebase develop
+\`\`\`
+
+**Step 4: Create Pull Request**
+- Create PR from feature branch to develop
+- Fill out PR template with description
+- Link related JIRA tickets
+- Request code review from team members
+- Ensure CI/CD checks pass
+
+#### Code Review Process
+
+**Review Checklist**:
+- [ ] Code follows coding standards
+- [ ] Adequate test coverage
+- [ ] Documentation updated
+- [ ] No breaking changes without migration
+- [ ] Security considerations addressed
+- [ ] Performance impact evaluated
+
+**Approval Requirements**:
+- Minimum 2 reviewers approval
+- All CI checks must pass
+- No unresolved conversations
+- Branch must be up-to-date with develop
+
+### Commit Message Guidelines
+
+#### Commit Message Format
+\`\`\`
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+\`\`\`
+
+#### Commit Types
+- **feat**: New feature
+- **fix**: Bug fix
+- **docs**: Documentation changes
+- **style**: Code style changes (formatting, etc.)
+- **refactor**: Code refactoring
+- **perf**: Performance improvements
+- **test**: Adding or updating tests
+- **chore**: Build process, dependency updates
+- **ci**: CI/CD configuration changes
+- **breaking**: Breaking changes
+
+#### Examples
+\`\`\`bash
+# Feature commit
+git commit -m "feat(auth): Add OAuth2 integration
+
+- Implement OAuth2 authentication flow
+- Add Google and Microsoft providers
+- Include refresh token management
+- Update user profile handling
+
+Closes PROJ-123"
+
+# Bug fix commit
+git commit -m "fix(cart): Resolve quantity update issue
+
+- Fix cart quantity not updating in state
+- Add validation for negative quantities
+- Include regression test for cart operations
+
+Fixes PROJ-456"
+
+# Breaking change commit
+git commit -m "feat(api): Restructure user endpoints
+
+BREAKING CHANGE: User API endpoints have been restructured
+- /api/user -> /api/v2/users
+- Response format changed to include metadata
+- Authentication header now required for all endpoints
+
+Migration guide available in MIGRATION.md
+
+Closes PROJ-789"
+\`\`\`
+
+### Merge Strategies
+
+#### Feature to Develop
+**Strategy**: Merge commit (preserve branch history)
+\`\`\`bash
+git checkout develop
+git pull origin develop
+git merge --no-ff feature/PROJ-123-feature-name
+git push origin develop
+\`\`\`
+
+#### Release to Main
+**Strategy**: Squash and merge (clean main history)
+\`\`\`bash
+git checkout main
+git pull origin main
+git merge --squash release/v1.2.0
+git commit -m "Release v1.2.0
+
+- Feature A: Description
+- Feature B: Description
+- Bug fixes and improvements
+
+Release notes: https://github.com/project/releases/v1.2.0"
+git push origin main
+git tag v1.2.0
+git push origin v1.2.0
+\`\`\`
+
+#### Hotfix Process
+\`\`\`bash
+# Merge to main
+git checkout main
+git merge --squash hotfix/v1.1.1-security-patch
+git commit -m "Hotfix v1.1.1: Security patch"
+git push origin main
+git tag v1.1.1
+git push origin v1.1.1
+
+# Merge to develop
+git checkout develop
+git merge main
+git push origin develop
+\`\`\`
+
+### Release Management
+
+#### Release Process
+
+**Phase 1: Release Planning**
+1. Create release branch from develop
+2. Update version numbers
+3. Update CHANGELOG.md
+4. Create release notes draft
+
+**Phase 2: Testing and Stabilization**
+1. Deploy release branch to staging
+2. Run full test suite
+3. Conduct user acceptance testing
+4. Fix any critical issues in release branch
+
+**Phase 3: Release Deployment**
+1. Merge release branch to main
+2. Deploy to production
+3. Create GitHub release with notes
+4. Merge back to develop
+5. Clean up release branch
+
+#### Version Numbering
+Follow Semantic Versioning (SemVer): \`MAJOR.MINOR.PATCH\`
+
+- **MAJOR**: Breaking changes
+- **MINOR**: New features (backward compatible)
+- **PATCH**: Bug fixes (backward compatible)
+
+#### Release Notes Template
+\`\`\`markdown
+# Release v{{version}}
+
+## 🚀 New Features
+- {{feature1}}: {{description1}}
+- {{feature2}}: {{description2}}
+
+## 🐛 Bug Fixes  
+- {{bugfix1}}: {{description1}}
+- {{bugfix2}}: {{description2}}
+
+## 🔧 Improvements
+- {{improvement1}}: {{description1}}
+- {{improvement2}}: {{description2}}
+
+## 💥 Breaking Changes
+- {{breaking1}}: {{description1}}
+  Migration: {{migration1}}
+
+## 📚 Documentation
+- {{doc1}}: {{description1}}
+
+## 🏗️ Technical Changes
+- {{tech1}}: {{description1}}
+
+## Contributors
+- @{{contributor1}}
+- @{{contributor2}}
+\`\`\`
+
+### Branch Protection Rules
+
+#### Main Branch Protection
+- Require pull request reviews
+- Require status checks to pass
+- Restrict pushes to admins only
+- Require linear history
+- Include administrators in restrictions
+
+#### Develop Branch Protection  
+- Require status checks to pass
+- Allow squash and merge
+- Delete head branches automatically
+- Require conversation resolution
+
+### CI/CD Integration
+
+#### Automated Checks
+\`\`\`yaml
+# .github/workflows/ci.yml
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [develop]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run linting
+        run: npm run lint
+      
+      - name: Run tests
+        run: npm run test:coverage
+      
+      - name: Build application
+        run: npm run build
+      
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+\`\`\`
+
+#### Deployment Triggers
+- **Staging**: Automatic deployment on develop branch updates
+- **Production**: Automatic deployment on main branch updates
+- **Preview**: Deployment for pull requests to develop
+
+### Git Hooks
+
+#### Pre-commit Hook
+\`\`\`bash
+#!/bin/sh
+# .git/hooks/pre-commit
+
+# Run linting
+npm run lint
+if [ $? -ne 0 ]; then
+  echo "Linting failed. Commit aborted."
+  exit 1
+fi
+
+# Run tests
+npm run test
+if [ $? -ne 0 ]; then
+  echo "Tests failed. Commit aborted."
+  exit 1
+fi
+
+# Check commit message format
+commit_regex='^(feat|fix|docs|style|refactor|perf|test|chore|ci|breaking)(\(.+\))?: .{1,50}'
+if ! grep -qE "$commit_regex" "$1"; then
+  echo "Invalid commit message format. Please follow conventional commits."
+  exit 1
+fi
+\`\`\`
+
+#### Pre-push Hook
+\`\`\`bash
+#!/bin/sh
+# .git/hooks/pre-push
+
+# Prevent direct pushes to protected branches
+protected_branch='main'
+current_branch=$(git symbolic-ref HEAD | sed -e 's,.*/\\(.*\\),\\1,')
+
+if [ $protected_branch = $current_branch ]; then
+  echo "Direct pushes to main branch are not allowed."
+  echo "Please create a pull request."
+  exit 1
+fi
+\`\`\`
+
+### Troubleshooting Common Issues
+
+#### Merge Conflicts
+\`\`\`bash
+# When conflicts occur during merge
+git status # Check conflicted files
+# Edit files to resolve conflicts
+git add <resolved-files>
+git commit -m "Resolve merge conflicts"
+\`\`\`
+
+#### Accidental Commits to Wrong Branch
+\`\`\`bash
+# Move commits to correct branch
+git log --oneline -n 5 # Find commit hash
+git checkout correct-branch
+git cherry-pick <commit-hash>
+git checkout wrong-branch
+git reset --hard HEAD~1 # Remove from wrong branch
+\`\`\`
+
+#### Updating Pull Request
+\`\`\`bash
+# Force push changes to update PR
+git add .
+git commit -m "Address review comments"
+git push origin feature/branch-name
+\`\`\`
+
+### Team Guidelines
+
+#### Daily Practices
+- Pull latest changes before starting work
+- Push work daily to remote branches
+- Keep feature branches small and focused
+- Write descriptive commit messages
+- Update documentation with code changes
+
+#### Code Review Standards
+- Review within 24 hours
+- Provide constructive feedback
+- Test changes locally when needed
+- Approve only when confident
+- Use GitHub's suggestion feature for small fixes
+
+#### Branch Housekeeping
+- Delete feature branches after merge
+- Regular cleanup of stale branches
+- Keep local repository synchronized
+- Use \`git branch -d\` for safe deletion
+
+This Git workflow ensures code quality, collaboration efficiency, and release reliability for the development team.`,
         category: "sdlc_templates",
         component: "git_workflow",
         sdlcStage: "development",
@@ -10689,7 +11159,262 @@ This comprehensive code review checklist ensures high-quality, secure, and maint
         id: "sdlc_templates-definition_of_done-development",
         title: "Definition of Done",
         description: "Definition of done template for quality assurance",
-        content: "Establish clear definition of done criteria including testing, documentation, and deployment requirements.",
+        content: `Establish clear definition of done criteria including testing, documentation, and deployment requirements.
+
+# Definition of Done Template
+## Quality Standards and Completion Criteria
+
+### Overview
+This document defines the comprehensive criteria that must be met before any work item (user story, task, or feature) can be considered "done" and ready for production deployment.
+
+### Universal Definition of Done
+Every work item must satisfy ALL the following criteria before being marked as complete:
+
+#### Code Quality Standards
+- [ ] **Code Review Completed**: All code changes have been reviewed and approved by at least 2 team members
+- [ ] **Coding Standards Compliance**: Code follows established coding standards and style guides
+- [ ] **No Code Smells**: Code is clean, readable, and maintainable
+- [ ] **Error Handling**: Proper error handling and logging implemented
+- [ ] **Security Best Practices**: Security considerations addressed (input validation, authentication, authorization)
+- [ ] **Performance Considerations**: Code meets performance requirements and doesn't introduce performance regressions
+
+#### Testing Requirements
+- [ ] **Unit Tests**: Unit tests written with minimum 80% code coverage
+- [ ] **Integration Tests**: Integration tests cover all external dependencies and services
+- [ ] **End-to-End Tests**: Critical user paths covered by automated E2E tests
+- [ ] **Manual Testing**: Functionality manually tested by QA team
+- [ ] **Edge Cases Tested**: Boundary conditions and edge cases verified
+- [ ] **Regression Testing**: Existing functionality confirmed to work correctly
+- [ ] **Cross-Browser Testing**: Functionality verified across supported browsers
+- [ ] **Mobile Responsiveness**: UI tested on mobile devices (if applicable)
+
+#### Documentation Standards
+- [ ] **Code Documentation**: Complex code sections have inline comments and documentation
+- [ ] **API Documentation**: Public APIs documented with examples and schema
+- [ ] **README Updated**: Project README updated with new features or changes
+- [ ] **User Documentation**: User-facing documentation updated
+- [ ] **Technical Documentation**: Architecture and design decisions documented
+- [ ] **Release Notes**: Changes documented in release notes/changelog
+
+#### Security & Compliance
+- [ ] **Security Review**: Security implications assessed and addressed
+- [ ] **Data Protection**: Personal data handling complies with privacy regulations
+- [ ] **Access Controls**: Proper authentication and authorization implemented
+- [ ] **Input Validation**: All user inputs validated and sanitized
+- [ ] **Audit Logging**: Security-relevant actions logged appropriately
+- [ ] **Vulnerability Scanning**: Code scanned for known vulnerabilities
+
+#### Configuration & Environment
+- [ ] **Environment Configuration**: Works correctly in all target environments
+- [ ] **Configuration Management**: Environment-specific settings properly configured
+- [ ] **Database Migrations**: Database changes scripted and tested
+- [ ] **Feature Flags**: Feature flags configured if applicable
+- [ ] **Environment Variables**: Required environment variables documented
+
+#### Performance & Scalability
+- [ ] **Performance Testing**: Performance benchmarks met
+- [ ] **Load Testing**: System handles expected load
+- [ ] **Memory Usage**: No memory leaks detected
+- [ ] **Database Performance**: Database queries optimized
+- [ ] **Caching Strategy**: Appropriate caching implemented
+- [ ] **Resource Utilization**: Efficient use of system resources
+
+#### Deployment & Operations
+- [ ] **Build Success**: Code builds successfully in CI/CD pipeline
+- [ ] **Deployment Tested**: Deployment process tested in staging environment
+- [ ] **Rollback Plan**: Rollback procedure defined and tested
+- [ ] **Monitoring**: Appropriate monitoring and alerting configured
+- [ ] **Health Checks**: Health check endpoints implemented
+- [ ] **Log Analysis**: Logs reviewed for errors or warnings
+
+#### User Experience
+- [ ] **Usability Testing**: Feature usability validated with users
+- [ ] **Accessibility**: WCAG guidelines followed for accessibility
+- [ ] **User Feedback**: Feedback from stakeholders incorporated
+- [ ] **UI/UX Review**: Design consistency maintained
+- [ ] **User Journey**: Complete user workflows verified
+
+#### Business Requirements
+- [ ] **Acceptance Criteria**: All defined acceptance criteria satisfied
+- [ ] **Business Logic**: Business rules correctly implemented
+- [ ] **Stakeholder Approval**: Feature approved by product owner/stakeholders
+- [ ] **Requirements Traceability**: Requirements linked to implementation
+- [ ] **Value Delivered**: Feature delivers expected business value
+
+### Team-Specific Definition of Done
+
+#### Development Team
+- [ ] **Code Standards**: Follows team's coding conventions
+- [ ] **Git Workflow**: Proper branching and commit message standards
+- [ ] **Peer Review**: Code reviewed by senior developer
+- [ ] **Knowledge Transfer**: Complex implementations explained to team
+- [ ] **Technical Debt**: Technical debt documented and planned
+
+#### QA Team
+- [ ] **Test Cases**: Comprehensive test cases created and executed
+- [ ] **Bug Verification**: All related bugs verified as fixed
+- [ ] **Test Data**: Test data cleanup completed
+- [ ] **Automation**: Test automation updated for new features
+- [ ] **Test Reports**: Test execution results documented
+
+#### DevOps Team
+- [ ] **CI/CD Pipeline**: Pipeline updated for new requirements
+- [ ] **Infrastructure**: Infrastructure changes deployed and tested
+- [ ] **Monitoring**: Monitoring dashboards updated
+- [ ] **Alerts**: Alert rules configured for new features
+- [ ] **Capacity Planning**: Resource requirements assessed
+
+### Feature-Specific Criteria
+
+#### Web Application Features
+- [ ] **Responsive Design**: Works on all target screen sizes
+- [ ] **Browser Compatibility**: Tested on all supported browsers
+- [ ] **SEO Optimization**: Meta tags and SEO elements implemented
+- [ ] **Analytics Tracking**: User interaction tracking implemented
+- [ ] **Error Pages**: Custom error pages implemented
+
+#### API Development
+- [ ] **API Documentation**: OpenAPI/Swagger documentation complete
+- [ ] **Versioning**: API versioning strategy implemented
+- [ ] **Rate Limiting**: Rate limiting configured
+- [ ] **Authentication**: API authentication working correctly
+- [ ] **Error Responses**: Consistent error response format
+- [ ] **Backwards Compatibility**: Breaking changes documented
+
+#### Database Changes
+- [ ] **Migration Scripts**: Database migration scripts created
+- [ ] **Data Validation**: Data integrity maintained
+- [ ] **Performance Impact**: Database performance impact assessed
+- [ ] **Backup Strategy**: Backup and recovery procedures updated
+- [ ] **Rollback Scripts**: Rollback scripts for database changes
+
+#### Integration Features
+- [ ] **Third-party Services**: External service integration tested
+- [ ] **Error Handling**: Integration failure scenarios handled
+- [ ] **Timeout Configuration**: Appropriate timeouts configured
+- [ ] **Circuit Breaker**: Circuit breaker pattern implemented if needed
+- [ ] **Retry Logic**: Retry mechanisms implemented
+
+### Quality Gates
+
+#### Pre-Development
+- [ ] Requirements clearly defined and understood
+- [ ] Design approved by stakeholders
+- [ ] Technical approach agreed upon
+- [ ] Dependencies identified and available
+
+#### Development Phase
+- [ ] Daily code reviews completed
+- [ ] Continuous integration passing
+- [ ] Unit tests maintained above threshold
+- [ ] Code quality metrics met
+
+#### Pre-Testing
+- [ ] Feature complete according to requirements
+- [ ] Self-testing completed by developer
+- [ ] Code merged to testing branch
+- [ ] Test environment deployed successfully
+
+#### Pre-Release
+- [ ] All test phases completed successfully
+- [ ] Stakeholder acceptance obtained
+- [ ] Production deployment plan approved
+- [ ] Go-live checklist completed
+
+### Exception Handling
+
+#### Emergency Fixes
+For critical production issues, the following abbreviated DoD may be used:
+- [ ] Fix addresses the critical issue
+- [ ] Code review by senior team member
+- [ ] Basic testing completed
+- [ ] Rollback plan ready
+- [ ] Post-deployment monitoring plan
+- [ ] Full DoD to be completed post-release
+
+#### Technical Debt Items
+- [ ] Technical debt clearly documented
+- [ ] Impact assessment completed
+- [ ] Remediation plan created
+- [ ] Timeline for resolution agreed
+
+### Verification Checklist
+
+#### Developer Self-Check
+Before marking work as complete, developers must verify:
+- [ ] All DoD items applicable to the work completed
+- [ ] Code compiles without warnings
+- [ ] All tests pass locally
+- [ ] Documentation updated
+- [ ] Ready for code review
+
+#### Review Checklist
+Reviewers must verify:
+- [ ] DoD criteria met
+- [ ] Code quality standards satisfied
+- [ ] Tests adequate and passing
+- [ ] Documentation complete
+- [ ] Business requirements satisfied
+
+### Metrics and Monitoring
+
+#### Definition of Done Compliance
+Track the following metrics:
+- Percentage of items meeting full DoD on first attempt
+- Average time from "code complete" to "done"
+- Number of production issues from incomplete DoD
+- Team adherence to DoD standards
+
+#### Quality Indicators
+- Code coverage percentage
+- Number of bugs found in production
+- Time to resolve DoD-related issues
+- Stakeholder satisfaction with delivered features
+
+### Tools and Automation
+
+#### Automated DoD Checks
+- [ ] **CI/CD Pipeline**: Automated build and test execution
+- [ ] **Code Quality Gates**: SonarQube or similar tool integration
+- [ ] **Security Scanning**: Automated vulnerability scanning
+- [ ] **Performance Testing**: Automated performance regression tests
+- [ ] **Documentation Generation**: Automated API documentation generation
+
+#### DoD Tracking Tools
+- **JIRA**: DoD checklist in ticket templates
+- **GitHub**: Pull request templates with DoD items
+- **Confluence**: DoD documentation and guidelines
+- **Slack**: DoD compliance reminders and notifications
+
+### Training and Onboarding
+
+#### New Team Member Onboarding
+- [ ] DoD training completed
+- [ ] Understanding of quality standards verified
+- [ ] First few work items mentored for DoD compliance
+- [ ] Access to DoD tools and processes granted
+
+#### Continuous Learning
+- Regular DoD review meetings
+- Sharing of DoD best practices
+- Updates to DoD based on lessons learned
+- Team retrospectives on DoD effectiveness
+
+### Review and Updates
+
+#### Regular DoD Reviews
+- **Monthly**: Team review of DoD effectiveness
+- **Quarterly**: DoD updates based on feedback
+- **Annually**: Comprehensive DoD revision
+- **Ad-hoc**: Updates for new tools or processes
+
+#### Version Control
+- DoD changes tracked in version control
+- Communication of DoD updates to all team members
+- Historical versions maintained for reference
+- Change rationale documented
+
+This Definition of Done ensures consistent quality standards across all deliverables and provides clear criteria for work completion. It should be customized based on team needs and project requirements while maintaining high quality standards.`,
         category: "sdlc_templates",
         component: "definition_of_done",
         sdlcStage: "development",
@@ -11141,7 +11866,392 @@ This comprehensive test plan ensures thorough testing coverage and quality assur
         id: "sdlc_templates-bug_report-unit_testing",
         title: "Bug Report Template",
         description: "Structured bug report template with reproduction steps",
-        content: "Define bug reporting standards with reproduction steps, environment details, and severity classification.",
+        content: `Define bug reporting standards with reproduction steps, environment details, and severity classification.
+
+# Bug Report Template
+## Structured Issue Reporting and Tracking
+
+### Bug Report Information
+- **Bug ID**: {{BugID}}
+- **Reporter**: {{ReporterName}}
+- **Date Reported**: {{ReportDate}}
+- **Assigned To**: {{AssignedDeveloper}}
+- **Priority**: {{BugPriority}}
+- **Severity**: {{BugSeverity}}
+- **Status**: {{BugStatus}}
+- **Component**: {{AffectedComponent}}
+- **Version**: {{AffectedVersion}}
+
+### Summary
+**Bug Title**: {{BugTitle}}
+**Brief Description**: {{BugSummary}}
+
+### Environment Information
+
+#### System Environment
+- **Operating System**: {{OperatingSystem}}
+- **Browser**: {{BrowserName}} {{BrowserVersion}}
+- **Screen Resolution**: {{ScreenResolution}}
+- **Device**: {{DeviceType}} ({{DeviceModel}})
+- **Network**: {{NetworkType}} ({{NetworkSpeed}})
+
+#### Application Environment
+- **Environment**: {{Environment}} (Development/Staging/Production)
+- **Application Version**: {{ApplicationVersion}}
+- **Build Number**: {{BuildNumber}}
+- **Database Version**: {{DatabaseVersion}}
+- **API Version**: {{APIVersion}}
+
+#### User Context
+- **User Type**: {{UserType}} (Admin/Regular User/Guest)
+- **User Role**: {{UserRole}}
+- **Permissions**: {{UserPermissions}}
+- **User ID**: {{UserID}} (if applicable)
+- **Session Duration**: {{SessionDuration}}
+
+### Detailed Description
+
+#### What Happened?
+{{DetailedDescription}}
+
+#### What Was Expected?
+{{ExpectedBehavior}}
+
+#### What Actually Occurred?
+{{ActualBehavior}}
+
+#### Impact Assessment
+- **User Impact**: {{UserImpact}}
+- **Business Impact**: {{BusinessImpact}}
+- **Frequency**: {{BugFrequency}}
+- **Affected Users**: {{AffectedUserCount}}
+
+### Reproduction Steps
+
+#### Prerequisites
+{{Prerequisites}}
+
+#### Step-by-Step Instructions
+1. {{Step1}}
+2. {{Step2}}
+3. {{Step3}}
+4. {{Step4}}
+5. {{Step5}}
+
+#### Expected Result at Each Step
+1. **Step 1**: {{ExpectedResult1}}
+2. **Step 2**: {{ExpectedResult2}}
+3. **Step 3**: {{ExpectedResult3}}
+4. **Step 4**: {{ExpectedResult4}}
+5. **Step 5**: {{ExpectedResult5}}
+
+#### Actual Result at Each Step
+1. **Step 1**: {{ActualResult1}}
+2. **Step 2**: {{ActualResult2}}
+3. **Step 3**: {{ActualResult3}}
+4. **Step 4**: {{ActualResult4}}
+5. **Step 5**: {{ActualResult5}}
+
+### Reproducibility
+- **Consistency**: {{Consistency}} (Always/Sometimes/Rarely)
+- **Attempts**: {{ReproductionAttempts}} out of {{TotalAttempts}} attempts
+- **Conditions**: {{SpecificConditions}}
+- **Time Pattern**: {{TimePattern}} (Morning/Evening/Random)
+- **Data Dependency**: {{DataDependency}}
+
+### Screenshots and Media
+
+#### Screenshots
+- **Screenshot 1**: {{Screenshot1Description}}
+  - File: {{Screenshot1File}}
+  - Annotations: {{Screenshot1Annotations}}
+
+- **Screenshot 2**: {{Screenshot2Description}}
+  - File: {{Screenshot2File}}
+  - Annotations: {{Screenshot2Annotations}}
+
+#### Video Recording
+- **Video**: {{VideoDescription}}
+  - File: {{VideoFile}}
+  - Duration: {{VideoDuration}}
+  - Key Timestamps: {{VideoTimestamps}}
+
+#### Log Files
+- **Application Logs**: {{ApplicationLogFile}}
+- **Error Logs**: {{ErrorLogFile}}
+- **Network Logs**: {{NetworkLogFile}}
+- **Browser Console**: {{BrowserConsoleOutput}}
+
+### Error Details
+
+#### Error Messages
+\`\`\`
+{{ErrorMessage1}}
+\`\`\`
+
+\`\`\`
+{{ErrorMessage2}}
+\`\`\`
+
+#### Stack Trace
+\`\`\`
+{{StackTrace}}
+\`\`\`
+
+#### Network Requests
+**Failed Request**:
+- **URL**: {{FailedRequestURL}}
+- **Method**: {{RequestMethod}}
+- **Status Code**: {{StatusCode}}
+- **Response**: {{ErrorResponse}}
+
+**Request Headers**:
+\`\`\`
+{{RequestHeaders}}
+\`\`\`
+
+**Response Headers**:
+\`\`\`
+{{ResponseHeaders}}
+\`\`\`
+
+#### Database Errors
+- **Query**: {{FailedQuery}}
+- **Error**: {{DatabaseError}}
+- **Connection**: {{DatabaseConnection}}
+
+### Test Data
+
+#### Sample Data Used
+\`\`\`json
+{
+  "{{DataField1}}": "{{DataValue1}}",
+  "{{DataField2}}": "{{DataValue2}}",
+  "{{DataField3}}": {{DataValue3}},
+  "{{DataField4}}": [
+    "{{ArrayValue1}}",
+    "{{ArrayValue2}}"
+  ]
+}
+\`\`\`
+
+#### Input Values
+- **Valid Input**: {{ValidInputExample}}
+- **Invalid Input**: {{InvalidInputExample}}
+- **Edge Case Input**: {{EdgeCaseInputExample}}
+- **Boundary Values**: {{BoundaryValues}}
+
+### Workaround
+
+#### Temporary Solution
+{{TemporarySolution}}
+
+#### Steps for Workaround
+1. {{WorkaroundStep1}}
+2. {{WorkaroundStep2}}
+3. {{WorkaroundStep3}}
+
+#### Workaround Limitations
+- {{WorkaroundLimitation1}}
+- {{WorkaroundLimitation2}}
+- {{WorkaroundLimitation3}}
+
+### Related Information
+
+#### Related Bugs
+- **Similar Issues**: {{RelatedBugIDs}}
+- **Duplicate Reports**: {{DuplicateBugIDs}}
+- **Parent Issue**: {{ParentIssueID}}
+- **Child Issues**: {{ChildIssueIDs}}
+
+#### Recent Changes
+- **Code Changes**: {{RecentCodeChanges}}
+- **Configuration Changes**: {{ConfigurationChanges}}
+- **Infrastructure Changes**: {{InfrastructureChanges}}
+- **Data Changes**: {{DataChanges}}
+
+#### Additional Context
+- **Feature Flags**: {{FeatureFlags}}
+- **A/B Tests**: {{ABTests}}
+- **Third-party Services**: {{ThirdPartyServices}}
+- **External Dependencies**: {{ExternalDependencies}}
+
+### Priority and Severity Classification
+
+#### Severity Levels
+**Critical (S1)**:
+- System crash or data corruption
+- Security vulnerability
+- Complete feature failure
+- Affects all users
+
+**High (S2)**:
+- Major functionality broken
+- No reasonable workaround
+- Affects significant user base
+- Performance degradation
+
+**Medium (S3)**:
+- Feature partially working
+- Workaround available
+- Affects some users
+- Minor performance impact
+
+**Low (S4)**:
+- Cosmetic issues
+- Documentation errors
+- Enhancement requests
+- Minimal user impact
+
+#### Priority Levels
+**P1 (Urgent)**:
+- Fix immediately
+- Blocks critical functionality
+- Security issue
+
+**P2 (High)**:
+- Fix in current sprint
+- Important feature broken
+- Many users affected
+
+**P3 (Medium)**:
+- Fix in next release
+- Standard priority
+- Some users affected
+
+**P4 (Low)**:
+- Fix when time permits
+- Nice to have
+- Few users affected
+
+### Investigation Notes
+
+#### Initial Analysis
+{{InitialAnalysis}}
+
+#### Root Cause Hypothesis
+{{RootCauseHypothesis}}
+
+#### Investigation Steps Taken
+1. {{InvestigationStep1}}
+2. {{InvestigationStep2}}
+3. {{InvestigationStep3}}
+
+#### Findings
+{{InvestigationFindings}}
+
+### Resolution
+
+#### Root Cause
+{{RootCause}}
+
+#### Solution Implemented
+{{SolutionDescription}}
+
+#### Code Changes
+\`\`\`{{CodeLanguage}}
+{{CodeChanges}}
+\`\`\`
+
+#### Configuration Changes
+{{ConfigurationFixes}}
+
+#### Test Cases Added
+{{TestCasesAdded}}
+
+#### Prevention Measures
+{{PreventionMeasures}}
+
+### Testing and Verification
+
+#### Test Plan
+1. {{TestStep1}}
+2. {{TestStep2}}
+3. {{TestStep3}}
+
+#### Verification Results
+- **Manual Testing**: {{ManualTestResults}}
+- **Automated Testing**: {{AutomatedTestResults}}
+- **Regression Testing**: {{RegressionTestResults}}
+- **Performance Testing**: {{PerformanceTestResults}}
+
+#### Sign-off
+- **Developer**: {{DeveloperSignoff}}
+- **QA Engineer**: {{QASignoff}}
+- **Product Owner**: {{ProductOwnerSignoff}}
+
+### Communication
+
+#### Stakeholder Notification
+- **Users Notified**: {{UsersNotified}}
+- **Communication Method**: {{CommunicationMethod}}
+- **Notification Date**: {{NotificationDate}}
+- **Follow-up Required**: {{FollowupRequired}}
+
+#### Release Notes
+{{ReleaseNotesEntry}}
+
+### Metrics and Tracking
+
+#### Time Tracking
+- **Time to Reproduce**: {{TimeToReproduce}}
+- **Investigation Time**: {{InvestigationTime}}
+- **Development Time**: {{DevelopmentTime}}
+- **Testing Time**: {{TestingTime}}
+- **Total Resolution Time**: {{TotalResolutionTime}}
+
+#### Quality Metrics
+- **Defect Escape Rate**: {{DefectEscapeRate}}
+- **Reopen Count**: {{ReopenCount}}
+- **Customer Impact Score**: {{CustomerImpactScore}}
+- **Fix Quality Score**: {{FixQualityScore}}
+
+### Lessons Learned
+
+#### What Went Well
+- {{PositiveLearning1}}
+- {{PositiveLearning2}}
+- {{PositiveLearning3}}
+
+#### Areas for Improvement
+- {{ImprovementArea1}}
+- {{ImprovementArea2}}
+- {{ImprovementArea3}}
+
+#### Process Improvements
+- {{ProcessImprovement1}}
+- {{ProcessImprovement2}}
+- {{ProcessImprovement3}}
+
+### Checklist
+
+#### Reporter Checklist
+- [ ] Clear and descriptive title
+- [ ] Detailed reproduction steps
+- [ ] Environment information provided
+- [ ] Screenshots/videos attached
+- [ ] Expected vs actual behavior described
+- [ ] Severity and priority assessed
+- [ ] Workaround identified (if any)
+
+#### Developer Checklist
+- [ ] Bug reproduced successfully
+- [ ] Root cause identified
+- [ ] Solution implemented and tested
+- [ ] Code review completed
+- [ ] Automated tests added
+- [ ] Documentation updated
+- [ ] Release notes updated
+
+#### QA Checklist
+- [ ] Fix verified in test environment
+- [ ] Regression testing completed
+- [ ] Edge cases tested
+- [ ] User acceptance criteria met
+- [ ] Sign-off provided
+- [ ] Bug marked as resolved
+
+This comprehensive bug report template ensures all necessary information is captured for effective bug tracking, investigation, and resolution.`,
         category: "sdlc_templates",
         component: "bug_report",
         sdlcStage: "unit_testing",
@@ -11153,7 +12263,406 @@ This comprehensive test plan ensures thorough testing coverage and quality assur
         id: "sdlc_templates-acceptance_criteria-unit_testing",
         title: "Acceptance Criteria Template",
         description: "Acceptance criteria template with Given-When-Then format",
-        content: "Create clear acceptance criteria using Given-When-Then format for behavior-driven development.",
+        content: `Create clear acceptance criteria using Given-When-Then format for behavior-driven development.
+
+# Acceptance Criteria Template
+## Behavior-Driven Development Standards
+
+### Overview
+This template defines the standard format for writing acceptance criteria using the Given-When-Then (Gherkin) syntax to ensure clear, testable, and comprehensive requirements definition.
+
+### User Story Context
+**Epic**: {{EpicTitle}}
+**User Story**: {{UserStoryTitle}}
+**Story ID**: {{StoryID}}
+**Priority**: {{StoryPriority}}
+**Story Points**: {{StoryPoints}}
+
+**User Story Statement**:
+As a {{UserRole}}
+I want {{DesiredCapability}}
+So that {{BusinessValue}}
+
+### Acceptance Criteria Format
+
+#### Standard Given-When-Then Format
+\`\`\`gherkin
+Given {{PreconditionState}}
+  And {{AdditionalPrecondition}}
+When {{UserAction}}
+  And {{AdditionalAction}}
+Then {{ExpectedOutcome}}
+  And {{AdditionalOutcome}}
+\`\`\`
+
+### Primary Acceptance Criteria
+
+#### Scenario 1: {{ScenarioTitle1}}
+**Description**: {{ScenarioDescription1}}
+**Priority**: {{ScenarioPriority1}}
+
+\`\`\`gherkin
+Given {{PreconditionState1}}
+  And {{PreconditionState2}}
+When {{UserAction1}}
+  And {{UserAction2}}
+Then {{ExpectedResult1}}
+  And {{ExpectedResult2}}
+  And {{ExpectedResult3}}
+\`\`\`
+
+**Business Rules**:
+- {{BusinessRule1}}
+- {{BusinessRule2}}
+- {{BusinessRule3}}
+
+**UI/UX Requirements**:
+- {{UIRequirement1}}
+- {{UIRequirement2}}
+- {{UIRequirement3}}
+
+#### Scenario 2: {{ScenarioTitle2}}
+**Description**: {{ScenarioDescription2}}
+**Priority**: {{ScenarioPriority2}}
+
+\`\`\`gherkin
+Given {{PreconditionState1}}
+  And {{PreconditionState2}}
+When {{UserAction1}}
+Then {{ExpectedResult1}}
+  And {{ExpectedResult2}}
+\`\`\`
+
+**Validation Rules**:
+- {{ValidationRule1}}
+- {{ValidationRule2}}
+- {{ValidationRule3}}
+
+#### Scenario 3: {{ScenarioTitle3}}
+**Description**: {{ScenarioDescription3}}
+**Priority**: {{ScenarioPriority3}}
+
+\`\`\`gherkin
+Given {{PreconditionState1}}
+When {{UserAction1}}
+  And {{UserAction2}}
+Then {{ExpectedResult1}}
+  And {{ExpectedResult2}}
+\`\`\`
+
+### Edge Cases and Error Scenarios
+
+#### Error Scenario 1: {{ErrorScenarioTitle1}}
+\`\`\`gherkin
+Given {{ErrorPrecondition1}}
+When {{ErrorAction1}}
+Then {{ErrorResult1}}
+  And {{ErrorMessage1}} is displayed
+  And {{ErrorHandling1}} occurs
+\`\`\`
+
+#### Error Scenario 2: {{ErrorScenarioTitle2}}
+\`\`\`gherkin
+Given {{ErrorPrecondition2}}
+When {{ErrorAction2}}
+Then {{ErrorResult2}}
+  And {{ErrorMessage2}} is displayed
+  And {{SystemBehavior2}} is maintained
+\`\`\`
+
+#### Boundary Conditions
+\`\`\`gherkin
+Given {{BoundaryCondition1}}
+When {{BoundaryAction1}}
+Then {{BoundaryResult1}}
+
+Given {{BoundaryCondition2}}
+When {{BoundaryAction2}}
+Then {{BoundaryResult2}}
+\`\`\`
+
+### Data Requirements
+
+#### Valid Data Scenarios
+\`\`\`gherkin
+Given {{DataSetup1}}
+  And {{DataSetup2}}
+When {{DataAction1}}
+Then {{DataResult1}}
+  And {{DataValidation1}}
+\`\`\`
+
+#### Invalid Data Scenarios
+\`\`\`gherkin
+Given {{InvalidDataSetup1}}
+When {{InvalidDataAction1}}
+Then {{InvalidDataResult1}}
+  And {{ValidationError1}} is shown
+\`\`\`
+
+#### Data Examples Table
+| {{Field1}} | {{Field2}} | {{Field3}} | Expected Result |
+|------------|------------|------------|-----------------|
+| {{Value1a}} | {{Value2a}} | {{Value3a}} | {{Result1}} |
+| {{Value1b}} | {{Value2b}} | {{Value3b}} | {{Result2}} |
+| {{Value1c}} | {{Value2c}} | {{Value3c}} | {{Result3}} |
+
+### Performance Criteria
+
+#### Performance Scenario 1
+\`\`\`gherkin
+Given {{PerformanceCondition1}}
+When {{PerformanceAction1}}
+Then {{PerformanceResult1}}
+  And the response time is less than {{ResponseTime1}} seconds
+  And the system handles {{ConcurrentUsers1}} concurrent users
+\`\`\`
+
+#### Performance Scenario 2
+\`\`\`gherkin
+Given {{PerformanceCondition2}}
+  And {{LoadCondition2}}
+When {{PerformanceAction2}}
+Then {{PerformanceResult2}}
+  And the page loads within {{PageLoadTime2}} seconds
+  And memory usage remains below {{MemoryLimit2}}
+\`\`\`
+
+### Security Criteria
+
+#### Authentication Scenario
+\`\`\`gherkin
+Given {{AuthenticationCondition}}
+When {{AuthenticationAction}}
+Then {{AuthenticationResult}}
+  And {{SecurityBehavior1}}
+  And {{SecurityBehavior2}}
+\`\`\`
+
+#### Authorization Scenario
+\`\`\`gherkin
+Given {{AuthorizationCondition}}
+When {{UnauthorizedAction}}
+Then {{AuthorizationResult}}
+  And {{SecurityMessage}} is displayed
+  And {{LoggingBehavior}} occurs
+\`\`\`
+
+### Accessibility Criteria
+
+#### Screen Reader Support
+\`\`\`gherkin
+Given {{AccessibilityCondition1}}
+When {{ScreenReaderAction}}
+Then {{AccessibilityResult1}}
+  And {{ScreenReaderFeedback}}
+\`\`\`
+
+#### Keyboard Navigation
+\`\`\`gherkin
+Given {{KeyboardCondition}}
+When {{KeyboardNavigation}}
+Then {{KeyboardResult}}
+  And {{FocusManagement}}
+\`\`\`
+
+#### Color Contrast
+\`\`\`gherkin
+Given {{ColorCondition}}
+When {{ColorValidation}}
+Then {{ColorResult}}
+  And {{ContrastRatio}} meets WCAG standards
+\`\`\`
+
+### Cross-Platform Criteria
+
+#### Browser Compatibility
+\`\`\`gherkin
+Given {{BrowserCondition}}
+  And I am using {{BrowserName}} {{BrowserVersion}}
+When {{BrowserAction}}
+Then {{BrowserResult}}
+  And {{CrossBrowserBehavior}}
+\`\`\`
+
+#### Mobile Responsiveness
+\`\`\`gherkin
+Given {{MobileCondition}}
+  And I am using {{DeviceType}} with {{ScreenSize}}
+When {{MobileAction}}
+Then {{MobileResult}}
+  And {{ResponsiveDesign}}
+\`\`\`
+
+### Integration Criteria
+
+#### API Integration
+\`\`\`gherkin
+Given {{APICondition}}
+When {{APICall}}
+Then {{APIResult}}
+  And {{IntegrationBehavior1}}
+  And {{IntegrationBehavior2}}
+\`\`\`
+
+#### Database Integration
+\`\`\`gherkin
+Given {{DatabaseCondition}}
+When {{DatabaseAction}}
+Then {{DatabaseResult}}
+  And {{DataPersistence}}
+  And {{DataIntegrity}}
+\`\`\`
+
+### Non-Functional Requirements
+
+#### Usability Criteria
+\`\`\`gherkin
+Given {{UsabilityCondition}}
+When {{UsabilityAction}}
+Then {{UsabilityResult}}
+  And {{UserExperience1}}
+  And {{UserExperience2}}
+\`\`\`
+
+#### Maintainability Criteria
+- Code coverage must be ≥ {{CoverageThreshold}}%
+- Code complexity must be ≤ {{ComplexityThreshold}}
+- Documentation must be updated
+- Logging must capture {{LoggingRequirements}}
+
+#### Scalability Criteria
+\`\`\`gherkin
+Given {{ScalabilityCondition}}
+When {{ScalabilityLoad}}
+Then {{ScalabilityResult}}
+  And the system scales to {{ScaleTarget}}
+\`\`\`
+
+### Definition of Done Integration
+
+#### Technical Requirements
+- [ ] All acceptance criteria scenarios pass
+- [ ] Code review completed
+- [ ] Unit tests cover all scenarios
+- [ ] Integration tests validate end-to-end flows
+- [ ] Performance criteria met
+- [ ] Security criteria validated
+- [ ] Accessibility criteria verified
+
+#### Quality Requirements
+- [ ] No critical or high severity bugs
+- [ ] User experience validated
+- [ ] Cross-browser testing completed
+- [ ] Mobile responsiveness verified
+- [ ] Documentation updated
+
+### Testing Guidelines
+
+#### Manual Testing Scenarios
+Each Given-When-Then scenario should be:
+- Manually executable by QA team
+- Clear and unambiguous
+- Independent of other scenarios
+- Focused on user behavior
+- Verifiable with expected outcomes
+
+#### Automated Testing Integration
+\`\`\`gherkin
+# Example Cucumber/SpecFlow test
+Feature: {{FeatureName}}
+  As a {{UserRole}}
+  I want {{DesiredCapability}}
+  So that {{BusinessValue}}
+
+  Scenario: {{ScenarioTitle1}}
+    Given {{PreconditionState1}}
+      And {{PreconditionState2}}
+    When {{UserAction1}}
+      And {{UserAction2}}
+    Then {{ExpectedResult1}}
+      And {{ExpectedResult2}}
+\`\`\`
+
+#### Test Data Management
+- **Test Data Setup**: {{TestDataSetup}}
+- **Data Cleanup**: {{DataCleanup}}
+- **Data Privacy**: {{DataPrivacy}}
+- **Data Consistency**: {{DataConsistency}}
+
+### Stakeholder Review
+
+#### Business Stakeholder Approval
+- [ ] Product Owner reviewed acceptance criteria
+- [ ] Business rules validated
+- [ ] User experience approved
+- [ ] Edge cases considered
+
+#### Technical Review
+- [ ] Technical feasibility confirmed
+- [ ] Integration points identified
+- [ ] Performance implications assessed
+- [ ] Security considerations reviewed
+
+#### QA Review
+- [ ] Testability validated
+- [ ] Test scenarios complete
+- [ ] Automation possibilities identified
+- [ ] Edge cases covered
+
+### Common Anti-Patterns to Avoid
+
+#### Vague Criteria
+❌ **Poor Example**:
+\`\`\`
+Given I am on the page
+When I do something
+Then it should work
+\`\`\`
+
+✅ **Good Example**:
+\`\`\`gherkin
+Given I am on the user registration page
+  And all required fields are empty
+When I click the "Register" button
+Then I see validation messages for all required fields
+  And the form is not submitted
+  And I remain on the registration page
+\`\`\`
+
+#### Implementation Details
+❌ **Avoid**: Technical implementation details
+✅ **Focus**: User behavior and business outcomes
+
+#### Missing Edge Cases
+❌ **Incomplete**: Only happy path scenarios
+✅ **Complete**: Include error, boundary, and edge cases
+
+### Traceability Matrix
+
+| Acceptance Criteria | Test Case ID | Status | Automation |
+|-------------------|--------------|---------|------------|
+| {{AC1}} | {{TC1}} | {{Status1}} | {{Automation1}} |
+| {{AC2}} | {{TC2}} | {{Status2}} | {{Automation2}} |
+| {{AC3}} | {{TC3}} | {{Status3}} | {{Automation3}} |
+
+### Review and Approval
+
+#### Review Checklist
+- [ ] All scenarios follow Given-When-Then format
+- [ ] Criteria are testable and measurable
+- [ ] Edge cases and error scenarios included
+- [ ] Performance and security criteria defined
+- [ ] Non-functional requirements specified
+- [ ] Stakeholder approval obtained
+
+#### Sign-off
+- **Product Owner**: {{ProductOwnerSignoff}}
+- **Tech Lead**: {{TechLeadSignoff}}
+- **QA Lead**: {{QALeadSignoff}}
+- **UX Designer**: {{UXDesignerSignoff}}
+
+This comprehensive acceptance criteria template ensures clear, testable, and complete requirements definition using behavior-driven development principles.`,
         category: "sdlc_templates",
         component: "acceptance_criteria",
         sdlcStage: "unit_testing",
@@ -11387,7 +12896,625 @@ This software is released under {{LicenseType}}. See LICENSE file for details.
         id: "sdlc_templates-deployment_guide-deployment",
         title: "Deployment Guide",
         description: "Step-by-step deployment guide template",
-        content: "Create comprehensive deployment guides with environment setup, configuration, and rollback procedures.",
+        content: `Create comprehensive deployment guides with environment setup, configuration, and rollback procedures.
+
+# Deployment Guide Template
+## Production Deployment and Release Management
+
+### Overview
+This guide provides comprehensive instructions for deploying applications to production with proper environment configuration, monitoring setup, and rollback procedures.
+
+### Pre-Deployment Checklist
+
+#### Code Quality Verification
+- [ ] **Code Review**: All code changes reviewed and approved
+- [ ] **Test Coverage**: Minimum 80% code coverage achieved
+- [ ] **Security Scan**: No critical vulnerabilities detected
+- [ ] **Performance Testing**: Load testing completed successfully
+- [ ] **Documentation**: Deployment documentation updated
+- [ ] **Change Approval**: Change request approved by stakeholders
+
+#### Environment Readiness
+- [ ] **Infrastructure**: Target environment provisioned and ready
+- [ ] **Dependencies**: All required services and databases available
+- [ ] **Configuration**: Environment-specific configurations prepared
+- [ ] **Secrets**: All required secrets and API keys configured
+- [ ] **Database**: Database migrations tested and ready
+- [ ] **Monitoring**: Monitoring and alerting systems configured
+
+#### Team Coordination
+- [ ] **Stakeholder Notification**: All stakeholders informed of deployment
+- [ ] **Maintenance Window**: Maintenance window scheduled if required
+- [ ] **Team Availability**: Key team members available for deployment
+- [ ] **Communication Channels**: Incident response channels ready
+- [ ] **Rollback Team**: Rollback team identified and prepared
+
+### Deployment Environments
+
+#### Environment Hierarchy
+1. **Development**: {{DevEnvironmentURL}}
+2. **Testing**: {{TestEnvironmentURL}}
+3. **Staging**: {{StagingEnvironmentURL}}
+4. **Production**: {{ProductionEnvironmentURL}}
+
+#### Environment Specifications
+| Environment | Purpose | Configuration | Access |
+|-------------|---------|---------------|---------|
+| Development | Feature development | {{DevConfig}} | {{DevAccess}} |
+| Testing | QA testing | {{TestConfig}} | {{TestAccess}} |
+| Staging | Production replica | {{StagingConfig}} | {{StagingAccess}} |
+| Production | Live system | {{ProductionConfig}} | {{ProductionAccess}} |
+
+### Deployment Strategy
+
+#### Blue-Green Deployment
+**Overview**: Maintain two identical production environments (Blue and Green)
+
+**Process**:
+1. **Current State**: Traffic routes to Blue environment
+2. **Deploy to Green**: Deploy new version to Green environment
+3. **Testing**: Validate Green environment functionality
+4. **Switch Traffic**: Route traffic from Blue to Green
+5. **Monitor**: Monitor Green environment performance
+6. **Cleanup**: Update Blue environment for next deployment
+
+**Benefits**:
+- Zero-downtime deployments
+- Instant rollback capability
+- Complete environment isolation
+- Full production testing
+
+#### Rolling Deployment
+**Overview**: Gradually replace instances with new version
+
+**Process**:
+1. **Instance Replacement**: Replace instances one by one
+2. **Health Checks**: Verify each instance health before proceeding
+3. **Load Balancer**: Update load balancer configuration
+4. **Gradual Rollout**: Continue until all instances updated
+5. **Validation**: Validate entire system functionality
+
+**Benefits**:
+- Gradual risk mitigation
+- Resource efficiency
+- Continuous availability
+- Early issue detection
+
+#### Canary Deployment
+**Overview**: Deploy to small subset of users initially
+
+**Process**:
+1. **Canary Release**: Deploy to 5% of production traffic
+2. **Monitoring**: Monitor metrics and user feedback
+3. **Validation**: Validate performance and functionality
+4. **Gradual Increase**: Increase traffic percentage gradually
+5. **Full Rollout**: Complete deployment after validation
+
+**Benefits**:
+- Risk mitigation
+- Real user feedback
+- Performance validation
+- Quick rollback if issues
+
+### Pre-Production Deployment
+
+#### Staging Environment Deployment
+
+**Step 1: Environment Preparation**
+\`\`\`bash
+# Update staging environment
+kubectl config use-context staging
+kubectl get pods --all-namespaces
+kubectl get services --all-namespaces
+
+# Verify environment health
+curl -f {{StagingHealthCheckURL}} || exit 1
+\`\`\`
+
+**Step 2: Database Migration**
+\`\`\`bash
+# Backup staging database
+pg_dump -h {{StagingDBHost}} -U {{StagingDBUser}} -d {{StagingDBName}} > staging_backup_{{Date}}.sql
+
+# Run migrations
+npm run db:migrate:staging
+npm run db:seed:staging
+
+# Verify migrations
+npm run db:verify:staging
+\`\`\`
+
+**Step 3: Application Deployment**
+\`\`\`bash
+# Build application
+docker build -t {{AppName}}:{{Version}} .
+docker tag {{AppName}}:{{Version}} {{Registry}}/{{AppName}}:{{Version}}
+docker push {{Registry}}/{{AppName}}:{{Version}}
+
+# Deploy to staging
+kubectl apply -f k8s/staging/
+kubectl rollout status deployment/{{AppName}} -n staging
+kubectl get pods -n staging
+\`\`\`
+
+**Step 4: Staging Validation**
+\`\`\`bash
+# Run integration tests
+npm run test:integration:staging
+
+# Run end-to-end tests
+npm run test:e2e:staging
+
+# Verify application functionality
+curl -f {{StagingAppURL}}/health
+curl -f {{StagingAppURL}}/api/status
+\`\`\`
+
+### Production Deployment
+
+#### Step 1: Pre-Deployment Validation
+
+**System Health Check**
+\`\`\`bash
+# Check production system health
+kubectl config use-context production
+kubectl get nodes
+kubectl get pods --all-namespaces | grep -v Running
+
+# Check resource utilization
+kubectl top nodes
+kubectl top pods --all-namespaces
+
+# Verify external dependencies
+curl -f {{ExternalService1URL}}/health
+curl -f {{ExternalService2URL}}/status
+\`\`\`
+
+**Database Preparation**
+\`\`\`sql
+-- Create production database backup
+pg_dump -h {{ProductionDBHost}} -U {{ProductionDBUser}} -d {{ProductionDBName}} > prod_backup_{{Timestamp}}.sql
+
+-- Verify backup integrity
+pg_restore --list prod_backup_{{Timestamp}}.sql
+
+-- Check database connections
+SELECT count(*) FROM pg_stat_activity;
+\`\`\`
+
+#### Step 2: Deployment Execution
+
+**Blue-Green Deployment Process**
+
+**Phase 1: Green Environment Preparation**
+\`\`\`bash
+# Switch to green environment context
+export TARGET_ENV=green
+kubectl config use-context production-green
+
+# Deploy application to green
+envsubst < k8s/production/deployment.yaml | kubectl apply -f -
+kubectl rollout status deployment/{{AppName}} -n production-green
+
+# Verify green environment
+kubectl get pods -n production-green
+kubectl get services -n production-green
+\`\`\`
+
+**Phase 2: Database Migration**
+\`\`\`bash
+# Run database migrations on production
+export DATABASE_URL={{ProductionDatabaseURL}}
+npm run db:migrate:production
+
+# Verify migration success
+npm run db:verify:production
+\`\`\`
+
+**Phase 3: Application Configuration**
+\`\`\`bash
+# Update configuration
+kubectl create configmap app-config \\
+  --from-file=config/production.json \\
+  -n production-green
+
+# Update secrets
+kubectl create secret generic app-secrets \\
+  --from-literal=api-key={{ProductionAPIKey}} \\
+  --from-literal=db-password={{ProductionDBPassword}} \\
+  -n production-green
+\`\`\`
+
+**Phase 4: Health Validation**
+\`\`\`bash
+# Wait for pods to be ready
+kubectl wait --for=condition=Ready pod -l app={{AppName}} -n production-green --timeout=300s
+
+# Perform health checks
+GREEN_URL=$(kubectl get service {{AppName}} -n production-green -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+curl -f http://$GREEN_URL/health
+curl -f http://$GREEN_URL/api/status
+
+# Run smoke tests
+npm run test:smoke:production -- --url=$GREEN_URL
+\`\`\`
+
+#### Step 3: Traffic Switching
+
+**Load Balancer Configuration**
+\`\`\`bash
+# Update load balancer to route to green
+kubectl patch service {{AppName}}-lb -p '{"spec":{"selector":{"version":"green"}}}' -n production
+
+# Verify traffic routing
+curl -I {{ProductionURL}}/health
+
+# Monitor traffic distribution
+kubectl logs -f deployment/{{AppName}} -n production-green
+\`\`\`
+
+**Gradual Traffic Migration**
+\`\`\`bash
+# Route 10% traffic to green
+kubectl apply -f k8s/traffic-split/10-percent.yaml
+
+# Monitor metrics for 15 minutes
+sleep 900
+
+# Route 50% traffic to green
+kubectl apply -f k8s/traffic-split/50-percent.yaml
+
+# Monitor metrics for 15 minutes
+sleep 900
+
+# Route 100% traffic to green
+kubectl apply -f k8s/traffic-split/100-percent.yaml
+\`\`\`
+
+#### Step 4: Post-Deployment Validation
+
+**System Monitoring**
+\`\`\`bash
+# Check application logs
+kubectl logs -f deployment/{{AppName}} -n production-green --tail=100
+
+# Monitor error rates
+curl {{MonitoringURL}}/api/metrics/error-rate
+
+# Check response times
+curl {{MonitoringURL}}/api/metrics/response-time
+
+# Verify database connections
+kubectl exec -it deployment/{{AppName}} -n production-green -- npm run db:health
+\`\`\`
+
+**Functional Verification**
+\`\`\`bash
+# Run production health checks
+npm run test:health:production
+
+# Verify critical user journeys
+npm run test:critical-path:production
+
+# Check integration points
+npm run test:integration:production
+\`\`\`
+
+### Configuration Management
+
+#### Environment Variables
+\`\`\`bash
+# Production environment variables
+export NODE_ENV=production
+export DATABASE_URL={{ProductionDatabaseURL}}
+export REDIS_URL={{ProductionRedisURL}}
+export API_KEY={{ProductionAPIKey}}
+export LOG_LEVEL=info
+export PORT=8080
+\`\`\`
+
+#### Kubernetes Configuration
+\`\`\`yaml
+# production-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{AppName}}-config
+  namespace: production
+data:
+  NODE_ENV: "production"
+  LOG_LEVEL: "info"
+  PORT: "8080"
+  DATABASE_POOL_SIZE: "20"
+  REDIS_POOL_SIZE: "10"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{AppName}}-secrets
+  namespace: production
+type: Opaque
+stringData:
+  DATABASE_URL: "{{ProductionDatabaseURL}}"
+  REDIS_URL: "{{ProductionRedisURL}}"
+  API_KEY: "{{ProductionAPIKey}}"
+  JWT_SECRET: "{{ProductionJWTSecret}}"
+\`\`\`
+
+#### Application Configuration
+\`\`\`json
+{
+  "database": {
+    "host": "{{ProductionDBHost}}",
+    "port": {{ProductionDBPort}},
+    "name": "{{ProductionDBName}}",
+    "ssl": true,
+    "poolSize": 20
+  },
+  "redis": {
+    "host": "{{ProductionRedisHost}}",
+    "port": {{ProductionRedisPort}},
+    "password": "{{ProductionRedisPassword}}"
+  },
+  "monitoring": {
+    "enabled": true,
+    "endpoint": "{{MonitoringEndpoint}}",
+    "level": "info"
+  },
+  "features": {
+    "rateLimit": true,
+    "caching": true,
+    "compression": true
+  }
+}
+\`\`\`
+
+### Monitoring and Alerting
+
+#### Health Check Endpoints
+\`\`\`javascript
+// Health check implementation
+app.get('/health', async (req, res) => {
+  try {
+    // Database health
+    await db.query('SELECT 1');
+    
+    // Redis health
+    await redis.ping();
+    
+    // External service health
+    await checkExternalServices();
+    
+    res.status(200).json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      version: process.env.APP_VERSION,
+      uptime: process.uptime()
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: 'unhealthy',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+\`\`\`
+
+#### Monitoring Dashboard Setup
+\`\`\`bash
+# Install monitoring stack
+kubectl apply -f monitoring/prometheus/
+kubectl apply -f monitoring/grafana/
+kubectl apply -f monitoring/alertmanager/
+
+# Configure application metrics
+kubectl apply -f monitoring/app-metrics.yaml
+
+# Verify monitoring setup
+kubectl get pods -n monitoring
+\`\`\`
+
+#### Alert Configuration
+\`\`\`yaml
+# alerting-rules.yaml
+groups:
+  - name: application
+    rules:
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate detected"
+          
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High response time detected"
+\`\`\`
+
+### Rollback Procedures
+
+#### Automatic Rollback Triggers
+- Error rate > 5% for 2 minutes
+- Response time > 1 second for 5 minutes
+- Health check failures > 50% for 1 minute
+- Database connection failures > 10% for 1 minute
+
+#### Manual Rollback Process
+
+**Step 1: Immediate Traffic Switch**
+\`\`\`bash
+# Switch traffic back to blue (previous version)
+kubectl patch service {{AppName}}-lb -p '{"spec":{"selector":{"version":"blue"}}}' -n production
+
+# Verify traffic switch
+curl -I {{ProductionURL}}/health
+\`\`\`
+
+**Step 2: Rollback Database**
+\`\`\`bash
+# If database rollback needed
+pg_restore -h {{ProductionDBHost}} -U {{ProductionDBUser}} -d {{ProductionDBName}} prod_backup_{{Timestamp}}.sql
+
+# Verify database integrity
+npm run db:verify:production
+\`\`\`
+
+**Step 3: System Validation**
+\`\`\`bash
+# Validate rollback success
+npm run test:health:production
+npm run test:critical-path:production
+
+# Monitor system stability
+kubectl logs -f deployment/{{AppName}} -n production-blue --tail=100
+\`\`\`
+
+#### Automated Rollback Script
+\`\`\`bash
+#!/bin/bash
+# automated-rollback.sh
+
+echo "Starting automated rollback..."
+
+# Switch traffic to previous version
+kubectl patch service {{AppName}}-lb -p '{"spec":{"selector":{"version":"blue"}}}' -n production
+
+# Wait for traffic switch
+sleep 30
+
+# Validate rollback
+HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" {{ProductionURL}}/health)
+
+if [ "$HEALTH_STATUS" -eq 200 ]; then
+  echo "Rollback successful"
+  # Send success notification
+  curl -X POST {{SlackWebhook}} -d '{"text":"Rollback completed successfully"}'
+else
+  echo "Rollback failed"
+  # Send failure notification
+  curl -X POST {{SlackWebhook}} -d '{"text":"Rollback failed - manual intervention required"}'
+fi
+\`\`\`
+
+### Communication Plan
+
+#### Stakeholder Notifications
+
+**Pre-Deployment**
+- [ ] **Development Team**: Deployment schedule communicated
+- [ ] **QA Team**: Testing completion confirmed
+- [ ] **Operations Team**: Deployment window scheduled
+- [ ] **Business Stakeholders**: Maintenance window notified
+- [ ] **Customer Support**: Potential issues briefed
+
+**During Deployment**
+- [ ] **Status Updates**: Regular status updates to stakeholders
+- [ ] **Issue Reporting**: Immediate issue reporting channels active
+- [ ] **Progress Tracking**: Deployment progress tracked and communicated
+
+**Post-Deployment**
+- [ ] **Success Notification**: Deployment success communicated
+- [ ] **Performance Report**: Initial performance metrics shared
+- [ ] **Known Issues**: Any known issues documented and communicated
+
+#### Communication Templates
+
+**Deployment Start Notification**
+\`\`\`
+Subject: [DEPLOYMENT] {{AppName}} v{{Version}} - Deployment Started
+
+Team,
+
+The deployment of {{AppName}} version {{Version}} to production has begun.
+
+Timeline:
+- Start Time: {{StartTime}}
+- Expected Duration: {{ExpectedDuration}}
+- Completion ETA: {{CompletionETA}}
+
+Deployment Lead: {{DeploymentLead}}
+Rollback Contact: {{RollbackContact}}
+
+We will provide updates every {{UpdateInterval}} minutes.
+
+Thanks,
+DevOps Team
+\`\`\`
+
+**Deployment Completion Notification**
+\`\`\`
+Subject: [SUCCESS] {{AppName}} v{{Version}} - Deployment Completed
+
+Team,
+
+The deployment of {{AppName}} version {{Version}} has been completed successfully.
+
+Results:
+- Deployment Time: {{ActualDeploymentTime}}
+- Downtime: {{Downtime}}
+- Performance: {{PerformanceMetrics}}
+
+New Features:
+- {{Feature1}}
+- {{Feature2}}
+- {{Feature3}}
+
+Monitor Dashboard: {{MonitoringURL}}
+
+Thanks,
+DevOps Team
+\`\`\`
+
+### Post-Deployment Activities
+
+#### Monitoring Period
+- **Duration**: 24 hours post-deployment
+- **Metrics**: Error rates, response times, resource utilization
+- **Alerts**: All production alerts active
+- **On-call**: Extended on-call coverage
+
+#### Documentation Updates
+- [ ] **Deployment Log**: Document deployment details
+- [ ] **Configuration Changes**: Record configuration updates
+- [ ] **Known Issues**: Document any known issues
+- [ ] **Lessons Learned**: Capture lessons learned
+
+#### Performance Analysis
+\`\`\`bash
+# Generate performance report
+curl {{MonitoringURL}}/api/reports/deployment/{{DeploymentID}}
+
+# Compare pre and post deployment metrics
+npm run generate:performance-report -- --deployment={{DeploymentID}}
+\`\`\`
+
+### Checklist and Sign-off
+
+#### Deployment Checklist
+- [ ] Pre-deployment validation completed
+- [ ] Staging deployment successful
+- [ ] Production backup created
+- [ ] Database migrations applied
+- [ ] Application deployment completed
+- [ ] Health checks passed
+- [ ] Monitoring configured
+- [ ] Rollback plan tested
+- [ ] Stakeholders notified
+
+#### Sign-off Requirements
+- **Technical Lead**: {{TechnicalLeadSignoff}}
+- **DevOps Lead**: {{DevOpsLeadSignoff}}
+- **QA Lead**: {{QALeadSignoff}}
+- **Product Owner**: {{ProductOwnerSignoff}}
+
+This comprehensive deployment guide ensures reliable, monitored, and reversible production deployments with proper stakeholder communication and risk management.`,
         category: "sdlc_templates",
         component: "deployment_guide",
         sdlcStage: "deployment",
@@ -11399,7 +13526,950 @@ This software is released under {{LicenseType}}. See LICENSE file for details.
         id: "sdlc_templates-environment_setup-deployment",
         title: "Environment Setup",
         description: "Environment configuration template for different stages",
-        content: "Define environment setup procedures for development, staging, and production environments.",
+        content: `Define environment setup procedures for development, staging, and production environments.
+
+# Environment Setup Template
+## Development Environment Configuration
+
+### Overview
+This guide provides comprehensive instructions for setting up development, testing, and production environments with all necessary tools, dependencies, and configurations.
+
+### Prerequisites
+
+#### System Requirements
+**Development Environment**:
+- **Operating System**: Windows 10/11, macOS 10.15+, or Ubuntu 20.04+
+- **RAM**: Minimum 16GB (32GB recommended)
+- **Storage**: Minimum 50GB free space (SSD recommended)
+- **CPU**: 4+ cores (8+ cores recommended)
+- **Network**: Stable internet connection
+
+**Additional Tools**:
+- **Git**: Version 2.30+ for version control
+- **Docker**: Version 20.10+ for containerization
+- **Node.js**: Version 18+ LTS for JavaScript development
+- **Package Manager**: npm 8+ or yarn 1.22+
+
+### Development Environment Setup
+
+#### Step 1: Install Core Tools
+
+**Install Git**
+\`\`\`bash
+# Windows (using chocolatey)
+choco install git
+
+# macOS (using homebrew)
+brew install git
+
+# Ubuntu
+sudo apt update && sudo apt install git
+
+# Verify installation
+git --version
+\`\`\`
+
+**Install Node.js and npm**
+\`\`\`bash
+# Using Node Version Manager (recommended)
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+nvm install 18
+nvm use 18
+
+# Verify installation
+node --version
+npm --version
+\`\`\`
+
+**Install Docker**
+\`\`\`bash
+# Windows: Download Docker Desktop from docker.com
+# macOS: Download Docker Desktop from docker.com
+
+# Ubuntu
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo usermod -aG docker $USER
+
+# Verify installation
+docker --version
+docker-compose --version
+\`\`\`
+
+#### Step 2: IDE and Development Tools
+
+**Visual Studio Code Setup**
+\`\`\`bash
+# Download and install VS Code
+# Install recommended extensions
+code --install-extension ms-vscode.vscode-typescript-next
+code --install-extension bradlc.vscode-tailwindcss
+code --install-extension ms-vscode.vscode-json
+code --install-extension esbenp.prettier-vscode
+code --install-extension ms-vscode.vscode-eslint
+\`\`\`
+
+**VS Code Configuration**
+\`\`\`json
+// .vscode/settings.json
+{
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true
+  },
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "emmet.includeLanguages": {
+    "typescript": "html"
+  },
+  "files.associations": {
+    "*.css": "tailwindcss"
+  }
+}
+\`\`\`
+
+**VS Code Extensions Configuration**
+\`\`\`json
+// .vscode/extensions.json
+{
+  "recommendations": [
+    "ms-vscode.vscode-typescript-next",
+    "bradlc.vscode-tailwindcss",
+    "ms-vscode.vscode-json",
+    "esbenp.prettier-vscode",
+    "ms-vscode.vscode-eslint",
+    "ms-vscode.vscode-docker",
+    "ms-vscode.vscode-git-graph"
+  ]
+}
+\`\`\`
+
+#### Step 3: Project Setup
+
+**Clone Repository**
+\`\`\`bash
+# Clone the project repository
+git clone {{RepositoryURL}}
+cd {{ProjectName}}
+
+# Configure Git user
+git config user.name "{{YourName}}"
+git config user.email "{{YourEmail}}"
+\`\`\`
+
+**Install Dependencies**
+\`\`\`bash
+# Install project dependencies
+npm install
+
+# or using yarn
+yarn install
+
+# Verify installation
+npm list --depth=0
+\`\`\`
+
+**Environment Configuration**
+\`\`\`bash
+# Copy environment template
+cp .env.example .env.development
+
+# Edit environment variables
+code .env.development
+\`\`\`
+
+**Development Environment Variables**
+\`\`\`env
+# .env.development
+NODE_ENV=development
+PORT=3000
+API_URL=http://localhost:3001
+
+# Database Configuration
+DATABASE_URL=postgresql://{{devuser}}:{{devpassword}}@localhost:5432/{{devdatabase}}
+REDIS_URL=redis://localhost:6379
+
+# Authentication
+JWT_SECRET={{development_jwt_secret}}
+JWT_EXPIRES_IN=24h
+
+# External Services
+API_KEY={{development_api_key}}
+WEBHOOK_URL={{development_webhook_url}}
+
+# Feature Flags
+ENABLE_LOGGING=true
+ENABLE_METRICS=false
+ENABLE_DEBUG=true
+
+# File Upload
+MAX_FILE_SIZE=10485760
+UPLOAD_PATH=./uploads
+
+# Email Configuration
+SMTP_HOST={{dev_smtp_host}}
+SMTP_PORT=587
+SMTP_USER={{dev_smtp_user}}
+SMTP_PASS={{dev_smtp_password}}
+\`\`\`
+
+#### Step 4: Database Setup
+
+**PostgreSQL Installation**
+\`\`\`bash
+# Using Docker (recommended for development)
+docker run --name postgres-dev \\
+  -e POSTGRES_DB={{devdatabase}} \\
+  -e POSTGRES_USER={{devuser}} \\
+  -e POSTGRES_PASSWORD={{devpassword}} \\
+  -p 5432:5432 \\
+  -d postgres:15
+
+# or install locally
+# Windows: Download from postgresql.org
+# macOS: brew install postgresql
+# Ubuntu: sudo apt install postgresql postgresql-contrib
+\`\`\`
+
+**Database Migration**
+\`\`\`bash
+# Run database migrations
+npm run db:migrate
+
+# Seed development data
+npm run db:seed
+
+# Verify database setup
+npm run db:health
+\`\`\`
+
+**Redis Installation**
+\`\`\`bash
+# Using Docker
+docker run --name redis-dev \\
+  -p 6379:6379 \\
+  -d redis:7-alpine
+
+# or install locally
+# macOS: brew install redis
+# Ubuntu: sudo apt install redis-server
+
+# Verify Redis connection
+redis-cli ping
+\`\`\`
+
+### Testing Environment Setup
+
+#### Test Database Configuration
+\`\`\`bash
+# Create test database
+createdb {{testdatabase}}
+
+# Set test environment variables
+cp .env.development .env.test
+\`\`\`
+
+**Test Environment Variables**
+\`\`\`env
+# .env.test
+NODE_ENV=test
+PORT=3001
+API_URL=http://localhost:3001
+
+# Test Database
+DATABASE_URL=postgresql://{{testuser}}:{{testpassword}}@localhost:5432/{{testdatabase}}
+REDIS_URL=redis://localhost:6380
+
+# Test Configuration
+JWT_SECRET={{test_jwt_secret}}
+ENABLE_LOGGING=false
+ENABLE_METRICS=false
+ENABLE_DEBUG=false
+
+# Test Services
+API_KEY={{test_api_key}}
+MOCK_EXTERNAL_SERVICES=true
+\`\`\`
+
+#### Test Infrastructure
+\`\`\`bash
+# Start test Redis instance
+docker run --name redis-test \\
+  -p 6380:6379 \\
+  -d redis:7-alpine
+
+# Run test migrations
+npm run db:migrate:test
+
+# Verify test environment
+npm run test:setup
+npm run test:health
+\`\`\`
+
+### Staging Environment Setup
+
+#### Infrastructure Requirements
+**Server Specifications**:
+- **CPU**: 4 cores minimum
+- **RAM**: 8GB minimum  
+- **Storage**: 100GB SSD
+- **Network**: Static IP with SSL certificate
+- **OS**: Ubuntu 20.04 LTS
+
+#### Server Preparation
+\`\`\`bash
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Install required packages
+sudo apt install -y curl wget unzip software-properties-common
+
+# Install Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo usermod -aG docker $USER
+
+# Install Docker Compose
+sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+
+# Install Node.js
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# Verify installations
+docker --version
+docker-compose --version
+node --version
+npm --version
+\`\`\`
+
+#### Application Deployment
+\`\`\`bash
+# Clone repository
+git clone {{RepositoryURL}} /opt/{{ProjectName}}
+cd /opt/{{ProjectName}}
+
+# Configure environment
+cp .env.example .env.staging
+sudo nano .env.staging
+\`\`\`
+
+**Staging Environment Variables**
+\`\`\`env
+# .env.staging
+NODE_ENV=staging
+PORT=8080
+API_URL=https://{{staging_domain}}
+
+# Database
+DATABASE_URL=postgresql://{{staging_db_user}}:{{staging_db_password}}@{{staging_db_host}}:5432/{{staging_db_name}}
+REDIS_URL=redis://{{staging_redis_host}}:6379
+
+# Security
+JWT_SECRET={{staging_jwt_secret}}
+JWT_EXPIRES_IN=2h
+
+# SSL Configuration
+SSL_CERT_PATH=/etc/ssl/certs/{{staging_domain}}.crt
+SSL_KEY_PATH=/etc/ssl/private/{{staging_domain}}.key
+
+# Monitoring
+ENABLE_LOGGING=true
+ENABLE_METRICS=true
+LOG_LEVEL=info
+
+# External Services
+API_KEY={{staging_api_key}}
+WEBHOOK_URL={{staging_webhook_url}}
+
+# Performance
+MAX_CONNECTIONS=100
+CONNECTION_TIMEOUT=30000
+\`\`\`
+
+#### Database and Services Setup
+\`\`\`bash
+# Setup PostgreSQL
+docker run --name postgres-staging \\
+  -e POSTGRES_DB={{staging_db_name}} \\
+  -e POSTGRES_USER={{staging_db_user}} \\
+  -e POSTGRES_PASSWORD={{staging_db_password}} \\
+  -p 5432:5432 \\
+  -v postgres_staging_data:/var/lib/postgresql/data \\
+  -d postgres:15
+
+# Setup Redis
+docker run --name redis-staging \\
+  -p 6379:6379 \\
+  -v redis_staging_data:/data \\
+  -d redis:7-alpine redis-server --appendonly yes
+
+# Run migrations
+npm run db:migrate:staging
+npm run db:seed:staging
+\`\`\`
+
+### Production Environment Setup
+
+#### Infrastructure Requirements
+**Server Specifications**:
+- **CPU**: 8+ cores
+- **RAM**: 32GB minimum
+- **Storage**: 500GB+ SSD with backup
+- **Network**: Load balancer with SSL termination
+- **OS**: Ubuntu 20.04 LTS (hardened)
+
+#### Security Hardening
+\`\`\`bash
+# Update system and install security updates
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y unattended-upgrades
+
+# Configure firewall
+sudo ufw enable
+sudo ufw allow 22/tcp  # SSH
+sudo ufw allow 80/tcp  # HTTP
+sudo ufw allow 443/tcp # HTTPS
+
+# Configure SSH security
+sudo nano /etc/ssh/sshd_config
+# Set: PermitRootLogin no
+# Set: PasswordAuthentication no
+# Set: PubkeyAuthentication yes
+
+sudo systemctl restart sshd
+
+# Install fail2ban
+sudo apt install -y fail2ban
+sudo systemctl enable fail2ban
+sudo systemctl start fail2ban
+\`\`\`
+
+#### Production Application Setup
+\`\`\`bash
+# Create application user
+sudo useradd -m -s /bin/bash {{app_user}}
+sudo usermod -aG docker {{app_user}}
+
+# Setup application directory
+sudo mkdir -p /opt/{{ProjectName}}
+sudo chown {{app_user}}:{{app_user}} /opt/{{ProjectName}}
+
+# Switch to application user
+sudo su - {{app_user}}
+
+# Clone and setup application
+git clone {{RepositoryURL}} /opt/{{ProjectName}}
+cd /opt/{{ProjectName}}
+
+# Install dependencies
+npm ci --only=production
+\`\`\`
+
+**Production Environment Variables**
+\`\`\`env
+# .env.production
+NODE_ENV=production
+PORT=8080
+API_URL=https://{{production_domain}}
+
+# Database (managed service recommended)
+DATABASE_URL=postgresql://{{prod_db_user}}:{{prod_db_password}}@{{prod_db_host}}:5432/{{prod_db_name}}?ssl=true
+DATABASE_POOL_MIN=5
+DATABASE_POOL_MAX=20
+
+# Redis (managed service recommended)
+REDIS_URL=redis://{{prod_redis_host}}:6379
+REDIS_PASSWORD={{prod_redis_password}}
+
+# Security
+JWT_SECRET={{production_jwt_secret}}
+JWT_EXPIRES_IN=1h
+SESSION_SECRET={{production_session_secret}}
+
+# SSL and Security Headers
+FORCE_HTTPS=true
+HSTS_MAX_AGE=31536000
+CSP_POLICY=default-src 'self'
+
+# Logging and Monitoring
+LOG_LEVEL=warn
+ENABLE_METRICS=true
+METRICS_ENDPOINT={{metrics_endpoint}}
+ERROR_REPORTING_DSN={{error_reporting_dsn}}
+
+# External Services
+API_KEY={{production_api_key}}
+WEBHOOK_URL={{production_webhook_url}}
+WEBHOOK_SECRET={{production_webhook_secret}}
+
+# Performance and Scaling
+NODE_OPTIONS=--max-old-space-size=4096
+CLUSTER_MODE=true
+CLUSTER_WORKERS=4
+RATE_LIMIT_MAX=1000
+RATE_LIMIT_WINDOW=900000
+
+# File Upload and Storage
+MAX_FILE_SIZE=52428800
+STORAGE_TYPE=s3
+S3_BUCKET={{production_s3_bucket}}
+S3_REGION={{production_s3_region}}
+AWS_ACCESS_KEY_ID={{production_aws_access_key}}
+AWS_SECRET_ACCESS_KEY={{production_aws_secret_key}}
+
+# Email Service
+EMAIL_PROVIDER=sendgrid
+SENDGRID_API_KEY={{production_sendgrid_key}}
+FROM_EMAIL={{production_from_email}}
+\`\`\`
+
+#### Production Database Setup
+\`\`\`bash
+# Use managed database service (recommended)
+# AWS RDS, Google Cloud SQL, or Azure Database
+
+# Connection testing
+psql "{{DATABASE_URL}}" -c "SELECT version();"
+
+# Run production migrations
+npm run db:migrate:production
+\`\`\`
+
+#### Load Balancer Configuration
+\`\`\`nginx
+# /etc/nginx/sites-available/{{ProjectName}}
+upstream {{ProjectName}}_backend {
+    server 127.0.0.1:8080;
+    server 127.0.0.1:8081;
+    server 127.0.0.1:8082;
+    server 127.0.0.1:8083;
+}
+
+server {
+    listen 80;
+    server_name {{production_domain}};
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name {{production_domain}};
+
+    ssl_certificate /etc/ssl/certs/{{production_domain}}.crt;
+    ssl_certificate_key /etc/ssl/private/{{production_domain}}.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256;
+
+    # Security headers
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Frame-Options DENY always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-XSS-Protection "1; mode=block" always;
+
+    # Gzip compression
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml;
+
+    location / {
+        proxy_pass http://{{ProjectName}}_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        proxy_connect_timeout 30s;
+        proxy_send_timeout 30s;
+        proxy_read_timeout 30s;
+    }
+
+    location /health {
+        proxy_pass http://{{ProjectName}}_backend/health;
+        access_log off;
+    }
+}
+\`\`\`
+
+### Docker Configuration
+
+#### Development Docker Compose
+\`\`\`yaml
+# docker-compose.dev.yml
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: {{devdatabase}}
+      POSTGRES_USER: {{devuser}}
+      POSTGRES_PASSWORD: {{devpassword}}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+
+volumes:
+  postgres_dev_data:
+  redis_dev_data:
+\`\`\`
+
+#### Production Docker Compose
+\`\`\`yaml
+# docker-compose.prod.yml
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=production
+    env_file:
+      - .env.production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/ssl:ro
+    depends_on:
+      - app
+    restart: unless-stopped
+\`\`\`
+
+### Environment Validation
+
+#### Development Environment Validation
+\`\`\`bash
+# Health check script
+#!/bin/bash
+echo "Validating development environment..."
+
+# Check Node.js
+if command -v node &> /dev/null; then
+    echo "✓ Node.js $(node --version)"
+else
+    echo "✗ Node.js not installed"
+    exit 1
+fi
+
+# Check npm
+if command -v npm &> /dev/null; then
+    echo "✓ npm $(npm --version)"
+else
+    echo "✗ npm not available"
+    exit 1
+fi
+
+# Check Docker
+if command -v docker &> /dev/null; then
+    echo "✓ Docker $(docker --version | cut -d' ' -f3 | cut -d',' -f1)"
+else
+    echo "✗ Docker not installed"
+    exit 1
+fi
+
+# Check Git
+if command -v git &> /dev/null; then
+    echo "✓ Git $(git --version | cut -d' ' -f3)"
+else
+    echo "✗ Git not installed"
+    exit 1
+fi
+
+# Check project dependencies
+if [ -f "package.json" ]; then
+    if [ -d "node_modules" ]; then
+        echo "✓ Dependencies installed"
+    else
+        echo "✗ Dependencies not installed. Run 'npm install'"
+        exit 1
+    fi
+else
+    echo "✗ package.json not found"
+    exit 1
+fi
+
+# Check environment file
+if [ -f ".env.development" ]; then
+    echo "✓ Development environment file exists"
+else
+    echo "✗ .env.development file missing"
+    exit 1
+fi
+
+echo "✓ Development environment validation complete"
+\`\`\`
+
+#### Production Environment Validation
+\`\`\`bash
+# Production validation script
+#!/bin/bash
+echo "Validating production environment..."
+
+# Check system resources
+MEMORY=$(free -g | awk 'NR==2{printf "%.1f", $2}')
+DISK=$(df -h / | awk 'NR==2{printf "%d", $4}')
+CPU=$(nproc)
+
+echo "System Resources:"
+echo "  Memory: \${MEMORY}GB"
+echo "  CPU Cores: \${CPU}"
+echo "  Disk Space: \${DISK}GB available"
+
+if (( $(echo "$MEMORY < 8.0" | bc -l) )); then
+    echo "⚠ Warning: Memory below recommended 8GB"
+fi
+
+if (( CPU < 4 )); then
+    echo "⚠ Warning: CPU cores below recommended 4"
+fi
+
+# Check services
+services=("docker" "nginx" "postgresql")
+for service in "\${services[@]}"; do
+    if systemctl is-active --quiet $service; then
+        echo "✓ $service is running"
+    else
+        echo "✗ $service is not running"
+    fi
+done
+
+# Check SSL certificate
+if [ -f "/etc/ssl/certs/{{production_domain}}.crt" ]; then
+    EXPIRY=$(openssl x509 -enddate -noout -in /etc/ssl/certs/{{production_domain}}.crt | cut -d= -f2)
+    echo "✓ SSL Certificate expires: $EXPIRY"
+else
+    echo "✗ SSL Certificate not found"
+fi
+
+# Check application health
+HEALTH_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/health)
+if [ "$HEALTH_RESPONSE" -eq 200 ]; then
+    echo "✓ Application health check passed"
+else
+    echo "✗ Application health check failed (HTTP $HEALTH_RESPONSE)"
+fi
+
+echo "✓ Production environment validation complete"
+\`\`\`
+
+### Environment Monitoring
+
+#### System Monitoring Setup
+\`\`\`bash
+# Install monitoring tools
+sudo apt install -y htop iotop nethogs
+
+# Setup log monitoring
+sudo apt install -y logwatch
+sudo nano /etc/logwatch/logwatch.conf
+\`\`\`
+
+#### Application Monitoring
+\`\`\`javascript
+// monitoring.js
+const express = require('express');
+const prometheus = require('prom-client');
+
+// Create metrics
+const httpRequestDuration = new prometheus.Histogram({
+  name: 'http_request_duration_seconds',
+  help: 'Duration of HTTP requests in seconds',
+  labelNames: ['method', 'route', 'status']
+});
+
+const httpRequestsTotal = new prometheus.Counter({
+  name: 'http_requests_total',
+  help: 'Total number of HTTP requests',
+  labelNames: ['method', 'route', 'status']
+});
+
+// Middleware to collect metrics
+const metricsMiddleware = (req, res, next) => {
+  const start = Date.now();
+  
+  res.on('finish', () => {
+    const duration = (Date.now() - start) / 1000;
+    const route = req.route ? req.route.path : req.path;
+    
+    httpRequestDuration
+      .labels(req.method, route, res.statusCode)
+      .observe(duration);
+    
+    httpRequestsTotal
+      .labels(req.method, route, res.statusCode)
+      .inc();
+  });
+  
+  next();
+};
+
+module.exports = { metricsMiddleware, register: prometheus.register };
+\`\`\`
+
+### Troubleshooting Common Issues
+
+#### Development Environment Issues
+
+**Node.js Version Conflicts**
+\`\`\`bash
+# Use Node Version Manager
+nvm list
+nvm install 18
+nvm use 18
+nvm alias default 18
+\`\`\`
+
+**Port Already in Use**
+\`\`\`bash
+# Find process using port
+lsof -ti:3000
+kill -9 $(lsof -ti:3000)
+
+# Or use different port
+PORT=3001 npm start
+\`\`\`
+
+**Database Connection Issues**
+\`\`\`bash
+# Check PostgreSQL status
+docker ps | grep postgres
+docker logs postgres-dev
+
+# Reset database
+docker rm -f postgres-dev
+docker run --name postgres-dev ...
+\`\`\`
+
+#### Production Environment Issues
+
+**SSL Certificate Problems**
+\`\`\`bash
+# Check certificate validity
+openssl x509 -in /etc/ssl/certs/{{production_domain}}.crt -text -noout
+
+# Renew Let's Encrypt certificate
+sudo certbot renew --nginx
+\`\`\`
+
+**High Memory Usage**
+\`\`\`bash
+# Check memory usage
+free -h
+ps aux --sort=-%mem | head -10
+
+# Restart application
+sudo systemctl restart {{ProjectName}}
+\`\`\`
+
+**Database Performance Issues**
+\`\`\`sql
+-- Check slow queries
+SELECT query, mean_time, calls, total_time
+FROM pg_stat_statements
+ORDER BY mean_time DESC
+LIMIT 10;
+
+-- Check database connections
+SELECT count(*) FROM pg_stat_activity;
+\`\`\`
+
+### Environment Maintenance
+
+#### Regular Maintenance Tasks
+\`\`\`bash
+# Weekly maintenance script
+#!/bin/bash
+
+# Update system packages
+sudo apt update && sudo apt upgrade -y
+
+# Clean Docker images
+docker image prune -f
+docker volume prune -f
+
+# Check disk space
+df -h
+du -sh /var/log/*
+
+# Rotate logs
+sudo logrotate -f /etc/logrotate.conf
+
+# Check SSL certificate expiry
+sudo certbot certificates
+
+# Backup database
+pg_dump $DATABASE_URL > backup_$(date +%Y%m%d).sql
+
+echo "Maintenance complete"
+\`\`\`
+
+#### Security Updates
+\`\`\`bash
+# Security update script
+#!/bin/bash
+
+# Update security packages
+sudo apt update
+sudo apt list --upgradable | grep -i security
+sudo unattended-upgrade -v
+
+# Update Docker images
+docker-compose pull
+docker-compose up -d
+
+# Check for vulnerable packages
+npm audit
+npm audit fix
+
+echo "Security updates complete"
+\`\`\`
+
+This comprehensive environment setup guide ensures consistent, secure, and properly configured environments across all deployment stages.`,
         category: "sdlc_templates",
         component: "environment_setup",
         sdlcStage: "deployment",
@@ -11411,7 +14481,594 @@ This software is released under {{LicenseType}}. See LICENSE file for details.
         id: "sdlc_templates-incident_response-maintenance",
         title: "Incident Response Plan",
         description: "Incident response and escalation template",
-        content: "Establish incident response procedures with escalation paths, communication protocols, and resolution tracking.",
+        content: `Establish incident response procedures with escalation paths, communication protocols, and resolution tracking.
+
+# Incident Response Plan Template
+## Emergency Response and Crisis Management
+
+### Overview
+This document outlines the comprehensive incident response plan for handling system outages, security breaches, and critical operational issues with defined escalation paths, communication protocols, and recovery procedures.
+
+### Incident Classification
+
+#### Severity Levels
+
+##### Critical (P1) - Business Critical Impact
+**Characteristics**:
+- Complete system outage affecting all users
+- Security breach with data exposure
+- Payment processing failure
+- Data corruption or loss
+- Revenue-impacting outages
+
+**Response Time**: Immediate (≤ 15 minutes)
+**Escalation**: C-level executives, all on-call teams
+**Communication**: All stakeholders, public status page
+
+##### High (P2) - Significant Impact
+**Characteristics**:
+- Partial system outage affecting major features
+- Performance degradation affecting >50% users
+- Authentication system issues
+- Third-party integration failures
+- Non-critical data inconsistencies
+
+**Response Time**: Within 30 minutes
+**Escalation**: Engineering management, product leads
+**Communication**: Internal teams, affected customers
+
+##### Medium (P3) - Moderate Impact
+**Characteristics**:
+- Minor feature issues affecting <25% users
+- Non-critical service degradation
+- Cosmetic UI problems with workarounds
+- Internal tool failures
+
+**Response Time**: Within 2 hours
+**Escalation**: Team leads, assigned engineers
+**Communication**: Development teams, minimal external
+
+##### Low (P4) - Minimal Impact
+**Characteristics**:
+- Documentation errors
+- Minor UI inconsistencies
+- Internal process issues
+- Non-user-facing problems
+
+**Response Time**: Next business day
+**Escalation**: Individual contributors
+**Communication**: Team level only
+
+### Incident Response Team
+
+#### Core Team Structure
+
+##### Incident Commander (IC)
+**Responsibilities**:
+- Overall incident coordination and decision making
+- Communication with stakeholders and executives
+- Resource allocation and team coordination
+- Post-incident review leadership
+
+**Skills Required**:
+- Strong technical background
+- Excellent communication skills
+- Decision-making under pressure
+- Leadership experience
+
+**Contact Information**:
+- Primary IC: {{PrimaryICName}} - {{PrimaryICPhone}} - {{PrimaryICEmail}}
+- Secondary IC: {{SecondaryICName}} - {{SecondaryICPhone}} - {{SecondaryICEmail}}
+
+##### Technical Lead
+**Responsibilities**:
+- Technical investigation and diagnosis
+- Solution implementation and testing
+- Technical communication to IC
+- Recovery procedure execution
+
+**Skills Required**:
+- Deep system knowledge
+- Debugging and troubleshooting expertise
+- Understanding of infrastructure and architecture
+
+**Contact Information**:
+- Primary: {{TechLeadName}} - {{TechLeadPhone}} - {{TechLeadEmail}}
+- Secondary: {{BackupTechLeadName}} - {{BackupTechLeadPhone}} - {{BackupTechLeadEmail}}
+
+##### Communications Lead
+**Responsibilities**:
+- Customer and stakeholder communication
+- Status page updates
+- Media relations if required
+- Internal team notifications
+
+**Contact Information**:
+- Primary: {{CommsLeadName}} - {{CommsLeadPhone}} - {{CommsLeadEmail}}
+- Secondary: {{BackupCommsLeadName}} - {{BackupCommsLeadPhone}} - {{BackupCommsLeadEmail}}
+
+##### Subject Matter Experts (SMEs)
+**Database SME**: {{DatabaseSMEName}} - {{DatabaseSMEPhone}} - {{DatabaseSMEEmail}}
+**Security SME**: {{SecuritySMEName}} - {{SecuritySMEPhone}} - {{SecuritySMEEmail}}
+**Infrastructure SME**: {{InfraSMEName}} - {{InfraSMEPhone}} - {{InfraSMEEmail}}
+**Application SME**: {{AppSMEName}} - {{AppSMEPhone}} - {{AppSMEEmail}}
+
+#### Extended Support Team
+**Engineering Manager**: {{EngManagerName}} - {{EngManagerPhone}} - {{EngManagerEmail}}
+**Product Manager**: {{ProductManagerName}} - {{ProductManagerPhone}} - {{ProductManagerEmail}}
+**Customer Success**: {{CustomerSuccessName}} - {{CustomerSuccessPhone}} - {{CustomerSuccessEmail}}
+**Legal Counsel**: {{LegalCounselName}} - {{LegalCounselPhone}} - {{LegalCounselEmail}}
+
+### Detection and Alerting
+
+#### Automated Monitoring
+**System Alerts**:
+- Application performance monitoring (APM)
+- Infrastructure monitoring (CPU, memory, disk)
+- Database performance and availability
+- Network connectivity and latency
+- Security event detection
+
+**Alert Configuration**:
+\`\`\`yaml
+# Example Prometheus alerting rules
+groups:
+  - name: critical-alerts
+    rules:
+      - alert: ServiceDown
+        expr: up{job="api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API service is down"
+          runbook: "https://runbook.example.com/service-down"
+      
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate detected"
+          runbook: "https://runbook.example.com/high-error-rate"
+\`\`\`
+
+**Escalation Matrix**:
+| Alert Severity | Response Time | Notification Method | Escalation Path |
+|---------------|---------------|-------------------|-----------------|
+| Critical | 5 minutes | Phone + SMS + Email | On-call → Manager → Director → VP |
+| High | 15 minutes | SMS + Email | On-call → Manager → Director |
+| Medium | 30 minutes | Email + Slack | On-call → Team Lead |
+| Low | 2 hours | Email | Assigned Engineer |
+
+#### Manual Detection
+**Customer Reports**:
+- Customer support ticket escalation
+- Social media monitoring
+- Direct customer communication
+- Partner organization reports
+
+**Internal Discovery**:
+- Engineering team identification
+- QA testing discovery
+- Business team reporting
+- Routine maintenance discovery
+
+### Response Procedures
+
+#### Initial Response (0-15 minutes)
+
+**Step 1: Incident Detection and Verification**
+\`\`\`bash
+# Verify incident scope and impact
+curl -I {{ProductionURL}}/health
+kubectl get pods --all-namespaces | grep -v Running
+tail -f /var/log/application.log | grep ERROR
+\`\`\`
+
+**Step 2: Initial Assessment**
+- Confirm incident severity and classification
+- Determine potential user impact and affected systems
+- Assess immediate safety and security implications
+- Document initial findings in incident tracking system
+
+**Step 3: Team Assembly**
+- Page Incident Commander based on severity level
+- Notify core response team members
+- Establish incident war room (physical or virtual)
+- Create incident tracking ticket with initial details
+
+**Step 4: Communication Initiation**
+- Update internal status dashboard
+- Notify customer success and support teams
+- Prepare initial customer communication
+- Alert executives for P1/P2 incidents
+
+#### Investigation and Diagnosis (15-60 minutes)
+
+**Technical Investigation Process**:
+\`\`\`bash
+# System health check
+kubectl top nodes
+kubectl top pods --all-namespaces
+df -h
+free -m
+
+# Application logs analysis
+tail -n 1000 /var/log/application.log | grep -E "(ERROR|FATAL|CRITICAL)"
+journalctl -u {{service-name}} --since "1 hour ago"
+
+# Database health check
+psql -c "SELECT version();"
+psql -c "SELECT count(*) FROM pg_stat_activity;"
+psql -c "SELECT * FROM pg_stat_replication;"
+
+# Network connectivity
+ping {{external-service-endpoint}}
+nslookup {{domain-name}}
+telnet {{service-host}} {{service-port}}
+\`\`\`
+
+**Data Collection**:
+- System metrics and performance data
+- Application logs and error messages
+- User reports and affected account information
+- Network traffic and connectivity data
+- Recent deployment and configuration changes
+
+**Root Cause Analysis**:
+- Timeline construction of events leading to incident
+- Correlation of metrics, logs, and user reports
+- Identification of potential contributing factors
+- Hypothesis formation and testing
+
+#### Containment and Mitigation (30-120 minutes)
+
+**Immediate Actions**:
+\`\`\`bash
+# Traffic diversion (if applicable)
+kubectl patch service {{service-name}} -p '{"spec":{"selector":{"version":"stable"}}}'
+
+# Scale resources if performance-related
+kubectl scale deployment {{deployment-name}} --replicas=10
+
+# Database failover (if required)
+pg_ctl promote -D {{data-directory}}
+
+# Cache flush (if required)
+redis-cli FLUSHALL
+\`\`\`
+
+**Service Restoration**:
+- Implementation of immediate fixes or workarounds
+- Rollback to previous stable version if necessary
+- Resource scaling or reallocation
+- Third-party service switching or backup activation
+
+**Impact Limitation**:
+- User access restriction if security-related
+- Feature flag toggles to disable affected functionality
+- Load balancer configuration to route around issues
+- CDN or proxy configuration changes
+
+### Communication Protocols
+
+#### Internal Communication
+
+**Incident War Room**:
+- Physical location: {{WarRoomLocation}}
+- Virtual meeting: {{WarRoomURL}}
+- Communication tools: Slack channel #incident-response
+- Conference bridge: {{ConferenceBridgeNumber}}
+
+**Status Updates**:
+- Frequency: Every 15 minutes for P1, 30 minutes for P2
+- Recipients: Response team, management, stakeholders
+- Format: Structured update template with current status, next steps, ETA
+
+**Update Template**:
+\`\`\`
+INCIDENT UPDATE #{{UpdateNumber}} - {{Timestamp}}
+
+STATUS: {{CurrentStatus}}
+IMPACT: {{UserImpact}}
+AFFECTED SYSTEMS: {{AffectedSystems}}
+NEXT STEPS: {{NextSteps}}
+ETA TO RESOLUTION: {{ETA}}
+RESPONDERS: {{ActiveResponders}}
+
+INVESTIGATION SUMMARY:
+{{InvestigationSummary}}
+
+ACTIONS TAKEN:
+- {{Action1}}
+- {{Action2}}
+- {{Action3}}
+\`\`\`
+
+#### External Communication
+
+**Customer Communication Strategy**:
+- Transparency and honesty about impact
+- Regular updates on progress
+- Clear explanation of workarounds
+- Realistic timelines and expectations
+
+**Status Page Updates**:
+\`\`\`markdown
+## {{ServiceName}} Experiencing {{IssueType}}
+
+**Posted**: {{Timestamp}}
+**Status**: {{Status}}
+**Affected Components**: {{Components}}
+
+We are currently experiencing {{IssueDescription}}. Our team is actively investigating and working to resolve this issue.
+
+**Impact**: {{UserImpact}}
+**Workaround**: {{AvailableWorkaround}}
+**Next Update**: {{NextUpdateTime}}
+
+We apologize for any inconvenience and will provide updates as more information becomes available.
+\`\`\`
+
+**Social Media Communication**:
+- Platform: Twitter (@{{CompanyHandle}})
+- Tone: Professional, empathetic, informative
+- Frequency: Major updates only
+- Coordination: Through communications lead
+
+#### Stakeholder Notification
+
+**Executive Briefing Format**:
+\`\`\`
+EXECUTIVE INCIDENT BRIEF - {{IncidentID}}
+
+SITUATION: {{OneSentenceSummary}}
+IMPACT: {{BusinessImpact}}
+  - Users Affected: {{UserCount}}
+  - Revenue Impact: {{RevenueImpact}}
+  - Duration: {{IncidentDuration}}
+
+RESPONSE: {{ResponseActions}}
+RESOLUTION ETA: {{ResolutionETA}}
+COMMUNICATION STATUS: {{CommunicationStatus}}
+
+NEXT EXECUTIVE UPDATE: {{NextUpdate}}
+\`\`\`
+
+**Board/Investor Notification**:
+- Trigger: P1 incidents lasting >2 hours or with significant business impact
+- Method: Direct email and phone call from CEO/CTO
+- Content: Business impact, customer communication status, resolution plan
+
+### Recovery and Resolution
+
+#### Service Restoration Process
+
+**Validation Steps**:
+\`\`\`bash
+# System health verification
+curl -f {{ProductionURL}}/health
+kubectl get pods --all-namespaces | grep -v Running
+systemctl status {{critical-services}}
+
+# Performance validation
+ab -n 1000 -c 10 {{ProductionURL}}/api/test
+wrk -t12 -c400 -d30s {{ProductionURL}}
+
+# Functional testing
+npm run test:smoke:production
+npm run test:integration:production
+curl -f {{ProductionURL}}/api/critical-endpoint
+\`\`\`
+
+**Recovery Checklist**:
+- [ ] Primary systems fully operational
+- [ ] Performance metrics within normal ranges
+- [ ] Database integrity verified
+- [ ] Security systems functioning correctly
+- [ ] Monitoring and alerting restored
+- [ ] Backup systems synchronized
+- [ ] External integrations validated
+- [ ] User authentication working
+- [ ] Critical business functions tested
+
+**Gradual Restoration**:
+1. **Internal Testing**: Verify fixes in isolated environment
+2. **Canary Release**: Route 5% of traffic to test stability
+3. **Gradual Rollout**: Increase traffic percentage incrementally
+4. **Full Restoration**: Complete service restoration after validation
+5. **Monitoring**: Extended monitoring period post-restoration
+
+#### Resolution Communication
+
+**Internal Resolution Notification**:
+\`\`\`
+INCIDENT RESOLVED - {{IncidentID}}
+
+RESOLUTION TIME: {{Timestamp}}
+TOTAL DURATION: {{TotalDuration}}
+ROOT CAUSE: {{RootCause}}
+FIX APPLIED: {{FixDescription}}
+
+IMPACT SUMMARY:
+- Users Affected: {{TotalUsersAffected}}
+- Peak Error Rate: {{PeakErrorRate}}
+- Service Downtime: {{DowntimeDuration}}
+
+POST-INCIDENT ACTIONS:
+- Post-mortem scheduled: {{PostMortemDate}}
+- Process improvements: {{ProcessImprovements}}
+- System enhancements: {{SystemEnhancements}}
+\`\`\`
+
+**Customer Resolution Update**:
+\`\`\`markdown
+## {{ServiceName}} - Issue Resolved
+
+**Updated**: {{Timestamp}}
+**Status**: Resolved
+**Resolution Time**: {{ResolutionTime}}
+
+The issue affecting {{AffectedService}} has been fully resolved. All systems are now operating normally.
+
+**What happened**: {{BriefExplanation}}
+**How we fixed it**: {{FixDescription}}
+**What we're doing to prevent this**: {{PreventionMeasures}}
+
+We sincerely apologize for any inconvenience this may have caused. If you continue to experience any issues, please contact our support team.
+
+Thank you for your patience.
+\`\`\`
+
+### Post-Incident Activities
+
+#### Post-Incident Review (PIR)
+
+**PIR Schedule**:
+- P1 incidents: Within 24 hours
+- P2 incidents: Within 48 hours  
+- P3 incidents: Within 1 week
+- P4 incidents: Monthly review batch
+
+**PIR Participants**:
+- Incident Commander
+- Technical Lead
+- All responding engineers
+- Engineering Manager
+- Product Manager
+- Customer Success representative
+
+**PIR Agenda Template**:
+1. **Incident Timeline Review** (20 minutes)
+   - Detection to resolution timeline
+   - Key decision points and actions
+   - Communication effectiveness review
+
+2. **Root Cause Analysis** (30 minutes)
+   - Technical root cause identification
+   - Contributing factors analysis
+   - Process and human factors review
+
+3. **Response Effectiveness** (20 minutes)
+   - Team coordination evaluation
+   - Tool and process adequacy
+   - Communication quality assessment
+
+4. **Action Items Definition** (20 minutes)
+   - Technical improvements needed
+   - Process enhancements required
+   - Training and documentation gaps
+
+5. **Prevention Strategy** (10 minutes)
+   - Long-term prevention measures
+   - Investment priorities
+   - Timeline for improvements
+
+#### PIR Report Template
+
+\`\`\`markdown
+# Post-Incident Review: {{IncidentTitle}}
+
+## Incident Summary
+- **Incident ID**: {{IncidentID}}
+- **Date**: {{IncidentDate}}
+- **Duration**: {{TotalDuration}}
+- **Severity**: {{IncidentSeverity}}
+- **Customer Impact**: {{CustomerImpact}}
+
+## Timeline of Events
+| Time | Event | Actions Taken |
+|------|-------|---------------|
+| {{Time1}} | {{Event1}} | {{Actions1}} |
+| {{Time2}} | {{Event2}} | {{Actions2}} |
+| {{Time3}} | {{Event3}} | {{Actions3}} |
+
+## Root Cause Analysis
+
+### Primary Root Cause
+{{PrimaryRootCause}}
+
+### Contributing Factors
+1. {{ContributingFactor1}}
+2. {{ContributingFactor2}}
+3. {{ContributingFactor3}}
+
+### Why Analysis
+**Why did this happen?** {{Why1}}
+**Why was that the case?** {{Why2}}
+**Why was that allowed?** {{Why3}}
+**Why wasn't this prevented?** {{Why4}}
+**Why didn't our safeguards work?** {{Why5}}
+
+## What Went Well
+- {{PositiveAspect1}}
+- {{PositiveAspect2}}
+- {{PositiveAspect3}}
+
+## What Went Poorly
+- {{IssueArea1}}
+- {{IssueArea2}}
+- {{IssueArea3}}
+
+## Action Items
+
+### Immediate Actions (< 1 week)
+- [ ] {{ImmediateAction1}} - Owner: {{Owner1}} - Due: {{DueDate1}}
+- [ ] {{ImmediateAction2}} - Owner: {{Owner2}} - Due: {{DueDate2}}
+
+### Short-term Actions (1-4 weeks)
+- [ ] {{ShortTermAction1}} - Owner: {{Owner1}} - Due: {{DueDate1}}
+- [ ] {{ShortTermAction2}} - Owner: {{Owner2}} - Due: {{DueDate2}}
+
+### Long-term Actions (1-3 months)
+- [ ] {{LongTermAction1}} - Owner: {{Owner1}} - Due: {{DueDate1}}
+- [ ] {{LongTermAction2}} - Owner: {{Owner2}} - Due: {{DueDate2}}
+
+## Prevention Measures
+{{PreventionStrategy}}
+
+## Lessons Learned
+{{LessonsLearned}}
+\`\`\`
+
+### Continuous Improvement
+
+#### Metrics and KPIs
+**Response Metrics**:
+- Mean Time to Detection (MTTD)
+- Mean Time to Response (MTTR)
+- Mean Time to Resolution (MTTR)
+- False positive alert rate
+- Escalation accuracy rate
+
+**Quality Metrics**:
+- Post-incident action completion rate
+- Incident recurrence rate
+- Customer satisfaction with incident handling
+- Communication effectiveness score
+
+#### Process Enhancement
+**Regular Reviews**:
+- Monthly incident metrics review
+- Quarterly response plan updates
+- Semi-annual training assessments
+- Annual comprehensive plan review
+
+**Training Program**:
+- New team member incident response training
+- Regular fire drill exercises
+- Cross-team knowledge sharing sessions
+- External incident response training
+
+**Documentation Maintenance**:
+- Runbook updates based on incident learnings
+- Contact information verification
+- Tool and system access validation
+- Communication template refinement
+
+This comprehensive incident response plan ensures rapid, coordinated, and effective response to system incidents while minimizing impact and facilitating continuous improvement.`,
         category: "sdlc_templates",
         component: "incident_response",
         sdlcStage: "maintenance",
@@ -11423,7 +15080,506 @@ This software is released under {{LicenseType}}. See LICENSE file for details.
         id: "sdlc_templates-maintenance_schedule-maintenance",
         title: "Maintenance Schedule",
         description: "Scheduled maintenance and update template",
-        content: "Plan scheduled maintenance windows with impact assessment, rollback procedures, and communication plans.",
+        content: `Plan scheduled maintenance windows with impact assessment, rollback procedures, and communication plans.
+
+# Maintenance Schedule Template
+## Planned Maintenance and System Updates
+
+### Overview
+This template provides a structured approach to planning, executing, and communicating scheduled maintenance activities to ensure minimal disruption to users and business operations.
+
+### Maintenance Classification
+
+#### Maintenance Types
+
+##### Critical Maintenance
+**Characteristics**:
+- Security patches requiring immediate implementation
+- System vulnerabilities affecting data integrity
+- Infrastructure failures requiring emergency fixes
+- Regulatory compliance updates with deadlines
+
+**Scheduling**: Emergency window (immediate implementation)
+**Duration**: Variable based on urgency
+**Communication**: All stakeholders with 2-hour notice minimum
+
+##### Major Maintenance
+**Characteristics**:
+- Database schema changes
+- Infrastructure upgrades
+- Major software version updates
+- Performance optimization requiring downtime
+
+**Scheduling**: Planned weekend or off-peak hours
+**Duration**: 2-8 hours
+**Communication**: All stakeholders with 48-72 hour notice
+
+##### Minor Maintenance
+**Characteristics**:
+- Configuration updates
+- Minor bug fixes
+- Routine system updates
+- Monitoring system improvements
+
+**Scheduling**: Low-traffic periods
+**Duration**: 30 minutes - 2 hours
+**Communication**: Internal teams with 24-48 hour notice
+
+##### Routine Maintenance
+**Characteristics**:
+- Log rotation and cleanup
+- Backup verification
+- Certificate renewals
+- Health check updates
+
+**Scheduling**: Automated or low-impact periods
+**Duration**: Under 30 minutes
+**Communication**: Internal notification only
+
+### Maintenance Planning Framework
+
+#### Pre-Planning Phase (1-4 weeks before)
+
+**Requirements Assessment**:
+- **Maintenance Scope**: {{MaintenanceScope}}
+- **Business Impact**: {{ExpectedImpact}}
+- **Technical Requirements**: {{TechnicalRequirements}}
+- **Resource Needs**: {{RequiredResources}}
+- **Risk Assessment**: {{IdentifiedRisks}}
+
+**Stakeholder Identification**:
+- **Technical Team**: {{TechnicalTeamMembers}}
+- **Business Stakeholders**: {{BusinessStakeholders}}
+- **Customer-Facing Teams**: {{CustomerFacingTeams}}
+- **Executive Sponsors**: {{ExecutiveSponsors}}
+
+**Impact Analysis**:
+\`\`\`
+MAINTENANCE IMPACT ASSESSMENT
+
+AFFECTED SYSTEMS:
+- Primary: {{PrimarySystems}}
+- Secondary: {{SecondarySystems}}
+- Dependencies: {{DependentSystems}}
+
+USER IMPACT:
+- Affected Users: {{AffectedUserCount}}
+- Service Disruption: {{ServiceDisruption}}
+- Feature Limitations: {{FeatureLimitations}}
+- Workarounds Available: {{AvailableWorkarounds}}
+
+BUSINESS IMPACT:
+- Revenue Impact: {{RevenueImpact}}
+- Operational Impact: {{OperationalImpact}}
+- Customer Experience: {{CustomerExperienceImpact}}
+- SLA Implications: {{SLAImplications}}
+\`\`\`
+
+#### Scheduling Phase (1-2 weeks before)
+
+**Optimal Window Analysis**:
+\`\`\`bash
+# Traffic analysis for optimal scheduling
+SELECT 
+    EXTRACT(hour FROM timestamp) as hour,
+    EXTRACT(dow FROM timestamp) as day_of_week,
+    AVG(request_count) as avg_requests,
+    AVG(active_users) as avg_users
+FROM usage_metrics 
+WHERE timestamp >= NOW() - INTERVAL '30 days'
+GROUP BY hour, day_of_week
+ORDER BY avg_requests ASC;
+\`\`\`
+
+**Maintenance Window Definition**:
+- **Preferred Window**: {{PreferredWindow}}
+- **Alternative Window**: {{AlternativeWindow}}
+- **Backup Window**: {{BackupWindow}}
+- **Total Duration**: {{EstimatedDuration}}
+- **Buffer Time**: {{BufferTime}}
+
+**Resource Allocation**:
+- **Technical Lead**: {{MaintenanceLead}}
+- **Engineering Team**: {{EngineeringTeam}}
+- **Operations Team**: {{OperationsTeam}}
+- **Communication Lead**: {{CommunicationLead}}
+- **Backup Personnel**: {{BackupPersonnel}}
+
+### Maintenance Execution Plan
+
+#### Pre-Maintenance Checklist (24-48 hours before)
+
+**System Preparation**:
+- [ ] **Backup Verification**: All critical data backed up and verified
+- [ ] **Rollback Plan**: Complete rollback procedures documented and tested
+- [ ] **Monitoring Setup**: Enhanced monitoring and alerting configured
+- [ ] **Team Coordination**: All team members confirmed and briefed
+- [ ] **Tool Preparation**: All required tools and access verified
+
+**Pre-Maintenance Tasks**:
+\`\`\`bash
+# System health check
+#!/bin/bash
+
+echo "Pre-maintenance system health check - $(date)"
+
+# Check system resources
+echo "=== System Resources ==="
+free -h
+df -h
+uptime
+
+# Check service status
+echo "=== Service Status ==="
+systemctl status {{service1}}
+systemctl status {{service2}}
+systemctl status {{service3}}
+
+# Check database connectivity
+echo "=== Database Health ==="
+psql -c "SELECT version();"
+psql -c "SELECT count(*) FROM pg_stat_activity;"
+
+# Check external dependencies
+echo "=== External Dependencies ==="
+curl -I {{externalService1}}/health
+curl -I {{externalService2}}/health
+
+# Create maintenance backup
+echo "=== Backup Creation ==="
+pg_dump {{database}} > maintenance_backup_$(date +%Y%m%d_%H%M%S).sql
+
+echo "Pre-maintenance check completed - $(date)"
+\`\`\`
+
+**Communication Preparation**:
+- [ ] **Status Page**: Maintenance notice posted
+- [ ] **Customer Notification**: Email/notification sent to affected users
+- [ ] **Internal Notification**: All teams notified of maintenance window
+- [ ] **Executive Brief**: Leadership informed of maintenance schedule
+- [ ] **Support Team**: Customer service team prepared for inquiries
+
+#### Maintenance Execution (During window)
+
+**Maintenance Phases**:
+
+**Phase 1: System Preparation (First 15 minutes)**
+\`\`\`bash
+# Enable maintenance mode
+echo "Starting maintenance mode - $(date)"
+
+# Update load balancer to show maintenance page
+kubectl patch ingress {{app-ingress}} -p '{"spec":{"rules":[{"host":"{{domain}}","http":{"paths":[{"path":"/","pathType":"Prefix","backend":{"service":{"name":"maintenance-page","port":{"number":80}}}}]}}]}}'
+
+# Verify maintenance page is active
+curl -I {{productionURL}} | grep "503\|502"
+
+# Drain active connections gracefully
+sleep 30
+
+# Stop application services in order
+systemctl stop {{application-service}}
+systemctl stop {{worker-service}}
+systemctl stop {{cache-service}}
+\`\`\`
+
+**Phase 2: Maintenance Implementation**
+\`\`\`bash
+# Execute maintenance tasks
+echo "Executing maintenance tasks - $(date)"
+
+# Database maintenance tasks
+{{DatabaseMaintenanceTasks}}
+
+# Application updates
+{{ApplicationUpdateTasks}}
+
+# Infrastructure changes
+{{InfrastructureChangeTasks}}
+
+# Configuration updates
+{{ConfigurationUpdateTasks}}
+\`\`\`
+
+**Phase 3: System Validation and Startup**
+\`\`\`bash
+# Start services in reverse order
+systemctl start {{cache-service}}
+systemctl start {{worker-service}}
+systemctl start {{application-service}}
+
+# Wait for services to be ready
+sleep 60
+
+# Health check verification
+curl -f {{internalHealthEndpoint}} || exit 1
+
+# Database connectivity test
+psql -c "SELECT 1;" || exit 1
+
+# Application functionality test
+npm run test:smoke || exit 1
+\`\`\`
+
+**Phase 4: Traffic Restoration**
+\`\`\`bash
+# Restore normal traffic routing
+kubectl patch ingress {{app-ingress}} -p '{"spec":{"rules":[{"host":"{{domain}}","http":{"paths":[{"path":"/","pathType":"Prefix","backend":{"service":{"name":"{{app-service}}","port":{"number":80}}}}]}}]}}'
+
+# Verify application is accessible
+curl -f {{productionURL}}/health
+
+# Monitor error rates and performance
+watch 'curl -s {{monitoringURL}}/api/metrics/errors'
+\`\`\`
+
+**Real-time Monitoring During Maintenance**:
+\`\`\`bash
+# Continuous monitoring script
+#!/bin/bash
+
+while [ -f "/tmp/maintenance.lock" ]; do
+    echo "=== $(date) ==="
+    
+    # System resources
+    echo "CPU: $(top -bn1 | grep "Cpu(s)" | awk '{print $2}' | awk -F'%' '{print $1}')"
+    echo "Memory: $(free | awk '/Mem/{printf("%.2f%"), $3/$2*100}')"
+    echo "Disk: $(df -h / | awk '/\//{print $5}')"
+    
+    # Service status
+    for service in {{service1}} {{service2}} {{service3}}; do
+        status=$(systemctl is-active $service)
+        echo "$service: $status"
+    done
+    
+    sleep 60
+done
+\`\`\`
+
+### Communication Templates
+
+#### Pre-Maintenance Communication
+
+**Customer Notification Email**:
+\`\`\`
+Subject: Scheduled Maintenance - {{ServiceName}} - {{MaintenanceDate}}
+
+Dear {{CustomerName}},
+
+We will be performing scheduled maintenance on {{ServiceName}} to improve performance and security.
+
+MAINTENANCE DETAILS:
+- Date: {{MaintenanceDate}}
+- Start Time: {{StartTime}} {{TimeZone}}
+- Estimated Duration: {{Duration}}
+- Expected End Time: {{EndTime}} {{TimeZone}}
+
+IMPACT:
+{{ExpectedImpact}}
+
+WHAT TO EXPECT:
+- {{ServiceName}} will be temporarily unavailable
+- {{FeatureAffected}} features will not be accessible
+- {{WorkaroundOptions}} (if any available)
+
+PREPARATION:
+- Save your work before the maintenance window
+- Plan alternative workflows if needed
+- Contact support if you have urgent needs before maintenance
+
+We apologize for any inconvenience and appreciate your patience as we work to improve our service.
+
+For updates, visit: {{StatusPageURL}}
+Questions? Contact: {{SupportContact}}
+
+Best regards,
+{{CompanyName}} Team
+\`\`\`
+
+**Status Page Update**:
+\`\`\`markdown
+## Scheduled Maintenance - {{MaintenanceDate}}
+
+**Status**: Scheduled
+**Start**: {{StartTime}} {{TimeZone}}
+**Duration**: {{ExpectedDuration}}
+**Impact**: {{ImpactLevel}}
+
+We have scheduled maintenance to implement important updates and improvements to {{ServiceName}}.
+
+**Affected Services**:
+- {{Service1}} - Full outage
+- {{Service2}} - Limited functionality
+- {{Service3}} - No impact expected
+
+**What we're doing**:
+{{MaintenanceDescription}}
+
+**Expected improvements**:
+- {{Improvement1}}
+- {{Improvement2}}
+- {{Improvement3}}
+
+We'll provide updates throughout the maintenance window. Thank you for your patience.
+\`\`\`
+
+#### During Maintenance Communication
+
+**Progress Updates**:
+\`\`\`
+MAINTENANCE UPDATE #{{UpdateNumber}} - {{Timestamp}}
+
+STATUS: {{CurrentPhase}}
+PROGRESS: {{CompletionPercentage}}% complete
+NEXT PHASE: {{NextPhase}}
+REVISED ETA: {{RevisedETA}}
+
+COMPLETED TASKS:
+- {{CompletedTask1}}
+- {{CompletedTask2}}
+- {{CompletedTask3}}
+
+CURRENT ACTIVITY:
+{{CurrentActivity}}
+
+ISSUES ENCOUNTERED:
+{{IssuesIfAny}}
+
+Next update in {{UpdateInterval}} minutes.
+\`\`\`
+
+#### Post-Maintenance Communication
+
+**Completion Notification**:
+\`\`\`markdown
+## Maintenance Completed Successfully
+
+**Updated**: {{CompletionTime}}
+**Status**: Completed
+**Actual Duration**: {{ActualDuration}}
+
+Our scheduled maintenance has been completed successfully. All services are now fully operational.
+
+**What was accomplished**:
+- {{Accomplishment1}}
+- {{Accomplishment2}}
+- {{Accomplishment3}}
+
+**Performance improvements**:
+- {{PerformanceImprovement1}}
+- {{PerformanceImprovement2}}
+
+**Testing completed**:
+- Full system functionality verified
+- Performance benchmarks met
+- Security validations passed
+
+If you experience any issues, please contact our support team immediately.
+
+Thank you for your patience during this maintenance window.
+\`\`\`
+
+### Rollback Procedures
+
+#### Rollback Decision Criteria
+- Maintenance duration exceeds planned window by >50%
+- Critical system failures during maintenance
+- Data integrity issues discovered
+- Performance degradation beyond acceptable levels
+- Unexpected user impact beyond planned scope
+
+#### Rollback Execution
+\`\`\`bash
+#!/bin/bash
+# Emergency rollback procedure
+
+echo "INITIATING EMERGENCY ROLLBACK - $(date)"
+
+# Stop current maintenance activities
+pkill -f "maintenance-script"
+
+# Restore from backup
+echo "Restoring database from backup..."
+pg_restore -d {{database}} maintenance_backup_{{timestamp}}.sql
+
+# Revert configuration changes
+echo "Reverting configuration..."
+git checkout {{previous-config-commit}}
+systemctl reload {{service-name}}
+
+# Restart services with previous version
+echo "Starting services with previous version..."
+docker-compose -f docker-compose.rollback.yml up -d
+
+# Verify rollback success
+sleep 60
+curl -f {{healthEndpoint}} || echo "ROLLBACK FAILED - MANUAL INTERVENTION REQUIRED"
+
+# Update status communications
+echo "ROLLBACK COMPLETED - $(date)"
+\`\`\`
+
+### Post-Maintenance Activities
+
+#### Validation and Monitoring
+**Extended Monitoring Period**: 24-48 hours post-maintenance
+- **Performance Metrics**: Response times, error rates, throughput
+- **System Health**: Resource utilization, service availability
+- **User Experience**: Customer feedback, support ticket volume
+- **Data Integrity**: Database consistency checks, backup verification
+
+#### Post-Maintenance Report
+\`\`\`markdown
+# Maintenance Report - {{MaintenanceDate}}
+
+## Executive Summary
+{{ExecutiveSummary}}
+
+## Maintenance Details
+- **Scheduled Window**: {{ScheduledWindow}}
+- **Actual Duration**: {{ActualDuration}}
+- **Maintenance Type**: {{MaintenanceType}}
+- **Team Lead**: {{MaintenanceLead}}
+
+## Tasks Completed
+- {{Task1}} - {{Status1}}
+- {{Task2}} - {{Status2}}
+- {{Task3}} - {{Status3}}
+
+## Issues and Resolutions
+{{IssuesAndResolutions}}
+
+## Performance Impact
+- **Before Maintenance**: {{BeforeMetrics}}
+- **After Maintenance**: {{AfterMetrics}}
+- **Improvement**: {{ImprovementMetrics}}
+
+## Customer Impact
+- **Affected Users**: {{AffectedUserCount}}
+- **Support Tickets**: {{SupportTicketCount}}
+- **Customer Feedback**: {{CustomerFeedback}}
+
+## Lessons Learned
+{{LessonsLearned}}
+
+## Next Scheduled Maintenance
+{{NextMaintenanceSchedule}}
+\`\`\`
+
+### Continuous Improvement
+
+#### Maintenance Metrics
+- **Schedule Accuracy**: Maintenance completed within planned window
+- **Communication Effectiveness**: Customer satisfaction with notifications
+- **Rollback Rate**: Percentage of maintenance requiring rollbacks
+- **Performance Impact**: System performance before/after maintenance
+
+#### Process Enhancement
+- **Monthly Reviews**: Maintenance process effectiveness evaluation
+- **Quarterly Planning**: Upcoming maintenance schedule and resource planning
+- **Annual Assessment**: Comprehensive maintenance strategy review
+
+This comprehensive maintenance schedule template ensures well-planned, communicated, and executed maintenance activities with minimal business disruption.`,
         category: "sdlc_templates",
         component: "maintenance_schedule",
         sdlcStage: "maintenance",
@@ -11447,7 +15603,307 @@ This software is released under {{LicenseType}}. See LICENSE file for details.
         id: "sdlc_templates-capacity_planning-requirements",
         title: "Capacity Planning",
         description: "Resource and capacity planning template",
-        content: "Plan team capacity, resource allocation, and workload distribution for sprint and release planning.",
+        content: `Plan team capacity, resource allocation, and workload distribution for sprint and release planning.
+
+# Capacity Planning Template
+## Resource and Workload Management
+
+### Overview
+This template provides a comprehensive framework for planning team capacity, allocating resources effectively, and distributing workload for optimal sprint and release planning outcomes.
+
+### Team Capacity Assessment
+
+#### Team Structure Analysis
+**Development Team Composition**:
+- **Senior Developers**: {{SeniorDevCount}} × {{SeniorDevCapacity}} hours/week = {{SeniorDevTotal}} hours
+- **Mid-level Developers**: {{MidDevCount}} × {{MidDevCapacity}} hours/week = {{MidDevTotal}} hours  
+- **Junior Developers**: {{JuniorDevCount}} × {{JuniorDevCapacity}} hours/week = {{JuniorDevTotal}} hours
+- **DevOps Engineers**: {{DevOpsCount}} × {{DevOpsCapacity}} hours/week = {{DevOpsTotal}} hours
+- **QA Engineers**: {{QACount}} × {{QACapacity}} hours/week = {{QATotal}} hours
+- **UI/UX Designers**: {{DesignCount}} × {{DesignCapacity}} hours/week = {{DesignTotal}} hours
+
+**Total Weekly Capacity**: {{TotalWeeklyHours}} hours
+
+#### Individual Capacity Factors
+**Team Member Assessment**:
+| Name | Role | Base Hours | Availability % | Effective Hours | Skills | Current Load |
+|------|------|------------|----------------|-----------------|---------|--------------|
+| {{Member1}} | {{Role1}} | {{BaseHours1}} | {{Availability1}} | {{EffectiveHours1}} | {{Skills1}} | {{Load1}} |
+| {{Member2}} | {{Role2}} | {{BaseHours2}} | {{Availability2}} | {{EffectiveHours2}} | {{Skills2}} | {{Load2}} |
+| {{Member3}} | {{Role3}} | {{BaseHours3}} | {{Availability3}} | {{EffectiveHours3}} | {{Skills3}} | {{Load3}} |
+
+**Capacity Adjustment Factors**:
+- **Training Time**: {{TrainingHours}} hours/week
+- **Administrative Tasks**: {{AdminHours}} hours/week  
+- **Support and Maintenance**: {{SupportHours}} hours/week
+- **Code Review and Mentoring**: {{ReviewHours}} hours/week
+- **Meeting Overhead**: {{MeetingHours}} hours/week
+
+**Adjusted Team Capacity**: {{AdjustedCapacity}} hours/week
+
+### Sprint Capacity Planning
+
+#### Sprint Parameters
+**Sprint Configuration**:
+- **Sprint Duration**: {{SprintLength}} weeks
+- **Total Calendar Days**: {{CalendarDays}}
+- **Working Days**: {{WorkingDays}}
+- **Holiday/PTO Days**: {{NonWorkingDays}}
+- **Effective Working Days**: {{EffectiveWorkingDays}}
+
+#### Historical Velocity Analysis
+\`\`\`
+VELOCITY TRACKING (Last 6 Sprints)
+
+Sprint N-5: {{VelocityN5}} story points ({{HoursN5}} hours)
+Sprint N-4: {{VelocityN4}} story points ({{HoursN4}} hours)
+Sprint N-3: {{VelocityN3}} story points ({{HoursN3}} hours)
+Sprint N-2: {{VelocityN2}} story points ({{HoursN2}} hours)
+Sprint N-1: {{VelocityN1}} story points ({{HoursN1}} hours)
+
+Average Velocity: {{AvgVelocity}} story points
+Standard Deviation: {{VelocityStdDev}}
+Confidence Range: {{VelocityMin}} - {{VelocityMax}} story points
+
+Team's Hour-to-Point Ratio: {{HourToPointRatio}} hours/point
+\`\`\`
+
+#### Capacity Allocation by Work Type
+\`\`\`
+CAPACITY DISTRIBUTION
+
+New Features: {{NewFeaturePercent}}% ({{NewFeatureHours}} hours)
+Bug Fixes: {{BugFixPercent}}% ({{BugFixHours}} hours)
+Technical Debt: {{TechDebtPercent}}% ({{TechDebtHours}} hours)
+Research/Spikes: {{ResearchPercent}}% ({{ResearchHours}} hours)
+Support/Maintenance: {{SupportPercent}}% ({{SupportHours}} hours)
+Testing: {{TestingPercent}}% ({{TestingHours}} hours)
+
+Total Planned: {{TotalPlannedHours}} hours
+Available Capacity: {{AvailableCapacity}} hours
+Buffer/Contingency: {{BufferHours}} hours ({{BufferPercent}}%)
+\`\`\`
+
+### Workload Distribution Strategy
+
+#### Skill-Based Assignment
+**Frontend Development**:
+- **Required Skills**: React, TypeScript, CSS, UI/UX
+- **Available Team Members**: {{FrontendTeamMembers}}
+- **Total Capacity**: {{FrontendCapacity}} hours
+- **Current Allocation**: {{FrontendAllocation}} hours
+- **Available Capacity**: {{FrontendAvailable}} hours
+
+**Backend Development**:
+- **Required Skills**: Node.js, PostgreSQL, API design, System architecture
+- **Available Team Members**: {{BackendTeamMembers}}
+- **Total Capacity**: {{BackendCapacity}} hours
+- **Current Allocation**: {{BackendAllocation}} hours
+- **Available Capacity**: {{BackendAvailable}} hours
+
+**DevOps/Infrastructure**:
+- **Required Skills**: Docker, Kubernetes, CI/CD, Cloud platforms
+- **Available Team Members**: {{DevOpsTeamMembers}}
+- **Total Capacity**: {{DevOpsCapacity}} hours
+- **Current Allocation**: {{DevOpsAllocation}} hours
+- **Available Capacity**: {{DevOpsAvailable}} hours
+
+**Quality Assurance**:
+- **Required Skills**: Testing frameworks, Automation, Manual testing
+- **Available Team Members**: {{QATeamMembers}}
+- **Total Capacity**: {{QACapacity}} hours
+- **Current Allocation**: {{QAAllocation}} hours
+- **Available Capacity**: {{QAAvailable}} hours
+
+#### Task Complexity and Effort Estimation
+**Estimation Guidelines**:
+- **XS (1-2 hours)**: Simple bug fixes, minor UI updates, configuration changes
+- **S (4-8 hours)**: Component updates, simple features, routine integrations
+- **M (1-3 days)**: Medium features, API implementations, database migrations
+- **L (3-5 days)**: Complex features, major integrations, architectural changes
+- **XL (1-2 weeks)**: Large features, system redesigns, major refactoring
+
+**Estimation Matrix**:
+| Complexity | Frontend | Backend | DevOps | QA | Design |
+|------------|----------|---------|--------|----|---------| 
+| XS | {{XS_Frontend}} | {{XS_Backend}} | {{XS_DevOps}} | {{XS_QA}} | {{XS_Design}} |
+| S | {{S_Frontend}} | {{S_Backend}} | {{S_DevOps}} | {{S_QA}} | {{S_Design}} |
+| M | {{M_Frontend}} | {{M_Backend}} | {{M_DevOps}} | {{M_QA}} | {{M_Design}} |
+| L | {{L_Frontend}} | {{L_Backend}} | {{L_DevOps}} | {{L_QA}} | {{L_Design}} |
+| XL | {{XL_Frontend}} | {{XL_Backend}} | {{XL_DevOps}} | {{XL_QA}} | {{XL_Design}} |
+
+### Resource Allocation Framework
+
+#### Priority-Based Allocation
+**Priority Levels**:
+1. **P0 (Critical)**: Production issues, security vulnerabilities, blockers
+2. **P1 (High)**: Key features, important bug fixes, performance issues
+3. **P2 (Medium)**: Standard features, minor improvements, technical debt
+4. **P3 (Low)**: Nice-to-have features, optimizations, research items
+
+**Allocation Rules**:
+- P0: Immediate allocation, interrupt current work if necessary
+- P1: Allocated within current sprint, may require reprioritization
+- P2: Allocated in current or next sprint based on capacity
+- P3: Allocated when higher priority work is completed
+
+#### Cross-Functional Dependencies
+**Dependency Mapping**:
+\`\`\`mermaid
+graph TD
+    A[Requirements Analysis] --> B[Design Phase]
+    B --> C[Frontend Development]
+    B --> D[Backend Development]
+    C --> E[Integration Testing]
+    D --> E
+    E --> F[QA Testing]
+    F --> G[DevOps Deployment]
+    
+    H[Performance Testing] --> G
+    I[Security Review] --> G
+\`\`\`
+
+**Critical Path Analysis**:
+- **Longest Path**: {{CriticalPath}}
+- **Bottleneck Identification**: {{BottleneckAreas}}
+- **Dependency Risks**: {{DependencyRisks}}
+- **Mitigation Strategies**: {{MitigationStrategies}}
+
+### Capacity Planning Tools and Metrics
+
+#### Planning Spreadsheet Template
+\`\`\`
+SPRINT {{SprintNumber}} CAPACITY PLANNING
+
+Team Member | Role | Available Hours | Assigned Tasks | Estimated Hours | Remaining Capacity
+{{Member1}} | {{Role1}} | {{AvailableHours1}} | {{Tasks1}} | {{EstimatedHours1}} | {{RemainingCapacity1}}
+{{Member2}} | {{Role2}} | {{AvailableHours2}} | {{Tasks2}} | {{EstimatedHours2}} | {{RemainingCapacity2}}
+{{Member3}} | {{Role3}} | {{AvailableHours3}} | {{Tasks3}} | {{EstimatedHours3}} | {{RemainingCapacity3}}
+
+TOTALS: Available: {{TotalAvailable}} | Assigned: {{TotalAssigned}} | Remaining: {{TotalRemaining}}
+\`\`\`
+
+#### Velocity Tracking
+\`\`\`python
+# Velocity calculation script
+def calculate_team_velocity(sprints_data):
+    completed_points = []
+    for sprint in sprints_data:
+        completed_points.append(sprint['completed_story_points'])
+    
+    avg_velocity = sum(completed_points) / len(completed_points)
+    velocity_trend = calculate_trend(completed_points)
+    
+    return {
+        'average_velocity': avg_velocity,
+        'trend': velocity_trend,
+        'last_sprint': completed_points[-1],
+        'confidence_range': calculate_confidence_range(completed_points)
+    }
+
+# Usage example
+sprint_data = [
+    {'sprint': 'Sprint 25', 'completed_story_points': {{Sprint25Points}}},
+    {'sprint': 'Sprint 26', 'completed_story_points': {{Sprint26Points}}},
+    {'sprint': 'Sprint 27', 'completed_story_points': {{Sprint27Points}}},
+]
+
+velocity_metrics = calculate_team_velocity(sprint_data)
+\`\`\`
+
+#### Burndown Tracking
+\`\`\`
+SPRINT BURNDOWN - Sprint {{SprintNumber}}
+
+Day 1: Remaining: {{Day1Remaining}} hours ({{Day1Percent}}% complete)
+Day 2: Remaining: {{Day2Remaining}} hours ({{Day2Percent}}% complete)
+Day 3: Remaining: {{Day3Remaining}} hours ({{Day3Percent}}% complete)
+...
+Day {{SprintLength}}: Remaining: {{FinalRemaining}} hours ({{FinalPercent}}% complete)
+
+Ideal Burndown Rate: {{IdealRate}} hours/day
+Actual Burndown Rate: {{ActualRate}} hours/day
+Trend: {{BurndownTrend}}
+Projected Completion: {{ProjectedCompletion}}
+\`\`\`
+
+### Release Planning Considerations
+
+#### Multi-Sprint Planning
+**Release Timeline**:
+- **Release Version**: {{ReleaseVersion}}
+- **Target Date**: {{TargetReleaseDate}}
+- **Sprint Count**: {{SprintCount}} sprints
+- **Development Sprints**: {{DevSprintCount}}
+- **Hardening Sprints**: {{HardeningSprintCount}}
+- **Buffer Sprints**: {{BufferSprintCount}}
+
+**Feature Roadmap**:
+| Feature | Priority | Effort (SP) | Sprint Assignment | Dependencies | Risk Level |
+|---------|----------|-------------|-------------------|--------------|-------------|
+| {{Feature1}} | {{Priority1}} | {{Effort1}} | {{Sprint1}} | {{Dependencies1}} | {{Risk1}} |
+| {{Feature2}} | {{Priority2}} | {{Effort2}} | {{Sprint2}} | {{Dependencies2}} | {{Risk2}} |
+| {{Feature3}} | {{Priority3}} | {{Effort3}} | {{Sprint3}} | {{Dependencies3}} | {{Risk3}} |
+
+#### Risk Assessment and Mitigation
+**Capacity Risks**:
+- **Team Member Availability**: {{AvailabilityRisks}}
+- **Skill Gaps**: {{SkillGaps}}
+- **External Dependencies**: {{ExternalDependencies}}
+- **Technical Complexity**: {{TechnicalComplexity}}
+
+**Mitigation Strategies**:
+- **Cross-Training**: {{CrossTrainingPlan}}
+- **External Resources**: {{ExternalResourcePlan}}
+- **Scope Flexibility**: {{ScopeAdjustmentPlan}}
+- **Contingency Planning**: {{ContingencyPlan}}
+
+### Continuous Optimization
+
+#### Performance Metrics
+**Team Efficiency Metrics**:
+- **Sprint Completion Rate**: {{CompletionRate}}%
+- **Story Point Accuracy**: {{EstimationAccuracy}}%
+- **Cycle Time**: {{AverageCycleTime}} days
+- **Lead Time**: {{AverageLeadTime}} days
+- **Defect Rate**: {{DefectRate}} defects/story point
+- **Velocity Stability**: {{VelocityStability}}
+
+#### Process Improvements
+**Retrospective Actions**:
+- **Capacity Planning Accuracy**: {{PlanningAccuracy}}
+- **Workload Distribution Effectiveness**: {{DistributionEffectiveness}}
+- **Resource Utilization Rate**: {{UtilizationRate}}
+- **Team Satisfaction**: {{TeamSatisfaction}}
+
+**Optimization Opportunities**:
+- **Bottleneck Elimination**: {{BottleneckActions}}
+- **Skill Development**: {{SkillDevelopmentPlan}}
+- **Process Streamlining**: {{ProcessImprovements}}
+- **Tool Enhancement**: {{ToolImprovements}}
+
+### Capacity Planning Checklist
+
+#### Sprint Planning Checklist
+- [ ] **Team Availability**: Confirmed all team member availability and PTO
+- [ ] **Capacity Calculation**: Calculated effective team capacity for sprint
+- [ ] **Velocity Reference**: Reviewed historical velocity and trends
+- [ ] **Workload Distribution**: Balanced work across team members and skills
+- [ ] **Dependency Mapping**: Identified and planned for all dependencies
+- [ ] **Risk Assessment**: Evaluated capacity risks and mitigation strategies
+- [ ] **Buffer Planning**: Allocated appropriate buffer for unknowns
+- [ ] **Stakeholder Alignment**: Confirmed capacity plan with stakeholders
+
+#### Release Planning Checklist
+- [ ] **Multi-Sprint View**: Planned capacity across multiple sprints
+- [ ] **Feature Prioritization**: Aligned feature priorities with capacity
+- [ ] **Resource Requirements**: Identified specialized skill requirements
+- [ ] **External Dependencies**: Planned for external team dependencies
+- [ ] **Risk Mitigation**: Developed contingency plans for capacity risks
+- [ ] **Milestone Alignment**: Aligned capacity plan with key milestones
+- [ ] **Stakeholder Communication**: Communicated capacity constraints and impacts
+
+This comprehensive capacity planning template ensures optimal resource allocation and realistic planning for sustainable team performance.`,
         category: "sdlc_templates",
         component: "capacity_planning",
         sdlcStage: "requirements",
@@ -11459,7 +15915,379 @@ This software is released under {{LicenseType}}. See LICENSE file for details.
         id: "sdlc_templates-risk_assessment-requirements",
         title: "Risk Assessment",
         description: "Project risk assessment and mitigation template",
-        content: "Identify project risks with impact assessment, probability analysis, and mitigation strategies.",
+        content: `Identify project risks with impact assessment, probability analysis, and mitigation strategies.
+
+# Risk Assessment Template
+## Project Risk Management and Mitigation Planning
+
+### Overview
+This template provides a comprehensive framework for identifying, analyzing, and mitigating project risks to ensure successful project delivery and minimize potential negative impacts.
+
+### Risk Identification Framework
+
+#### Risk Categories
+
+##### Technical Risks
+**Technology and Implementation Risks**:
+- **Architecture Complexity**: System design complexity beyond team expertise
+- **Technology Stack**: Using unproven or unfamiliar technologies
+- **Integration Challenges**: Complex third-party integrations or legacy system connections
+- **Scalability Issues**: System performance under expected load
+- **Security Vulnerabilities**: Data protection and system security concerns
+- **Technical Debt**: Accumulated code quality issues affecting development speed
+
+**Development Process Risks**:
+- **Code Quality**: Inconsistent development standards and practices
+- **Testing Coverage**: Inadequate testing strategies and coverage
+- **Documentation**: Missing or outdated technical documentation
+- **Deployment Complexity**: Complex or unreliable deployment processes
+- **Tool Dependencies**: Critical dependency on specific tools or platforms
+
+##### Resource Risks
+**Team and Personnel Risks**:
+- **Key Person Dependency**: Critical knowledge concentrated in individual team members
+- **Skill Gaps**: Missing technical or domain expertise in the team
+- **Team Availability**: Team member availability and competing priorities
+- **Resource Allocation**: Insufficient resources allocated to critical tasks
+- **Team Turnover**: Risk of key team members leaving during the project
+
+**Budget and Financial Risks**:
+- **Budget Overrun**: Project costs exceeding allocated budget
+- **Resource Costs**: Unexpected increases in personnel or technology costs
+- **Opportunity Cost**: Resources diverted from other strategic initiatives
+- **Vendor Costs**: Changes in third-party service pricing or licensing
+
+##### Schedule Risks
+**Timeline and Delivery Risks**:
+- **Scope Creep**: Uncontrolled expansion of project requirements
+- **Estimation Accuracy**: Underestimated effort for complex tasks
+- **Dependency Delays**: External dependencies causing project delays
+- **Change Management**: Impact of requirement changes on timeline
+- **Critical Path**: Tasks on critical path facing delays
+
+**External Dependency Risks**:
+- **Third-party Services**: Reliability and availability of external services
+- **Vendor Deliverables**: Delays or quality issues from external vendors
+- **Regulatory Changes**: Changes in compliance requirements affecting project
+- **Market Conditions**: External market factors impacting project relevance
+
+##### Business Risks
+**Strategic and Business Risks**:
+- **Requirements Clarity**: Unclear or changing business requirements
+- **Stakeholder Alignment**: Misaligned expectations among stakeholders
+- **Market Fit**: Product-market fit and user acceptance risks
+- **Competitive Landscape**: Competitive threats during development
+- **Business Continuity**: Impact on existing business operations
+
+**Compliance and Legal Risks**:
+- **Regulatory Compliance**: Meeting industry-specific regulations
+- **Data Privacy**: GDPR, CCPA, and other privacy regulation compliance
+- **Intellectual Property**: Patent or copyright infringement risks
+- **Contractual Obligations**: Meeting contractual commitments and SLAs
+
+### Risk Assessment Matrix
+
+#### Risk Probability Scale
+**Probability Levels**:
+1. **Very Low (1)**: 0-10% chance of occurrence
+2. **Low (2)**: 11-30% chance of occurrence  
+3. **Medium (3)**: 31-60% chance of occurrence
+4. **High (4)**: 61-80% chance of occurrence
+5. **Very High (5)**: 81-100% chance of occurrence
+
+#### Risk Impact Scale
+**Impact Levels**:
+1. **Very Low (1)**: Minimal impact, easily managed within normal processes
+2. **Low (2)**: Minor impact on schedule, budget, or quality
+3. **Medium (3)**: Moderate impact requiring management attention and resources
+4. **High (4)**: Significant impact requiring senior management intervention
+5. **Very High (5)**: Severe impact threatening project success or business operations
+
+#### Risk Priority Matrix
+\`\`\`
+RISK PRIORITY MATRIX
+
+        IMPACT
+        1    2    3    4    5
+PROB 5| 5   10   15   20   25
+    4 | 4    8   12   16   20
+    3 | 3    6    9   12   15
+    2 | 2    4    6    8   10
+    1 | 1    2    3    4    5
+
+Risk Priority Levels:
+- Critical (20-25): Immediate action required
+- High (12-19): Action plan within 1 week
+- Medium (6-11): Monitor closely, plan mitigation
+- Low (3-5): Monitor and document
+- Minimal (1-2): Accept and log
+\`\`\`
+
+### Risk Register Template
+
+\`\`\`
+PROJECT RISK REGISTER - {{ProjectName}}
+
+Risk ID: {{RiskID}}
+Risk Category: {{RiskCategory}}
+Risk Title: {{RiskTitle}}
+Risk Description: {{RiskDescription}}
+
+ASSESSMENT:
+Probability: {{RiskProbability}} ({{ProbabilityDescription}})
+Impact: {{RiskImpact}} ({{ImpactDescription}})
+Risk Score: {{RiskScore}} ({{RiskPriority}})
+
+IMPACT ANALYSIS:
+Schedule Impact: {{ScheduleImpact}}
+Budget Impact: {{BudgetImpact}}
+Quality Impact: {{QualityImpact}}
+Business Impact: {{BusinessImpact}}
+
+ROOT CAUSE ANALYSIS:
+Primary Cause: {{PrimaryCause}}
+Contributing Factors:
+- {{ContributingFactor1}}
+- {{ContributingFactor2}}
+- {{ContributingFactor3}}
+
+RISK OWNER: {{RiskOwner}}
+IDENTIFICATION DATE: {{IdentificationDate}}
+LAST UPDATED: {{LastUpdated}}
+STATUS: {{RiskStatus}}
+
+MITIGATION STRATEGY:
+Prevention Actions: {{PreventionActions}}
+Contingency Plans: {{ContingencyPlans}}
+Monitoring Indicators: {{MonitoringIndicators}}
+\`\`\`
+
+### Detailed Risk Analysis
+
+#### Risk #1: Key Person Dependency
+**Risk Description**: {{KeyPersonRiskDescription}}
+
+**Probability Assessment**: {{KeyPersonProbability}} ({{KeyPersonProbabilityReason}})
+**Impact Assessment**: {{KeyPersonImpact}} ({{KeyPersonImpactReason}})
+**Risk Score**: {{KeyPersonScore}}
+
+**Specific Impacts**:
+- **Knowledge Loss**: {{KnowledgeLossImpact}}
+- **Project Delays**: {{ProjectDelayImpact}}
+- **Quality Reduction**: {{QualityImpact}}
+- **Team Morale**: {{TeamMoraleImpact}}
+
+**Mitigation Strategies**:
+- **Knowledge Transfer**: {{KnowledgeTransferPlan}}
+- **Documentation**: {{DocumentationPlan}}
+- **Cross-Training**: {{CrossTrainingPlan}}
+- **Backup Resources**: {{BackupResourcePlan}}
+
+#### Risk #2: Technology Integration Complexity
+**Risk Description**: {{IntegrationRiskDescription}}
+
+**Probability Assessment**: {{IntegrationProbability}} ({{IntegrationProbabilityReason}})
+**Impact Assessment**: {{IntegrationImpact}} ({{IntegrationImpactReason}})
+**Risk Score**: {{IntegrationScore}}
+
+**Technical Considerations**:
+- **API Compatibility**: {{APICompatibilityRisk}}
+- **Data Mapping**: {{DataMappingComplexity}}
+- **Performance Impact**: {{PerformanceRisk}}
+- **Error Handling**: {{ErrorHandlingComplexity}}
+
+**Mitigation Approaches**:
+- **Proof of Concept**: {{POCPlan}}
+- **Vendor Engagement**: {{VendorEngagementPlan}}
+- **Alternative Solutions**: {{AlternativeSolutions}}
+- **Testing Strategy**: {{IntegrationTestingPlan}}
+
+#### Risk #3: Scope Creep
+**Risk Description**: {{ScopeCreepDescription}}
+
+**Probability Assessment**: {{ScopeCreepProbability}} ({{ScopeCreepReason}})
+**Impact Assessment**: {{ScopeCreepImpact}} ({{ScopeCreepImpactReason}})
+**Risk Score**: {{ScopeCreepScore}}
+
+**Contributing Factors**:
+- **Requirements Clarity**: {{RequirementsClarityIssues}}
+- **Stakeholder Management**: {{StakeholderManagementIssues}}
+- **Change Control**: {{ChangeControlWeaknesses}}
+- **Communication Gaps**: {{CommunicationGaps}}
+
+**Control Measures**:
+- **Change Control Process**: {{ChangeControlProcess}}
+- **Scope Documentation**: {{ScopeDocumentationPlan}}
+- **Stakeholder Approval**: {{StakeholderApprovalProcess}}
+- **Impact Assessment**: {{ImpactAssessmentProcess}}
+
+### Risk Mitigation Strategies
+
+#### Prevention-Focused Strategies
+**Eliminate the Risk**:
+- **Process Changes**: {{ProcessChanges}}
+- **Technology Choices**: {{TechnologyChoices}}
+- **Resource Allocation**: {{ResourceAllocationChanges}}
+- **Vendor Selection**: {{VendorSelectionCriteria}}
+
+**Reduce Risk Probability**:
+- **Team Training**: {{TeamTrainingPlan}}
+- **Process Improvements**: {{ProcessImprovements}}
+- **Quality Gates**: {{QualityGateImplementation}}
+- **Regular Reviews**: {{RegularReviewProcess}}
+
+#### Response-Focused Strategies
+**Reduce Risk Impact**:
+- **Parallel Development**: {{ParallelDevelopmentStrategy}}
+- **Backup Plans**: {{BackupPlanDetails}}
+- **Resource Buffer**: {{ResourceBufferStrategy}}
+- **Phased Implementation**: {{PhasedImplementationPlan}}
+
+**Transfer Risk**:
+- **Insurance Coverage**: {{InsuranceCoverage}}
+- **Vendor Contracts**: {{VendorContractTerms}}
+- **Service Level Agreements**: {{SLAAgreements}}
+- **Third-party Services**: {{ThirdPartyServices}}
+
+**Accept Risk**:
+- **Risk Tolerance**: {{RiskToleranceLevels}}
+- **Contingency Reserves**: {{ContingencyReserves}}
+- **Monitoring Plans**: {{RiskMonitoringPlans}}
+- **Response Triggers**: {{ResponseTriggers}}
+
+### Risk Monitoring and Control
+
+#### Risk Monitoring Framework
+**Monitoring Frequency**:
+- **Critical Risks**: Daily monitoring and weekly reporting
+- **High Risks**: Weekly monitoring and bi-weekly reporting
+- **Medium Risks**: Bi-weekly monitoring and monthly reporting
+- **Low Risks**: Monthly monitoring and quarterly reporting
+
+**Key Risk Indicators (KRIs)**:
+\`\`\`
+TECHNICAL RISKS:
+- Code Complexity Metrics: {{CodeComplexityThreshold}}
+- Test Coverage: {{TestCoverageThreshold}}
+- Defect Density: {{DefectDensityThreshold}}
+- Performance Metrics: {{PerformanceThreshold}}
+
+SCHEDULE RISKS:
+- Sprint Velocity: {{VelocityThreshold}}
+- Burn Rate: {{BurnRateThreshold}}
+- Milestone Achievement: {{MilestoneThreshold}}
+- Dependency Status: {{DependencyStatusThreshold}}
+
+RESOURCE RISKS:
+- Team Utilization: {{UtilizationThreshold}}
+- Skill Gap Analysis: {{SkillGapThreshold}}
+- Team Satisfaction: {{SatisfactionThreshold}}
+- Knowledge Distribution: {{KnowledgeDistributionThreshold}}
+\`\`\`
+
+#### Risk Escalation Process
+**Escalation Triggers**:
+- Risk score increases by {{ScoreIncreaseThreshold}} points
+- New critical risk identified
+- Mitigation strategy proves ineffective
+- Risk impact exceeds defined thresholds
+
+**Escalation Path**:
+1. **Level 1**: Project Manager (for medium/high risks)
+2. **Level 2**: Program Manager/Director (for high/critical risks)
+3. **Level 3**: Executive Sponsor/VP (for critical risks with business impact)
+4. **Level 4**: CEO/Board (for risks threatening business continuity)
+
+### Risk Communication and Reporting
+
+#### Risk Status Dashboard
+\`\`\`
+RISK DASHBOARD - {{ReportingPeriod}}
+
+RISK SUMMARY:
+Critical Risks: {{CriticalRiskCount}}
+High Risks: {{HighRiskCount}}  
+Medium Risks: {{MediumRiskCount}}
+Low Risks: {{LowRiskCount}}
+
+TRENDING:
+New Risks: {{NewRisksCount}}
+Closed Risks: {{ClosedRisksCount}}
+Escalated Risks: {{EscalatedRisksCount}}
+Mitigated Risks: {{MitigatedRisksCount}}
+
+TOP 3 RISKS:
+1. {{TopRisk1}} (Score: {{TopRisk1Score}})
+2. {{TopRisk2}} (Score: {{TopRisk2Score}})  
+3. {{TopRisk3}} (Score: {{TopRisk3Score}})
+
+MITIGATION STATUS:
+On Track: {{OnTrackMitigationCount}}
+At Risk: {{AtRiskMitigationCount}}
+Overdue: {{OverdueMitigationCount}}
+\`\`\`
+
+#### Risk Report Template
+\`\`\`
+RISK ASSESSMENT REPORT
+Project: {{ProjectName}}
+Reporting Period: {{ReportingPeriod}}
+Report Date: {{ReportDate}}
+Prepared By: {{PreparedBy}}
+
+EXECUTIVE SUMMARY:
+{{ExecutiveSummary}}
+
+KEY RISKS AND STATUS:
+{{KeyRisksStatus}}
+
+MITIGATION PROGRESS:
+{{MitigationProgress}}
+
+RECOMMENDATIONS:
+{{Recommendations}}
+
+NEXT PERIOD FOCUS:
+{{NextPeriodFocus}}
+\`\`\`
+
+### Lessons Learned and Continuous Improvement
+
+#### Risk Assessment Effectiveness
+**Assessment Accuracy**:
+- **Probability Accuracy**: {{ProbabilityAccuracy}}%
+- **Impact Accuracy**: {{ImpactAccuracy}}%
+- **Timeline Accuracy**: {{TimelineAccuracy}}%
+- **Mitigation Effectiveness**: {{MitigationEffectiveness}}%
+
+**Process Improvements**:
+- **Identification Process**: {{IdentificationImprovements}}
+- **Assessment Methods**: {{AssessmentImprovements}}
+- **Mitigation Strategies**: {{MitigationImprovements}}
+- **Monitoring Systems**: {{MonitoringImprovements}}
+
+### Risk Assessment Checklist
+
+#### Initial Risk Assessment
+- [ ] **Risk Identification**: Comprehensive risk identification completed
+- [ ] **Stakeholder Input**: Input gathered from all key stakeholders
+- [ ] **Risk Categorization**: Risks properly categorized and documented
+- [ ] **Probability Assessment**: Realistic probability assessments completed
+- [ ] **Impact Analysis**: Thorough impact analysis for each risk
+- [ ] **Risk Scoring**: Risk scores calculated and priorities assigned
+- [ ] **Owner Assignment**: Risk owners assigned and acknowledged
+- [ ] **Mitigation Planning**: Initial mitigation strategies defined
+
+#### Ongoing Risk Management
+- [ ] **Regular Reviews**: Risk register reviewed and updated regularly
+- [ ] **Monitoring Systems**: Risk monitoring systems operational
+- [ ] **Escalation Process**: Clear escalation process communicated
+- [ ] **Mitigation Tracking**: Mitigation action progress tracked
+- [ ] **Communication Plan**: Risk communication plan executed
+- [ ] **Lessons Learned**: Risk lessons captured and applied
+- [ ] **Process Improvement**: Risk management process continuously improved
+
+This comprehensive risk assessment template ensures systematic identification, analysis, and management of project risks throughout the project lifecycle.`,
         category: "sdlc_templates",
         component: "risk_assessment",
         sdlcStage: "requirements",
@@ -11471,7 +16299,436 @@ This software is released under {{LicenseType}}. See LICENSE file for details.
         id: "sdlc_templates-stakeholder_analysis-requirements",
         title: "Stakeholder Analysis",
         description: "Stakeholder identification and analysis template",
-        content: "Map stakeholders with influence analysis, communication preferences, and engagement strategies.",
+        content: `Map stakeholders with influence analysis, communication preferences, and engagement strategies.
+
+# Stakeholder Analysis Template
+## Stakeholder Identification and Engagement Planning
+
+### Overview
+This template provides a comprehensive framework for identifying, analyzing, and managing stakeholders throughout the project lifecycle to ensure successful project outcomes and strong stakeholder relationships.
+
+### Stakeholder Identification Framework
+
+#### Stakeholder Categories
+
+##### Internal Stakeholders
+
+**Executive Level**:
+- **Project Sponsor**: {{SponsorName}} - {{SponsorRole}}
+  - **Influence**: Very High
+  - **Interest**: High  
+  - **Power**: Budget approval, strategic decisions
+  - **Expectations**: {{SponsorExpectations}}
+
+- **Department Heads**: {{DepartmentHeads}}
+  - **Influence**: High
+  - **Interest**: Medium-High
+  - **Power**: Resource allocation, process changes
+  - **Expectations**: {{DepartmentExpectations}}
+
+**Management Level**:
+- **Product Manager**: {{ProductManagerName}}
+  - **Influence**: High
+  - **Interest**: Very High
+  - **Power**: Feature prioritization, roadmap decisions
+  - **Expectations**: {{ProductManagerExpectations}}
+
+- **Engineering Manager**: {{EngineeringManagerName}}
+  - **Influence**: High
+  - **Interest**: High
+  - **Power**: Technical decisions, team allocation
+  - **Expectations**: {{EngineeringManagerExpectations}}
+
+**Operational Level**:
+- **Development Team**: {{DevelopmentTeam}}
+  - **Influence**: Medium
+  - **Interest**: High
+  - **Power**: Implementation quality, timeline
+  - **Expectations**: {{DevelopmentTeamExpectations}}
+
+- **QA Team**: {{QATeam}}
+  - **Influence**: Medium
+  - **Interest**: High
+  - **Power**: Quality standards, release approval
+  - **Expectations**: {{QATeamExpectations}}
+
+##### External Stakeholders
+
+**Customer-Facing**:
+- **End Users**: {{EndUserSegments}}
+  - **Influence**: High (through usage patterns)
+  - **Interest**: Very High
+  - **Power**: Adoption, feedback, retention
+  - **Expectations**: {{EndUserExpectations}}
+
+- **Customer Support**: {{CustomerSupportTeam}}
+  - **Influence**: Medium
+  - **Interest**: High
+  - **Power**: User experience insights
+  - **Expectations**: {{CustomerSupportExpectations}}
+
+**Business Partners**:
+- **Vendors/Suppliers**: {{VendorsList}}
+  - **Influence**: Medium
+  - **Interest**: Medium
+  - **Power**: Service delivery, integration support
+  - **Expectations**: {{VendorExpectations}}
+
+- **Integration Partners**: {{IntegrationPartners}}
+  - **Influence**: Medium-High
+  - **Interest**: Medium
+  - **Power**: Technical compatibility, joint solutions
+  - **Expectations**: {{PartnerExpectations}}
+
+**Regulatory/Compliance**:
+- **Compliance Officers**: {{ComplianceOfficers}}
+  - **Influence**: High
+  - **Interest**: Medium
+  - **Power**: Regulatory approval, audit requirements
+  - **Expectations**: {{ComplianceExpectations}}
+
+### Stakeholder Analysis Matrix
+
+#### Power-Interest Grid
+\`\`\`
+STAKEHOLDER POWER-INTEREST MATRIX
+
+           INTEREST
+           Low    Medium    High
+POWER High | A  |   B    |   C
+     Med   | D  |   E    |   F
+     Low   | G  |   H    |   I
+
+Engagement Strategy:
+A (High Power, Low Interest): Keep Satisfied
+B (High Power, Medium Interest): Manage Closely  
+C (High Power, High Interest): Manage Closely
+D (Medium Power, Low Interest): Monitor
+E (Medium Power, Medium Interest): Keep Informed
+F (Medium Power, High Interest): Keep Informed
+G (Low Power, Low Interest): Monitor
+H (Low Power, Medium Interest): Keep Informed
+I (Low Power, High Interest): Keep Informed
+\`\`\`
+
+#### Detailed Stakeholder Assessment
+\`\`\`
+STAKEHOLDER PROFILE TEMPLATE
+
+Name: {{StakeholderName}}
+Role: {{StakeholderRole}}
+Organization: {{StakeholderOrganization}}
+Contact: {{StakeholderContact}}
+
+INFLUENCE ASSESSMENT:
+Power Level: {{PowerLevel}} (High/Medium/Low)
+Interest Level: {{InterestLevel}} (High/Medium/Low)
+Decision Authority: {{DecisionAuthority}}
+Resource Control: {{ResourceControl}}
+Network Influence: {{NetworkInfluence}}
+
+ANALYSIS:
+Primary Concerns: {{PrimaryConcerns}}
+Success Criteria: {{SuccessCriteria}}
+Potential Objections: {{PotentialObjections}}
+Communication Preferences: {{CommunicationPreferences}}
+Availability: {{Availability}}
+
+RELATIONSHIP DYNAMICS:
+Current Relationship: {{CurrentRelationship}}
+Historical Context: {{HistoricalContext}}
+Key Allies: {{KeyAllies}}
+Potential Conflicts: {{PotentialConflicts}}
+
+ENGAGEMENT APPROACH:
+Strategy: {{EngagementStrategy}}
+Frequency: {{CommunicationFrequency}}
+Methods: {{CommunicationMethods}}
+Key Messages: {{KeyMessages}}
+\`\`\`
+
+### Stakeholder Register
+
+| Stakeholder | Power | Interest | Influence | Attitude | Engagement Strategy | Owner |
+|-------------|-------|----------|-----------|----------|-------------------|-------|
+| {{Stakeholder1}} | {{Power1}} | {{Interest1}} | {{Influence1}} | {{Attitude1}} | {{Strategy1}} | {{Owner1}} |
+| {{Stakeholder2}} | {{Power2}} | {{Interest2}} | {{Influence2}} | {{Attitude2}} | {{Strategy2}} | {{Owner2}} |
+| {{Stakeholder3}} | {{Power3}} | {{Interest3}} | {{Influence3}} | {{Attitude3}} | {{Strategy3}} | {{Owner3}} |
+
+**Legend**:
+- **Power**: H=High, M=Medium, L=Low
+- **Interest**: H=High, M=Medium, L=Low
+- **Influence**: H=High, M=Medium, L=Low
+- **Attitude**: S=Supportive, N=Neutral, R=Resistant, U=Unknown
+
+### Communication Planning
+
+#### Communication Strategy by Stakeholder Group
+
+##### High Power, High Interest (Key Players)
+**Stakeholders**: {{KeyPlayerslist}}
+
+**Communication Approach**:
+- **Frequency**: Weekly or bi-weekly updates
+- **Methods**: Face-to-face meetings, detailed reports, presentations
+- **Content**: Comprehensive project status, risks, decisions needed
+- **Timing**: Advance notice for major decisions, real-time for critical issues
+
+**Sample Communication Plan**:
+\`\`\`
+WEEKLY EXECUTIVE UPDATE
+
+To: {{ExecutiveStakeholders}}
+From: {{ProjectManager}}
+Subject: {{ProjectName}} - Week {{WeekNumber}} Update
+
+EXECUTIVE SUMMARY:
+Project Status: {{OverallStatus}}
+Key Accomplishments: {{KeyAccomplishments}}
+Upcoming Milestones: {{UpcomingMilestones}}
+Critical Issues: {{CriticalIssues}}
+
+METRICS DASHBOARD:
+Schedule: {{ScheduleStatus}} ({{ScheduleVariance}})
+Budget: {{BudgetStatus}} ({{BudgetVariance}})
+Quality: {{QualityMetrics}}
+Risk: {{RiskStatus}}
+
+DECISIONS NEEDED:
+1. {{Decision1}} - By {{DecisionDate1}}
+2. {{Decision2}} - By {{DecisionDate2}}
+
+NEXT WEEK PRIORITIES:
+- {{Priority1}}
+- {{Priority2}}
+- {{Priority3}}
+\`\`\`
+
+##### Medium Power, High Interest (Keep Informed)
+**Stakeholders**: {{MediumPowerStakeholders}}
+
+**Communication Approach**:
+- **Frequency**: Bi-weekly updates, milestone communications
+- **Methods**: Email updates, team meetings, project dashboards
+- **Content**: Progress updates, relevant changes, upcoming impacts
+- **Timing**: Regular schedule with ad-hoc updates for significant changes
+
+##### High Power, Low Interest (Keep Satisfied)
+**Stakeholders**: {{HighPowerLowInterest}}
+
+**Communication Approach**:
+- **Frequency**: Monthly or milestone-based updates
+- **Methods**: Executive summaries, brief presentations
+- **Content**: High-level progress, major milestones, budget status
+- **Timing**: Scheduled intervals with alerts for major issues
+
+#### Communication Matrix
+\`\`\`
+COMMUNICATION RESPONSIBILITY MATRIX
+
+                   Exec    PM     Eng    QA    Design  Users
+Project Status     R,A     R,A    I      I     I       I
+Technical Issues   I       R,A    R,A    C     I       -
+Quality Metrics    C       R,A    I      R,A   I       I
+Budget Updates     R,A     C      -      -     -       -
+Schedule Changes   R,A     R,A    C      C     C       I
+Release Plans      C       R,A    C      C     C       R,A
+
+R = Responsible, A = Accountable, C = Consulted, I = Informed
+\`\`\`
+
+### Engagement Strategies
+
+#### Building Stakeholder Support
+
+**For Supporters**:
+- **Leverage Influence**: Use their support to influence neutral or resistant stakeholders
+- **Regular Updates**: Keep them informed to maintain their support
+- **Recognition**: Acknowledge their contributions publicly
+- **Feedback Loop**: Regularly seek their input and advice
+
+**For Neutral Stakeholders**:
+- **Education**: Provide clear information about project benefits
+- **Address Concerns**: Proactively identify and address potential concerns
+- **Quick Wins**: Demonstrate early value to build confidence
+- **Personal Connection**: Understand their personal motivations and goals
+
+**For Resistant Stakeholders**:
+- **Root Cause Analysis**: Understand the source of resistance
+- **Stakeholder Mapping**: Identify influencers who can help address resistance
+- **Gradual Engagement**: Start with small, non-threatening interactions
+- **Address Concerns**: Directly address their specific objections
+- **Alternative Solutions**: Explore compromises or alternative approaches
+
+#### Managing Difficult Stakeholders
+
+**The Skeptic**:
+- **Strategy**: Provide concrete evidence and data
+- **Approach**: Acknowledge their concerns and provide detailed responses
+- **Communication**: Use facts, metrics, and case studies
+- **Timeline**: Allow time for them to process information
+
+**The Busy Executive**:
+- **Strategy**: Respect their time with concise, high-value communications
+- **Approach**: Focus on business impact and strategic alignment
+- **Communication**: Executive summaries, key decision points only
+- **Timeline**: Work around their schedule, provide materials in advance
+
+**The Detail-Oriented**:
+- **Strategy**: Provide comprehensive documentation and analysis
+- **Approach**: Be thorough and prepared for detailed questions
+- **Communication**: Technical specifications, detailed project plans
+- **Timeline**: Allow extra time for their review and questions
+
+### Stakeholder Engagement Activities
+
+#### Regular Engagement Activities
+
+**Quarterly Stakeholder Reviews**:
+- **Participants**: All key stakeholders
+- **Duration**: 2-3 hours
+- **Agenda**: 
+  - Project progress review
+  - Upcoming milestone preview
+  - Risk and issue discussion
+  - Feedback and input session
+  - Q&A session
+
+**Monthly Status Meetings**:
+- **Participants**: Management-level stakeholders
+- **Duration**: 1 hour
+- **Format**: Presentation + discussion
+- **Focus**: Progress, issues, decisions needed
+
+**Sprint Reviews/Demos**:
+- **Participants**: Product stakeholders, end users
+- **Duration**: 1-2 hours
+- **Format**: Live demonstration + feedback
+- **Focus**: Feature functionality, user experience
+
+#### Special Engagement Activities
+
+**Stakeholder Workshops**:
+- **Requirements Gathering**: {{RequirementsWorkshopPlan}}
+- **Design Reviews**: {{DesignReviewPlan}}
+- **User Acceptance**: {{UserAcceptancePlan}}
+- **Go-Live Planning**: {{GoLivePlanningPlan}}
+
+**One-on-One Meetings**:
+- **Frequency**: Monthly or as needed
+- **Purpose**: Address specific concerns, build relationships
+- **Duration**: 30-60 minutes
+- **Follow-up**: Action items and commitments documented
+
+### Risk Management for Stakeholders
+
+#### Stakeholder-Related Risks
+
+**High-Risk Scenarios**:
+1. **Key Stakeholder Departure**
+   - **Risk**: Loss of support, knowledge, or decision-making authority
+   - **Mitigation**: Identify backup stakeholders, document decisions, maintain relationships
+
+2. **Conflicting Stakeholder Priorities**
+   - **Risk**: Project paralysis, scope creep, team confusion
+   - **Mitigation**: Clear escalation process, documented priorities, regular alignment sessions
+
+3. **Stakeholder Disengagement**
+   - **Risk**: Lack of input, late feedback, poor adoption
+   - **Mitigation**: Regular check-ins, value demonstrations, addressing concerns
+
+**Risk Monitoring**:
+\`\`\`
+STAKEHOLDER RISK INDICATORS
+
+Engagement Level:
+- Meeting attendance rates: {{AttendanceRate}}
+- Response time to communications: {{ResponseTime}}
+- Feedback quality and quantity: {{FeedbackQuality}}
+
+Support Level:
+- Public statements about project: {{PublicStatements}}
+- Resource allocation decisions: {{ResourceDecisions}}
+- Escalation patterns: {{EscalationPatterns}}
+
+Communication Effectiveness:
+- Clarity of requirements: {{RequirementsClarity}}
+- Decision-making speed: {{DecisionSpeed}}
+- Conflict resolution time: {{ConflictResolution}}
+\`\`\`
+
+### Measuring Stakeholder Engagement
+
+#### Key Performance Indicators
+
+**Engagement Metrics**:
+- **Stakeholder Satisfaction Score**: {{SatisfactionScore}}/10
+- **Communication Effectiveness**: {{CommunicationEffectiveness}}%
+- **Decision Timeliness**: {{DecisionTimeliness}} days average
+- **Issue Resolution Time**: {{IssueResolutionTime}} days average
+
+**Participation Metrics**:
+- **Meeting Attendance**: {{MeetingAttendance}}%
+- **Feedback Response Rate**: {{FeedbackResponseRate}}%
+- **Review Participation**: {{ReviewParticipation}}%
+
+#### Stakeholder Feedback Collection
+
+**Regular Surveys**:
+\`\`\`
+STAKEHOLDER SATISFACTION SURVEY
+
+Project: {{ProjectName}}
+Period: {{SurveyPeriod}}
+
+Communication Effectiveness:
+1. How would you rate the frequency of project communications?
+   □ Too Frequent □ Just Right □ Too Infrequent
+
+2. How would you rate the quality of information provided?
+   □ Excellent □ Good □ Fair □ Poor
+
+3. Are you receiving information in your preferred format?
+   □ Yes □ No (please specify preferred format: _________)
+
+Decision Making:
+4. How satisfied are you with your level of involvement in decisions?
+   □ Very Satisfied □ Satisfied □ Neutral □ Dissatisfied
+
+5. Are project decisions being made in a timely manner?
+   □ Always □ Usually □ Sometimes □ Rarely
+
+Overall Satisfaction:
+6. How would you rate your overall satisfaction with stakeholder management?
+   1-10 scale: {{SatisfactionRating}}
+
+7. What improvements would you suggest?
+   {{SuggestionsFeedback}}
+\`\`\`
+
+### Continuous Improvement
+
+#### Stakeholder Management Review Process
+
+**Monthly Reviews**:
+- Stakeholder register updates
+- Engagement strategy effectiveness
+- Communication plan adjustments
+- Risk assessment updates
+
+**Quarterly Assessments**:
+- Comprehensive stakeholder analysis
+- Relationship mapping updates
+- Engagement strategy revisions
+- Lessons learned documentation
+
+**Project Retrospectives**:
+- Stakeholder management effectiveness
+- Communication success factors
+- Relationship building outcomes
+- Recommendations for future projects
+
+This comprehensive stakeholder analysis template ensures systematic identification, analysis, and management of all project stakeholders for successful project outcomes and strong relationships.`,
         category: "sdlc_templates",
         component: "stakeholder_analysis",
         sdlcStage: "requirements",
@@ -11483,7 +16740,546 @@ This software is released under {{LicenseType}}. See LICENSE file for details.
         id: "sdlc_templates-ux_research-design",
         title: "UX Research Plan",
         description: "User experience research and testing template",
-        content: "Plan user experience research with user personas, testing scenarios, and feedback collection methods.",
+        content: `Plan user experience research with user personas, testing scenarios, and feedback collection methods.
+
+# UX Research Plan Template
+## User Experience Research and Testing Framework
+
+### Overview
+This template provides a comprehensive framework for planning, conducting, and analyzing user experience research to inform design decisions and improve product usability.
+
+### Research Objectives and Goals
+
+#### Primary Research Questions
+**Core Questions**:
+1. **User Behavior**: {{UserBehaviorQuestion}}
+2. **Usability Issues**: {{UsabilityQuestion}}  
+3. **Feature Effectiveness**: {{FeatureEffectivenessQuestion}}
+4. **User Satisfaction**: {{UserSatisfactionQuestion}}
+5. **Accessibility**: {{AccessibilityQuestion}}
+
+**Success Metrics**:
+- **Task Completion Rate**: {{TaskCompletionTarget}}%
+- **Task Success Time**: {{TaskTimeTarget}} seconds
+- **Error Rate**: <{{ErrorRateTarget}}%
+- **User Satisfaction**: {{SatisfactionTarget}}/10
+- **System Usability Scale (SUS)**: {{SUSTarget}}+
+
+#### Research Scope
+**In Scope**:
+- {{InScopeItem1}}
+- {{InScopeItem2}}
+- {{InScopeItem3}}
+
+**Out of Scope**:
+- {{OutOfScopeItem1}}
+- {{OutOfScopeItem2}}
+- {{OutOfScopeItem3}}
+
+### User Research Strategy
+
+#### Target Audience Analysis
+
+##### Primary User Personas
+
+**Persona 1: {{Persona1Name}}**
+\`\`\`
+PERSONA PROFILE
+
+Demographics:
+- Age: {{Persona1Age}}
+- Role: {{Persona1Role}}
+- Experience Level: {{Persona1Experience}}
+- Location: {{Persona1Location}}
+
+Goals:
+- Primary: {{Persona1PrimaryGoal}}
+- Secondary: {{Persona1SecondaryGoal}}
+- Personal: {{Persona1PersonalGoal}}
+
+Frustrations:
+- {{Persona1Frustration1}}
+- {{Persona1Frustration2}}
+- {{Persona1Frustration3}}
+
+Technology Comfort:
+- Device Usage: {{Persona1DeviceUsage}}
+- Technical Skills: {{Persona1TechnicalSkills}}
+- Preferred Platforms: {{Persona1PreferredPlatforms}}
+
+Behavioral Patterns:
+- Usage Frequency: {{Persona1UsageFrequency}}
+- Time Constraints: {{Persona1TimeConstraints}}
+- Context of Use: {{Persona1ContextOfUse}}
+
+Quote: "{{Persona1Quote}}"
+\`\`\`
+
+**Persona 2: {{Persona2Name}}**
+\`\`\`
+PERSONA PROFILE
+
+Demographics:
+- Age: {{Persona2Age}}
+- Role: {{Persona2Role}}
+- Experience Level: {{Persona2Experience}}
+- Location: {{Persona2Location}}
+
+Goals:
+- Primary: {{Persona2PrimaryGoal}}
+- Secondary: {{Persona2SecondaryGoal}}
+- Personal: {{Persona2PersonalGoal}}
+
+Frustrations:
+- {{Persona2Frustration1}}
+- {{Persona2Frustration2}}
+- {{Persona2Frustration3}}
+
+Technology Comfort:
+- Device Usage: {{Persona2DeviceUsage}}
+- Technical Skills: {{Persona2TechnicalSkills}}
+- Preferred Platforms: {{Persona2PreferredPlatforms}}
+
+Behavioral Patterns:
+- Usage Frequency: {{Persona2UsageFrequency}}
+- Time Constraints: {{Persona2TimeConstraints}}
+- Context of Use: {{Persona2ContextOfUse}}
+
+Quote: "{{Persona2Quote}}"
+\`\`\`
+
+##### User Segmentation
+\`\`\`
+USER SEGMENTATION MATRIX
+
+Segment          | % of Users | Primary Needs        | Key Characteristics
+-----------------|------------|---------------------|-------------------
+{{Segment1}}     | {{Pct1}}%  | {{Needs1}}          | {{Characteristics1}}
+{{Segment2}}     | {{Pct2}}%  | {{Needs2}}          | {{Characteristics2}}
+{{Segment3}}     | {{Pct3}}%  | {{Needs3}}          | {{Characteristics3}}
+{{Segment4}}     | {{Pct4}}%  | {{Needs4}}          | {{Characteristics4}}
+\`\`\`
+
+### Research Methodology
+
+#### Mixed Methods Approach
+
+##### Qualitative Research Methods
+
+**User Interviews**
+- **Purpose**: Deep understanding of user needs, motivations, and pain points
+- **Participants**: {{InterviewParticipantCount}} users per persona
+- **Duration**: {{InterviewDuration}} minutes per session
+- **Format**: {{InterviewFormat}} (in-person/remote)
+- **Recording**: {{RecordingMethod}}
+
+**Interview Script Template**:
+\`\`\`
+INTERVIEW INTRODUCTION (5 minutes)
+- Introduction and role explanation
+- Consent for recording and data use
+- Confidentiality assurance
+- Overview of session structure
+
+BACKGROUND QUESTIONS (10 minutes)
+1. Can you tell me about your role and how you currently {{UserContext}}?
+2. What tools or applications do you use most frequently?
+3. What are your biggest challenges with {{RelevantDomain}}?
+
+EXPERIENCE QUESTIONS (20 minutes)
+4. Walk me through your typical workflow when {{SpecificTask}}.
+5. What works well in your current process?
+6. What frustrations do you encounter?
+7. How do you currently handle {{SpecificScenario}}?
+
+PRODUCT-SPECIFIC QUESTIONS (15 minutes)
+8. [Demo/show prototype] What are your first impressions?
+9. How would this fit into your current workflow?
+10. What would make this more useful for you?
+
+CLOSING (5 minutes)
+- Any additional thoughts or questions?
+- Thank you and next steps
+\`\`\`
+
+**Usability Testing**
+- **Methodology**: {{UsabilityTestingMethod}}
+- **Test Environment**: {{TestEnvironment}}
+- **Tasks**: {{TaskCount}} core user tasks
+- **Participants**: {{UsabilityParticipantCount}} per persona
+- **Moderation**: {{ModerationStyle}}
+
+##### Quantitative Research Methods
+
+**User Surveys**
+- **Sample Size**: {{SurveySampleSize}} participants
+- **Distribution Method**: {{DistributionMethod}}
+- **Response Target**: {{ResponseRateTarget}}% response rate
+- **Timeline**: {{SurveyTimeline}}
+
+**Analytics Review**
+- **Current Metrics**: {{AnalyticsScope}}
+- **Key Performance Indicators**: 
+  - {{KPI1}}: {{KPI1Baseline}}
+  - {{KPI2}}: {{KPI2Baseline}}
+  - {{KPI3}}: {{KPI3Baseline}}
+- **Analysis Period**: {{AnalysisPeriod}}
+
+### Research Execution Plan
+
+#### Phase 1: Discovery Research ({{Phase1Duration}})
+
+**Week 1-2: Preparation**
+- [ ] Finalize research questions and hypotheses
+- [ ] Develop interview guides and survey instruments
+- [ ] Recruit participants for interviews and usability testing
+- [ ] Set up testing environment and tools
+- [ ] Conduct pilot interviews and testing sessions
+
+**Participant Recruitment**:
+\`\`\`
+RECRUITMENT CRITERIA
+
+Primary Criteria (Must Have):
+- {{PrimaryCriteria1}}
+- {{PrimaryCriteria2}}
+- {{PrimaryCriteria3}}
+
+Secondary Criteria (Nice to Have):
+- {{SecondaryCriteria1}}
+- {{SecondaryCriteria2}}
+- {{SecondaryCriteria3}}
+
+Exclusion Criteria:
+- {{ExclusionCriteria1}}
+- {{ExclusionCriteria2}}
+- {{ExclusionCriteria3}}
+
+Compensation: {{ParticipantCompensation}}
+\`\`\`
+
+**Week 3-4: Data Collection**
+- [ ] Conduct user interviews
+- [ ] Deploy user surveys
+- [ ] Analyze existing analytics data
+- [ ] Document initial findings and patterns
+
+#### Phase 2: Evaluative Research ({{Phase2Duration}})
+
+**Week 1: Prototype Development**
+- [ ] Create testable prototypes based on discovery insights
+- [ ] Develop usability testing scenarios and tasks
+- [ ] Prepare testing materials and consent forms
+- [ ] Set up recording and analysis tools
+
+**Usability Testing Scenarios**:
+\`\`\`
+SCENARIO 1: {{Scenario1Name}}
+Context: {{Scenario1Context}}
+Goal: {{Scenario1Goal}}
+Tasks:
+1. {{Task1Description}}
+   Success Criteria: {{Task1Success}}
+2. {{Task2Description}}
+   Success Criteria: {{Task2Success}}
+3. {{Task3Description}}
+   Success Criteria: {{Task3Success}}
+
+SCENARIO 2: {{Scenario2Name}}
+Context: {{Scenario2Context}}
+Goal: {{Scenario2Goal}}
+Tasks:
+1. {{Task4Description}}
+   Success Criteria: {{Task4Success}}
+2. {{Task5Description}}
+   Success Criteria: {{Task5Success}}
+\`\`\`
+
+**Week 2-3: Testing Execution**
+- [ ] Conduct moderated usability testing sessions
+- [ ] Run unmoderated remote testing (if applicable)
+- [ ] Collect System Usability Scale (SUS) scores
+- [ ] Gather post-test feedback and satisfaction ratings
+
+**Week 4: Analysis and Reporting**
+- [ ] Analyze usability testing results
+- [ ] Identify key usability issues and opportunities
+- [ ] Prioritize findings based on severity and frequency
+- [ ] Prepare recommendations and design implications
+
+### Testing Scenarios and Tasks
+
+#### Core User Journey Testing
+
+**Journey 1: {{Journey1Name}}**
+\`\`\`
+USER STORY: As a {{UserType}}, I want to {{UserGoal}} so that {{UserBenefit}}.
+
+TASK BREAKDOWN:
+Task 1.1: {{Task1_1}}
+- Expected Time: {{ExpectedTime1_1}} seconds
+- Success Criteria: {{SuccessCriteria1_1}}
+- Error Scenarios: {{ErrorScenarios1_1}}
+
+Task 1.2: {{Task1_2}}
+- Expected Time: {{ExpectedTime1_2}} seconds
+- Success Criteria: {{SuccessCriteria1_2}}
+- Error Scenarios: {{ErrorScenarios1_2}}
+
+MEASUREMENT CRITERIA:
+- Task Completion: {{TaskCompletionCriteria}}
+- Task Efficiency: {{TaskEfficiencyCriteria}}
+- User Satisfaction: {{UserSatisfactionCriteria}}
+- Error Recovery: {{ErrorRecoveryCriteria}}
+\`\`\`
+
+#### Accessibility Testing
+
+**Accessibility Scenarios**:
+- **Screen Reader Navigation**: {{ScreenReaderScenario}}
+- **Keyboard-Only Navigation**: {{KeyboardScenario}}
+- **Color Blindness Simulation**: {{ColorBlindnessScenario}}
+- **Mobile Accessibility**: {{MobileAccessibilityScenario}}
+
+**WCAG 2.1 Checklist**:
+- [ ] **Perceivable**: Text alternatives, captions, color contrast
+- [ ] **Operable**: Keyboard accessible, timing, seizures
+- [ ] **Understandable**: Readable, predictable, input assistance
+- [ ] **Robust**: Compatible with assistive technologies
+
+### Data Collection Framework
+
+#### Quantitative Data Collection
+
+**Performance Metrics**:
+\`\`\`javascript
+// Usability Testing Metrics Template
+const usabilityMetrics = {
+  taskCompletion: {
+    task1: { completed: 0, total: 0, rate: 0 },
+    task2: { completed: 0, total: 0, rate: 0 },
+    task3: { completed: 0, total: 0, rate: 0 }
+  },
+  taskTime: {
+    task1: { times: [], average: 0, median: 0 },
+    task2: { times: [], average: 0, median: 0 },
+    task3: { times: [], average: 0, median: 0 }
+  },
+  errors: {
+    total: 0,
+    byTask: { task1: 0, task2: 0, task3: 0 },
+    byType: { navigation: 0, input: 0, comprehension: 0 }
+  },
+  satisfaction: {
+    scores: [],
+    average: 0,
+    distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+  }
+};
+\`\`\`
+
+**Survey Questions**:
+\`\`\`
+POST-TASK QUESTIONNAIRE
+
+Task Difficulty (1-7 scale):
+1. How difficult was this task to complete?
+   Very Easy [1] [2] [3] [4] [5] [6] [7] Very Difficult
+
+Task Satisfaction (1-7 scale):
+2. How satisfied were you with your ability to complete this task?
+   Very Dissatisfied [1] [2] [3] [4] [5] [6] [7] Very Satisfied
+
+OVERALL EXPERIENCE
+
+System Usability Scale (SUS):
+1. I think that I would like to use this system frequently.
+   Strongly Disagree [1] [2] [3] [4] [5] Strongly Agree
+
+2. I found the system unnecessarily complex.
+   Strongly Disagree [1] [2] [3] [4] [5] Strongly Agree
+
+[Continue with all 10 SUS questions...]
+
+Net Promoter Score:
+How likely are you to recommend this product to a friend or colleague?
+0 [Not at all likely] ... 10 [Extremely likely]
+\`\`\`
+
+#### Qualitative Data Collection
+
+**Observation Template**:
+\`\`\`
+USABILITY TESTING OBSERVATION SHEET
+
+Participant: {{ParticipantID}}
+Date: {{TestDate}}
+Task: {{TaskName}}
+
+BEHAVIORAL OBSERVATIONS:
+Time Started: {{StartTime}}
+Time Completed: {{EndTime}}
+Task Completion: {{Completed/Partial/Failed}}
+
+INTERACTION PATTERNS:
+Navigation Approach: {{NavigationApproach}}
+Search Behavior: {{SearchBehavior}}
+Error Recovery: {{ErrorRecovery}}
+
+VERBAL FEEDBACK:
+Positive Comments: {{PositiveComments}}
+Negative Comments: {{NegativeComments}}
+Confusion Points: {{ConfusionPoints}}
+Suggestions: {{UserSuggestions}}
+
+EMOTIONAL INDICATORS:
+Frustration Level: {{FrustrationLevel}}
+Confidence Level: {{ConfidenceLevel}}
+Overall Mood: {{OverallMood}}
+\`\`\`
+
+### Analysis and Reporting
+
+#### Data Analysis Framework
+
+**Quantitative Analysis**:
+\`\`\`python
+# Python script for usability metrics analysis
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+def analyze_usability_data(data):
+    results = {}
+    
+    # Task completion analysis
+    results['completion_rates'] = {
+        task: (completed/total)*100 
+        for task, (completed, total) in data['completion'].items()
+    }
+    
+    # Task time analysis
+    results['time_analysis'] = {
+        task: {
+            'mean': np.mean(times),
+            'median': np.median(times),
+            'std_dev': np.std(times)
+        }
+        for task, times in data['task_times'].items()
+    }
+    
+    # Error analysis
+    results['error_rates'] = {
+        task: (errors/attempts)*100
+        for task, (errors, attempts) in data['errors'].items()
+    }
+    
+    # SUS score calculation
+    sus_scores = data['sus_responses']
+    results['sus_score'] = calculate_sus_score(sus_scores)
+    
+    return results
+
+def calculate_sus_score(responses):
+    # SUS scoring algorithm
+    total = 0
+    for i, response in enumerate(responses):
+        if i % 2 == 0:  # Odd-numbered questions
+            total += response - 1
+        else:  # Even-numbered questions
+            total += 5 - response
+    
+    return (total * 2.5)
+\`\`\`
+
+**Thematic Analysis for Qualitative Data**:
+1. **Data Familiarization**: Read through all transcripts and notes
+2. **Initial Coding**: Identify key themes and patterns
+3. **Theme Development**: Group codes into meaningful themes
+4. **Theme Refinement**: Review and refine theme definitions
+5. **Reporting**: Present themes with supporting quotes
+
+#### Research Findings Template
+
+\`\`\`
+UX RESEARCH FINDINGS REPORT
+
+EXECUTIVE SUMMARY:
+{{ExecutiveSummary}}
+
+KEY INSIGHTS:
+1. {{KeyInsight1}}
+2. {{KeyInsight2}}
+3. {{KeyInsight3}}
+
+USABILITY METRICS:
+- Overall Task Completion: {{OverallCompletion}}%
+- Average Task Time: {{AverageTaskTime}} seconds
+- Error Rate: {{OverallErrorRate}}%
+- SUS Score: {{SUSScore}}/100
+- User Satisfaction: {{UserSatisfaction}}/10
+
+CRITICAL USABILITY ISSUES:
+Issue 1: {{Issue1Title}}
+- Severity: {{Issue1Severity}}
+- Frequency: {{Issue1Frequency}}%
+- Impact: {{Issue1Impact}}
+- Recommendation: {{Issue1Recommendation}}
+
+Issue 2: {{Issue2Title}}
+- Severity: {{Issue2Severity}}
+- Frequency: {{Issue2Frequency}}%
+- Impact: {{Issue2Impact}}
+- Recommendation: {{Issue2Recommendation}}
+
+DESIGN OPPORTUNITIES:
+1. {{Opportunity1}}
+2. {{Opportunity2}}
+3. {{Opportunity3}}
+
+USER PERSONAS UPDATE:
+{{PersonaUpdates}}
+
+NEXT STEPS:
+{{NextSteps}}
+\`\`\`
+
+### Implementation and Follow-up
+
+#### Design Recommendations
+
+**Priority Level 1 (Critical)**:
+- {{P1Recommendation1}}
+- {{P1Recommendation2}}
+- {{P1Recommendation3}}
+
+**Priority Level 2 (Important)**:
+- {{P2Recommendation1}}
+- {{P2Recommendation2}}
+- {{P2Recommendation3}}
+
+**Priority Level 3 (Nice to Have)**:
+- {{P3Recommendation1}}
+- {{P3Recommendation2}}
+- {{P3Recommendation3}}
+
+#### Success Measurement
+
+**Pre/Post Comparison Metrics**:
+- Task Completion Rate: {{PreCompletion}}% → Target: {{PostCompletion}}%
+- Average Task Time: {{PreTime}}s → Target: {{PostTime}}s
+- User Satisfaction: {{PreSatisfaction}}/10 → Target: {{PostSatisfaction}}/10
+- Error Rate: {{PreErrors}}% → Target: {{PostErrors}}%
+
+#### Continuous Research Plan
+
+**Ongoing Research Activities**:
+- **Monthly User Feedback**: {{MonthlyFeedbackPlan}}
+- **Quarterly Usability Testing**: {{QuarterlyTestingPlan}}
+- **Annual User Research**: {{AnnualResearchPlan}}
+- **A/B Testing Program**: {{ABTestingProgram}}
+
+This comprehensive UX research plan template ensures systematic user research that leads to actionable insights and improved user experiences.`,
         category: "sdlc_templates",
         component: "ux_research",
         sdlcStage: "design",
