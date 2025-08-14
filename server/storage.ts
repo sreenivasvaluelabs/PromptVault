@@ -227,18 +227,6 @@ public class RedisCacheService : ICacheService
         metadata: { layer: "foundation", complexity: "high" }
       },
       {
-        id: "foundation-cache_service-development",
-        title: "Cache Service",
-        description: "Comprehensive caching service with Redis integration and cache invalidation",
-        content: "Create a robust caching service with Redis integration, cache warming, invalidation strategies, and performance monitoring for Sitecore applications.",
-        category: "foundation",
-        component: "cache_service",
-        sdlcStage: "development",
-        tags: ["foundation", "cache", "redis", "performance", "invalidation"],
-        context: "implementation",
-        metadata: { layer: "foundation", complexity: "high" }
-      },
-      {
         id: "foundation-configuration_service-development",
         title: "Configuration Service",
         description: "Environment-aware configuration service with caching and Sitecore integration",
