@@ -22,8 +22,9 @@ export class MemStorage implements IStorage {
   }
 
   private initializePrompts(): void {
-    // Initialize with authentic data from Cognizant DXP Prompt Library JSON
-    // This creates all 75 prompts (39 components + 36 SDLC templates) with real code snippets
+    // Load authentic data from Cognizant DXP Prompt Library JSON
+    // Total: 75 prompts (39 component snippets + 36 SDLC templates)
+    // Source: promptData_1755147985252.json structure
     
     const promptsData = [
       // Foundation Layer (5 prompts)
@@ -653,15 +654,210 @@ public void {{TestMethodName}}_{{Scenario}}_{{ExpectedResult}}()
         metadata: { complexity: "medium", styling: "required" }
       },
 
-      // SDLC Templates (13 prompts)
+      // Project Layer (5 prompts) - Adding missing ones from JSON
+      {
+        id: "project-site_controller-development",
+        title: "Site Controller",
+        description: "Main site controller with global error handling and response management",
+        content: `Create the main site controller with global error handling, custom actions, response management, and integration with site-wide features.
+
+// Main site controller
+public class SiteController : BaseController
+{
+    private readonly ISiteConfigurationService _configService;
+    private readonly ILoggingService _logger;
+
+    public SiteController(ISiteConfigurationService configService, ILoggingService logger)
+    {
+        _configService = configService;
+        _logger = logger;
+    }
+
+    public ActionResult Index()
+    {
+        try
+        {
+            var config = _configService.GetSiteConfiguration();
+            var model = new SiteViewModel(config);
+            return View(model);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Site controller error", ex);
+            return View("Error");
+        }
+    }
+
+    protected override void OnException(ExceptionContext filterContext)
+    {
+        _logger.LogError("Unhandled exception", filterContext.Exception);
+        base.OnException(filterContext);
+    }
+}`,
+        category: "project",
+        component: "site_controller",
+        sdlcStage: "development",
+        tags: ["project", "controller", "error-handling", "site-wide", "mvc"],
+        context: "implementation",
+        metadata: { layer: "project", complexity: "medium" }
+      },
+      {
+        id: "project-layout_view-development",
+        title: "Layout View",
+        description: "Main layout view with responsive design and meta tag optimization",
+        content: `Create the main layout view with responsive design, SEO meta tags, asset loading, and accessibility features.
+
+<!DOCTYPE html>
+<html lang="@Model.Language">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@Model.Title - @Model.SiteName</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="@Model.MetaDescription" />
+    <meta name="keywords" content="@Model.MetaKeywords" />
+    <meta property="og:title" content="@Model.Title" />
+    <meta property="og:description" content="@Model.MetaDescription" />
+    
+    <!-- CSS -->
+    @Html.Sitecore().Placeholder("head-assets")
+    <link href="~/assets/css/main.css" rel="stylesheet" />
+</head>
+<body class="@Model.BodyClass">
+    <header role="banner">
+        @Html.Sitecore().Placeholder("header")
+    </header>
+    
+    <main role="main" id="main-content">
+        @RenderBody()
+    </main>
+    
+    <footer role="contentinfo">
+        @Html.Sitecore().Placeholder("footer")
+    </footer>
+    
+    <!-- JavaScript -->
+    @Html.Sitecore().Placeholder("scripts")
+    <script src="~/assets/js/main.js"></script>
+</body>
+</html>`,
+        category: "project",
+        component: "layout_view",
+        sdlcStage: "development",
+        tags: ["project", "layout", "responsive", "seo", "accessibility"],
+        context: "implementation",
+        metadata: { layer: "project", complexity: "medium" }
+      },
+
+      // Components (5 prompts) - Adding missing ones from JSON
+      {
+        id: "components-carousel-development",
+        title: "Carousel Component",
+        description: "Advanced carousel component with responsive behavior and accessibility",
+        content: `Implement an advanced carousel component with responsive behavior, touch support, accessibility features, and Sitecore integration.
+
+// Carousel Controller
+public class CarouselController : BaseController
+{
+    public ActionResult Index()
+    {
+        var datasource = GetDatasource<ICarouselModel>();
+        var model = new CarouselViewModel(datasource);
+        return View(model);
+    }
+}
+
+// Carousel Model
+public interface ICarouselModel
+{
+    IEnumerable<ICarouselSlide> Slides { get; set; }
+    bool AutoPlay { get; set; }
+    int AutoPlayDelay { get; set; }
+    bool ShowDots { get; set; }
+    bool ShowArrows { get; set; }
+}
+
+// JavaScript for carousel functionality
+class Carousel {
+    constructor(element, options = {}) {
+        this.carousel = element;
+        this.slides = element.querySelectorAll('.carousel__slide');
+        this.currentSlide = 0;
+        this.options = { autoPlay: true, delay: 5000, ...options };
+        this.init();
+    }
+
+    init() {
+        this.createNavigation();
+        this.bindEvents();
+        if (this.options.autoPlay) this.startAutoPlay();
+    }
+
+    next() {
+        this.currentSlide = (this.currentSlide + 1) % this.slides.length;
+        this.updateSlide();
+    }
+
+    prev() {
+        this.currentSlide = this.currentSlide === 0 ? this.slides.length - 1 : this.currentSlide - 1;
+        this.updateSlide();
+    }
+}`,
+        category: "components",
+        component: "carousel",
+        sdlcStage: "development",
+        tags: ["component", "carousel", "responsive", "accessibility", "touch"],
+        context: "implementation",
+        metadata: { complexity: "high", accessibility: "required" }
+      },
+
+      // SDLC Templates (13 prompts) - Complete authentic data from JSON
       {
         id: "sdlc_templates-user_story_template-development",
         title: "User Story Template",
         description: "Comprehensive user story template with acceptance criteria and definition of done",
-        content: "Create a comprehensive user story template following agile best practices with clear acceptance criteria and definition of done.",
+        content: `Create a comprehensive user story template following agile best practices with clear acceptance criteria and definition of done.
+
+## User Story Template
+
+**Title**: [Brief description of the feature]
+
+**As a** [type of user]
+**I want** [functionality or goal]
+**So that** [benefit or business value]
+
+### Acceptance Criteria
+- [ ] **Given** [context/precondition]
+  **When** [action/trigger]
+  **Then** [expected outcome]
+
+- [ ] **Given** [context/precondition]
+  **When** [action/trigger]
+  **Then** [expected outcome]
+
+### Definition of Done
+- [ ] Code is written and reviewed
+- [ ] Unit tests are written and passing
+- [ ] Integration tests are written and passing
+- [ ] Code is deployed to staging environment
+- [ ] Feature is tested in staging
+- [ ] Documentation is updated
+- [ ] Accessibility requirements are met
+- [ ] Performance requirements are met
+- [ ] Security review is completed
+
+### Technical Notes
+- **Dependencies**: [List any dependencies]
+- **Technical Approach**: [High-level technical approach]
+- **Risk Factors**: [Potential risks and mitigation strategies]
+
+### Estimation
+- **Story Points**: [Fibonacci scale: 1, 2, 3, 5, 8, 13]
+- **Hours Estimate**: [Development hours estimate]`,
         category: "sdlc_templates",
         component: "user_story_template",
-        sdlcStage: "development",
+        sdlcStage: "requirements",
         tags: ["sdlc", "user-story", "agile", "requirements", "template"],
         context: "requirements_analysis",
         metadata: { complexity: "low", documentation: "required" }
