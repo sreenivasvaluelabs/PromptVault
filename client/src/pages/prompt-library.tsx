@@ -41,14 +41,14 @@ export default function PromptLibrary() {
               <Menu className="h-5 w-5" />
             </Button>
             <div className="flex items-center space-x-3">
-              {/* Cognizant logo representation */}
-              <div className="w-8 h-8 bg-cognizant-blue rounded-md flex items-center justify-center">
-                <span className="text-white font-bold text-sm">C</span>
+              {/* Developer Platform logo representation */}
+              <div className="w-8 h-8 bg-blue-600 rounded-md flex items-center justify-center">
+                <span className="text-white font-bold text-sm">DX</span>
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">DXP Prompt Library</h1>
+                <h1 className="text-xl font-semibold text-gray-900">Developer Experience Platform</h1>
                 <p className="text-sm text-gray-500">
-                  Sitecore 10.4 • Helix Architecture • v2.0.0
+                  Code Templates • SDLC Workflows • Best Practices
                 </p>
               </div>
             </div>

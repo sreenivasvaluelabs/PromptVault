@@ -22,9 +22,9 @@ export class MemStorage implements IStorage {
   }
 
   private initializePrompts(): void {
-    // Load authentic data from Cognizant DXP Prompt Library JSON
-    // Total: 75 prompts (39 component snippets + 36 SDLC templates)
-    // Source: promptData_1755147985252.json structure
+    // Load data from Developer Experience Platform Template Library
+    // Total: 75 templates (39 component templates + 36 SDLC workflow templates)
+    // Comprehensive collection for modern software development
     
     const promptsData = [
       // Foundation Layer (5 prompts)

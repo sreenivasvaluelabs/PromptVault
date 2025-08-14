@@ -51,24 +51,24 @@ export function PromptDisplay({ prompt }: PromptDisplayProps) {
       <div className="flex-1 overflow-y-auto bg-gray-50 p-8">
         <div className="max-w-4xl mx-auto">
           <div className="text-center">
-            <div className="w-16 h-16 bg-cognizant-blue rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
               <i className="fas fa-code text-white text-2xl" />
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Welcome to DXP Prompt Library
+              Welcome to Developer Experience Platform
             </h2>
             <p className="text-gray-600 text-lg mb-8">
-              Your comprehensive toolkit for Sitecore 10.4 development with Helix architecture
+              Your comprehensive toolkit for modern software development with code templates, SDLC workflows, and best practices
             </p>
 
             {/* Quick Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
-                <div className="w-12 h-12 bg-cognizant-light-blue rounded-full flex items-center justify-center mx-auto mb-3">
-                  <i className="fas fa-cubes text-cognizant-blue text-xl" />
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <i className="fas fa-cubes text-blue-600 text-xl" />
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900">{allPrompts.filter(p => p.category !== 'sdlc_templates').length}</h3>
-                <p className="text-gray-600">Component Snippets</p>
+                <p className="text-gray-600">Component Templates</p>
               </div>
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
                 <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -82,7 +82,7 @@ export function PromptDisplay({ prompt }: PromptDisplayProps) {
                   <i className="fas fa-layer-group text-blue-600 text-xl" />
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900">7</h3>
-                <p className="text-gray-600">Architecture Layers</p>
+                <p className="text-gray-600">Categories</p>
               </div>
             </div>
 
@@ -94,35 +94,35 @@ export function PromptDisplay({ prompt }: PromptDisplayProps) {
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex items-start space-x-3">
-                    <div className="w-6 h-6 bg-cognizant-blue rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                       <span className="text-white text-sm font-bold">1</span>
                     </div>
                     <div>
                       <h4 className="font-medium text-gray-900">Browse Categories</h4>
                       <p className="text-gray-600 text-sm">
-                        Explore the 7 main categories in the left sidebar to find the components you need.
+                        Explore the 7 main categories in the left sidebar to find the templates you need.
                       </p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-3">
-                    <div className="w-6 h-6 bg-cognizant-blue rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                       <span className="text-white text-sm font-bold">2</span>
                     </div>
                     <div>
-                      <h4 className="font-medium text-gray-900">Select a Prompt</h4>
+                      <h4 className="font-medium text-gray-900">Select a Template</h4>
                       <p className="text-gray-600 text-sm">
-                        Click on any prompt title to view its content and implementation details.
+                        Click on any template title to view its content and implementation details.
                       </p>
                     </div>
                   </div>
                   <div className="flex items-start space-x-3">
-                    <div className="w-6 h-6 bg-cognizant-blue rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                       <span className="text-white text-sm font-bold">3</span>
                     </div>
                     <div>
                       <h4 className="font-medium text-gray-900">Copy & Use</h4>
                       <p className="text-gray-600 text-sm">
-                        Use the copy button to quickly add prompts to your development workflow.
+                        Use the copy button to quickly add templates to your development workflow.
                       </p>
                     </div>
                   </div>

@@ -1,8 +1,8 @@
 # Overview
 
-This is a DXP (Digital Experience Platform) Prompt Library application built for Sitecore 10.4 development with Helix architecture. The application serves as a comprehensive collection of development prompts, templates, and code snippets organized by architectural layers (Foundation, Feature, Project) and component types. It provides developers with quick access to standardized prompts for generating Sitecore components, services, and implementations following best practices.
+This is a Developer Experience Platform (DXP) Prompt Library application that serves as a comprehensive collection of development templates, code snippets, and SDLC workflows. The application is organized by categories including Foundation, Feature, Project layers, components, testing, styling, and SDLC templates. It provides development teams with quick access to standardized templates for generating code components, services, and implementations following modern software development best practices.
 
-The application features a full-stack architecture with a React frontend and Express backend, designed to help development teams maintain consistency and accelerate development workflows through reusable prompt templates.
+The application features a full-stack architecture with a React frontend and Express backend, designed to help development teams maintain consistency and accelerate development workflows through reusable template libraries.
 
 # User Preferences
 
@@ -33,9 +33,9 @@ Preferred communication style: Simple, everyday language.
 - **Session Storage**: PostgreSQL-backed session storage using connect-pg-simple
 
 ## Component Organization
-- **Architectural Layers**: Organized by Sitecore Helix principles (Foundation, Feature, Project layers)
-- **Component Categories**: UI components, testing templates, styling guides, and SDLC templates
-- **Prompt Structure**: Structured prompt data with metadata, tags, context, and SDLC stage information
+- **Template Categories**: Organized by development layers (Foundation, Feature, Project layers)
+- **Component Types**: UI components, testing templates, styling guides, and SDLC workflow templates
+- **Template Structure**: Structured template data with metadata, tags, context, and development stage information
 - **Search & Discovery**: Full-text search capabilities with category-based filtering and tag-based organization
 
 ## Development Workflow
