@@ -1612,7 +1612,456 @@ public class AssetService : IAssetService
         id: "components-carousel-development",
         title: "Carousel Component",
         description: "Advanced carousel component with responsive behavior and accessibility",
-        content: "Implement an advanced carousel component with responsive behavior, touch support, accessibility features, and Sitecore integration.",
+        content: `Implement an advanced carousel component with responsive behavior, touch support, accessibility features, and Sitecore integration.
+
+// Carousel Component Implementation
+public class CarouselController : Controller
+{
+    private readonly ICarouselService _carouselService;
+    private readonly ICacheService _cacheService;
+    
+    public CarouselController(ICarouselService carouselService, ICacheService cacheService)
+    {
+        _carouselService = carouselService;
+        _cacheService = cacheService;
+    }
+    
+    public async Task<IActionResult> RenderCarousel(Guid datasourceId)
+    {
+        var cacheKey = $"carousel-{datasourceId}";
+        var viewModel = await _cacheService.GetOrSetAsync(cacheKey, async () =>
+        {
+            return await _carouselService.GetCarouselViewModelAsync(datasourceId);
+        }, TimeSpan.FromMinutes(30));
+        
+        return PartialView("_Carousel", viewModel);
+    }
+}
+
+// Carousel Models
+public class CarouselViewModel
+{
+    public Guid Id { get; set; }
+    public string Title { get; set; }
+    public IEnumerable<CarouselSlide> Slides { get; set; }
+    public CarouselConfiguration Configuration { get; set; }
+    public string CssClass { get; set; }
+}
+
+public class CarouselSlide
+{
+    public Guid Id { get; set; }
+    public string Title { get; set; }
+    public string Description { get; set; }
+    public string ImageUrl { get; set; }
+    public string MobileImageUrl { get; set; }
+    public string LinkUrl { get; set; }
+    public string LinkTarget { get; set; }
+    public string LinkText { get; set; }
+    public string BackgroundColor { get; set; }
+    public string TextColor { get; set; }
+    public string Position { get; set; } // left, center, right
+    public int Order { get; set; }
+    public bool IsActive { get; set; }
+}
+
+public class CarouselConfiguration
+{
+    public bool AutoPlay { get; set; } = true;
+    public int AutoPlayDelay { get; set; } = 5000;
+    public bool ShowDots { get; set; } = true;
+    public bool ShowArrows { get; set; } = true;
+    public bool InfiniteLoop { get; set; } = true;
+    public bool PauseOnHover { get; set; } = true;
+    public bool TouchEnabled { get; set; } = true;
+    public string TransitionEffect { get; set; } = "slide"; // slide, fade
+    public int TransitionDuration { get; set; } = 300;
+    public ResponsiveBreakpoints Responsive { get; set; } = new();
+}
+
+public class ResponsiveBreakpoints
+{
+    public int SlidesPerViewDesktop { get; set; } = 1;
+    public int SlidesPerViewTablet { get; set; } = 1;
+    public int SlidesPerViewMobile { get; set; } = 1;
+    public int SpaceBetween { get; set; } = 0;
+}
+
+// Razor View - _Carousel.cshtml
+@model CarouselViewModel
+
+<div class="carousel-component @Model.CssClass" 
+     data-carousel-id="@Model.Id"
+     data-autoplay="@Model.Configuration.AutoPlay.ToString().ToLower()"
+     data-autoplay-delay="@Model.Configuration.AutoPlayDelay"
+     data-infinite="@Model.Configuration.InfiniteLoop.ToString().ToLower()"
+     data-pause-on-hover="@Model.Configuration.PauseOnHover.ToString().ToLower()"
+     data-touch-enabled="@Model.Configuration.TouchEnabled.ToString().ToLower()"
+     data-transition-effect="@Model.Configuration.TransitionEffect"
+     data-transition-duration="@Model.Configuration.TransitionDuration"
+     role="region"
+     aria-label="@Model.Title carousel">
+     
+    @if (!string.IsNullOrEmpty(Model.Title))
+    {
+        <h2 class="carousel-component__title sr-only">@Model.Title</h2>
+    }
+    
+    <div class="carousel-container">
+        <div class="carousel-wrapper" 
+             aria-live="polite" 
+             aria-atomic="false">
+             
+            <div class="carousel-track" 
+                 style="transform: translateX(0%);">
+                 
+                @foreach (var (slide, index) in Model.Slides.Select((s, i) => (s, i)))
+                {
+                    <div class="carousel-slide @(slide.IsActive ? "active" : "")" 
+                         data-slide-index="@index"
+                         aria-hidden="@(!slide.IsActive).ToString().ToLower()"
+                         style="@(!string.IsNullOrEmpty(slide.BackgroundColor) ? $"background-color: {slide.BackgroundColor};" : "")
+                                @(!string.IsNullOrEmpty(slide.TextColor) ? $"color: {slide.TextColor};" : "")">
+                         
+                        <!-- Background Image -->
+                        @if (!string.IsNullOrEmpty(slide.ImageUrl))
+                        {
+                            <div class="carousel-slide__background">
+                                <picture>
+                                    @if (!string.IsNullOrEmpty(slide.MobileImageUrl))
+                                    {
+                                        <source media="(max-width: 768px)" srcset="@slide.MobileImageUrl">
+                                    }
+                                    <img src="@slide.ImageUrl" 
+                                         alt="@slide.Title" 
+                                         class="carousel-slide__image"
+                                         loading="@(index == 0 ? "eager" : "lazy")">
+                                </picture>
+                            </div>
+                        }
+                        
+                        <!-- Content Overlay -->
+                        <div class="carousel-slide__content carousel-slide__content--@slide.Position">
+                            <div class="carousel-slide__inner">
+                                @if (!string.IsNullOrEmpty(slide.Title))
+                                {
+                                    <h3 class="carousel-slide__title">@slide.Title</h3>
+                                }
+                                
+                                @if (!string.IsNullOrEmpty(slide.Description))
+                                {
+                                    <p class="carousel-slide__description">@slide.Description</p>
+                                }
+                                
+                                @if (!string.IsNullOrEmpty(slide.LinkUrl))
+                                {
+                                    <a href="@slide.LinkUrl" 
+                                       class="carousel-slide__cta btn btn-primary"
+                                       @(slide.LinkTarget != null ? Html.Raw($"target=\"{slide.LinkTarget}\"") : Html.Raw("")))>
+                                        @(slide.LinkText ?? "Learn More")
+                                    </a>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+        
+        <!-- Navigation Arrows -->
+        @if (Model.Configuration.ShowArrows && Model.Slides.Count() > 1)
+        {
+            <button class="carousel-nav carousel-nav--prev" 
+                    type="button"
+                    aria-label="Previous slide"
+                    data-carousel-prev>
+                <svg aria-hidden="true" viewBox="0 0 24 24" width="24" height="24">
+                    <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+                </svg>
+            </button>
+            
+            <button class="carousel-nav carousel-nav--next" 
+                    type="button"
+                    aria-label="Next slide"
+                    data-carousel-next>
+                <svg aria-hidden="true" viewBox="0 0 24 24" width="24" height="24">
+                    <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
+                </svg>
+            </button>
+        }
+        
+        <!-- Pagination Dots -->
+        @if (Model.Configuration.ShowDots && Model.Slides.Count() > 1)
+        {
+            <div class="carousel-pagination" role="tablist" aria-label="Slide navigation">
+                @foreach (var (slide, index) in Model.Slides.Select((s, i) => (s, i)))
+                {
+                    <button class="carousel-dot @(slide.IsActive ? "active" : "")" 
+                            type="button"
+                            role="tab"
+                            aria-selected="@slide.IsActive.ToString().ToLower()"
+                            aria-controls="slide-@index"
+                            aria-label="Go to slide @(index + 1)"
+                            data-slide-index="@index">
+                        <span class="sr-only">Slide @(index + 1)</span>
+                    </button>
+                }
+            </div>
+        }
+    </div>
+    
+    <!-- Screen Reader Announcements -->
+    <div class="sr-only" aria-live="polite" aria-atomic="true" data-carousel-announcer></div>
+</div>
+
+<script>
+class Carousel {
+    constructor(element) {
+        this.carousel = element;
+        this.track = element.querySelector('.carousel-track');
+        this.slides = element.querySelectorAll('.carousel-slide');
+        this.prevBtn = element.querySelector('[data-carousel-prev]');
+        this.nextBtn = element.querySelector('[data-carousel-next]');
+        this.dots = element.querySelectorAll('.carousel-dot');
+        this.announcer = element.querySelector('[data-carousel-announcer]');
+        
+        this.currentIndex = 0;
+        this.isAnimating = false;
+        this.autoPlayTimer = null;
+        
+        // Configuration
+        this.config = {
+            autoPlay: element.dataset.autoplay === 'true',
+            autoPlayDelay: parseInt(element.dataset.autoplayDelay) || 5000,
+            infinite: element.dataset.infinite === 'true',
+            pauseOnHover: element.dataset.pauseOnHover === 'true',
+            touchEnabled: element.dataset.touchEnabled === 'true',
+            transitionEffect: element.dataset.transitionEffect || 'slide',
+            transitionDuration: parseInt(element.dataset.transitionDuration) || 300
+        };
+        
+        this.init();
+    }
+    
+    init() {
+        if (this.slides.length <= 1) return;
+        
+        this.setupEventListeners();
+        this.setupTouchEvents();
+        this.setupKeyboardNavigation();
+        
+        if (this.config.autoPlay) {
+            this.startAutoPlay();
+        }
+        
+        // Set initial ARIA attributes
+        this.updateAriaAttributes();
+    }
+    
+    setupEventListeners() {
+        this.prevBtn?.addEventListener('click', () => this.goToPrevious());
+        this.nextBtn?.addEventListener('click', () => this.goToNext());
+        
+        this.dots.forEach((dot, index) => {
+            dot.addEventListener('click', () => this.goToSlide(index));
+        });
+        
+        if (this.config.pauseOnHover) {
+            this.carousel.addEventListener('mouseenter', () => this.pauseAutoPlay());
+            this.carousel.addEventListener('mouseleave', () => this.resumeAutoPlay());
+        }
+        
+        // Intersection Observer for performance
+        if ('IntersectionObserver' in window) {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        this.resumeAutoPlay();
+                    } else {
+                        this.pauseAutoPlay();
+                    }
+                });
+            });
+            observer.observe(this.carousel);
+        }
+    }
+    
+    setupTouchEvents() {
+        if (!this.config.touchEnabled) return;
+        
+        let startX = 0;
+        let currentX = 0;
+        let isDragging = false;
+        
+        this.track.addEventListener('touchstart', (e) => {
+            startX = e.touches[0].clientX;
+            isDragging = true;
+            this.pauseAutoPlay();
+        });
+        
+        this.track.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            currentX = e.touches[0].clientX;
+            const diffX = startX - currentX;
+            
+            // Add visual feedback during swipe
+            this.track.style.transform = \`translateX(calc(-\${this.currentIndex * 100}% - \${diffX}px))\`;
+        });
+        
+        this.track.addEventListener('touchend', (e) => {
+            if (!isDragging) return;
+            isDragging = false;
+            
+            const diffX = startX - currentX;
+            const threshold = 50;
+            
+            if (Math.abs(diffX) > threshold) {
+                if (diffX > 0) {
+                    this.goToNext();
+                } else {
+                    this.goToPrevious();
+                }
+            } else {
+                this.updateSlidePosition();
+            }
+            
+            this.resumeAutoPlay();
+        });
+    }
+    
+    setupKeyboardNavigation() {
+        this.carousel.addEventListener('keydown', (e) => {
+            switch(e.key) {
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    this.goToPrevious();
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    this.goToNext();
+                    break;
+                case 'Home':
+                    e.preventDefault();
+                    this.goToSlide(0);
+                    break;
+                case 'End':
+                    e.preventDefault();
+                    this.goToSlide(this.slides.length - 1);
+                    break;
+            }
+        });
+    }
+    
+    goToNext() {
+        if (this.isAnimating) return;
+        
+        let nextIndex = this.currentIndex + 1;
+        if (nextIndex >= this.slides.length) {
+            nextIndex = this.config.infinite ? 0 : this.currentIndex;
+        }
+        
+        if (nextIndex !== this.currentIndex) {
+            this.goToSlide(nextIndex);
+        }
+    }
+    
+    goToPrevious() {
+        if (this.isAnimating) return;
+        
+        let prevIndex = this.currentIndex - 1;
+        if (prevIndex < 0) {
+            prevIndex = this.config.infinite ? this.slides.length - 1 : this.currentIndex;
+        }
+        
+        if (prevIndex !== this.currentIndex) {
+            this.goToSlide(prevIndex);
+        }
+    }
+    
+    goToSlide(index) {
+        if (this.isAnimating || index === this.currentIndex || index < 0 || index >= this.slides.length) {
+            return;
+        }
+        
+        this.isAnimating = true;
+        this.currentIndex = index;
+        
+        this.updateSlidePosition();
+        this.updateAriaAttributes();
+        this.announceSlideChange();
+        
+        setTimeout(() => {
+            this.isAnimating = false;
+        }, this.config.transitionDuration);
+    }
+    
+    updateSlidePosition() {
+        if (this.config.transitionEffect === 'fade') {
+            this.slides.forEach((slide, index) => {
+                slide.style.opacity = index === this.currentIndex ? '1' : '0';
+            });
+        } else {
+            this.track.style.transform = \`translateX(-\${this.currentIndex * 100}%)\`;
+        }
+        
+        // Update active states
+        this.slides.forEach((slide, index) => {
+            slide.classList.toggle('active', index === this.currentIndex);
+        });
+        
+        this.dots.forEach((dot, index) => {
+            dot.classList.toggle('active', index === this.currentIndex);
+            dot.setAttribute('aria-selected', index === this.currentIndex);
+        });
+    }
+    
+    updateAriaAttributes() {
+        this.slides.forEach((slide, index) => {
+            slide.setAttribute('aria-hidden', index !== this.currentIndex);
+        });
+    }
+    
+    announceSlideChange() {
+        const currentSlide = this.slides[this.currentIndex];
+        const title = currentSlide.querySelector('.carousel-slide__title')?.textContent || '';
+        const description = currentSlide.querySelector('.carousel-slide__description')?.textContent || '';
+        
+        this.announcer.textContent = \`Slide \${this.currentIndex + 1} of \${this.slides.length}: \${title} \${description}\`;
+    }
+    
+    startAutoPlay() {
+        if (this.config.autoPlay && this.slides.length > 1) {
+            this.autoPlayTimer = setInterval(() => {
+                this.goToNext();
+            }, this.config.autoPlayDelay);
+        }
+    }
+    
+    pauseAutoPlay() {
+        if (this.autoPlayTimer) {
+            clearInterval(this.autoPlayTimer);
+            this.autoPlayTimer = null;
+        }
+    }
+    
+    resumeAutoPlay() {
+        if (this.config.autoPlay && !this.autoPlayTimer) {
+            this.startAutoPlay();
+        }
+    }
+    
+    destroy() {
+        this.pauseAutoPlay();
+        // Remove event listeners and cleanup
+    }
+}
+
+// Initialize carousels
+document.addEventListener('DOMContentLoaded', function() {
+    const carousels = document.querySelectorAll('.carousel-component');
+    carousels.forEach(carousel => new Carousel(carousel));
+});
+</script>`,
         category: "components",
         component: "carousel",
         sdlcStage: "development",
@@ -1624,7 +2073,228 @@ public class AssetService : IAssetService
         id: "components-custom_forms-development",
         title: "Form Component",
         description: "Dynamic form component with validation and submission handling",
-        content: "Create a dynamic form component with client/server validation, AJAX submission, file upload support, and integration with Sitecore Forms.",
+        content: `Create a dynamic form component with client/server validation, AJAX submission, file upload support, and integration with Sitecore Forms.
+
+// Form Component Implementation
+public class FormComponentController : Controller
+{
+    private readonly IFormService _formService;
+    private readonly ILogger<FormComponentController> _logger;
+    
+    public FormComponentController(IFormService formService, ILogger<FormComponentController> logger)
+    {
+        _formService = formService;
+        _logger = logger;
+    }
+    
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SubmitForm([FromForm] FormSubmissionModel model, IFormFile[] files)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+            {
+                return Json(new { success = false, errors = ModelState.GetErrorDictionary() });
+            }
+            
+            var result = await _formService.ProcessFormSubmissionAsync(model, files);
+            
+            if (result.Success)
+            {
+                _logger.LogInformation("Form submitted successfully: {FormId}", model.FormId);
+                return Json(new { success = true, message = result.Message, redirectUrl = result.RedirectUrl });
+            }
+            
+            return Json(new { success = false, message = result.ErrorMessage });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing form submission");
+            return Json(new { success = false, message = "An error occurred processing your submission" });
+        }
+    }
+}
+
+// Form View Model
+public class FormComponentViewModel
+{
+    public string FormId { get; set; }
+    public string Title { get; set; }
+    public string Description { get; set; }
+    public IEnumerable<FormFieldViewModel> Fields { get; set; }
+    public string SubmitButtonText { get; set; }
+    public string Action { get; set; }
+    public bool RequiresCaptcha { get; set; }
+    public string CssClass { get; set; }
+}
+
+public class FormFieldViewModel
+{
+    public string Id { get; set; }
+    public string Name { get; set; }
+    public string Label { get; set; }
+    public string Type { get; set; } // text, email, tel, textarea, select, checkbox, radio, file
+    public bool Required { get; set; }
+    public string Placeholder { get; set; }
+    public IEnumerable<SelectOption> Options { get; set; }
+    public Dictionary<string, object> Attributes { get; set; }
+    public string ValidationPattern { get; set; }
+    public string ValidationMessage { get; set; }
+    public string CssClass { get; set; }
+}
+
+// Razor View
+@model FormComponentViewModel
+
+<form id="@Model.FormId" class="form-component @Model.CssClass" 
+      action="@Model.Action" method="post" enctype="multipart/form-data"
+      data-ajax="true" data-ajax-loading="#loading-@Model.FormId"
+      data-ajax-success="onFormSuccess" data-ajax-failure="onFormError">
+      
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="FormId" value="@Model.FormId" />
+    
+    @if (!string.IsNullOrEmpty(Model.Title))
+    {
+        <h2 class="form-component__title">@Model.Title</h2>
+    }
+    
+    @if (!string.IsNullOrEmpty(Model.Description))
+    {
+        <p class="form-component__description">@Model.Description</p>
+    }
+    
+    <div class="form-component__fields">
+        @foreach (var field in Model.Fields)
+        {
+            <div class="form-field @field.CssClass @(field.Required ? "required" : "")" data-field-type="@field.Type">
+                <label for="@field.Id" class="form-field__label">
+                    @field.Label
+                    @if (field.Required)
+                    {
+                        <span class="required-indicator" aria-label="required">*</span>
+                    }
+                </label>
+                
+                @switch (field.Type.ToLower())
+                {
+                    case "textarea":
+                        <textarea id="@field.Id" name="@field.Name" 
+                                  class="form-field__input form-field__textarea"
+                                  placeholder="@field.Placeholder"
+                                  @(field.Required ? Html.Raw("required") : Html.Raw(""))
+                                  @(field.ValidationPattern != null ? Html.Raw($"pattern=\"{field.ValidationPattern}\"") : Html.Raw(""))
+                                  rows="4"></textarea>
+                        break;
+                        
+                    case "select":
+                        <select id="@field.Id" name="@field.Name" 
+                                class="form-field__input form-field__select"
+                                @(field.Required ? Html.Raw("required") : Html.Raw(""))>
+                            <option value="">Choose...</option>
+                            @foreach (var option in field.Options ?? Enumerable.Empty<SelectOption>())
+                            {
+                                <option value="@option.Value">@option.Text</option>
+                            }
+                        </select>
+                        break;
+                        
+                    case "checkbox":
+                        <div class="form-field__checkbox-group">
+                            @foreach (var option in field.Options ?? Enumerable.Empty<SelectOption>())
+                            {
+                                <label class="form-field__checkbox-label">
+                                    <input type="checkbox" name="@field.Name" value="@option.Value"
+                                           class="form-field__checkbox" />
+                                    <span class="form-field__checkbox-text">@option.Text</span>
+                                </label>
+                            }
+                        </div>
+                        break;
+                        
+                    case "radio":
+                        <div class="form-field__radio-group" role="radiogroup">
+                            @foreach (var option in field.Options ?? Enumerable.Empty<SelectOption>())
+                            {
+                                <label class="form-field__radio-label">
+                                    <input type="radio" name="@field.Name" value="@option.Value"
+                                           class="form-field__radio" @(field.Required ? Html.Raw("required") : Html.Raw("")) />
+                                    <span class="form-field__radio-text">@option.Text</span>
+                                </label>
+                            }
+                        </div>
+                        break;
+                        
+                    case "file":
+                        <input type="file" id="@field.Id" name="@field.Name"
+                               class="form-field__input form-field__file"
+                               @(field.Required ? Html.Raw("required") : Html.Raw(""))
+                               accept="@field.Attributes?["accept"]"
+                               @(field.Attributes?.ContainsKey("multiple") == true ? Html.Raw("multiple") : Html.Raw("")) />
+                        break;
+                        
+                    default:
+                        <input type="@field.Type" id="@field.Id" name="@field.Name"
+                               class="form-field__input"
+                               placeholder="@field.Placeholder"
+                               @(field.Required ? Html.Raw("required") : Html.Raw(""))
+                               @(field.ValidationPattern != null ? Html.Raw($"pattern=\"{field.ValidationPattern}\"") : Html.Raw("")) />
+                        break;
+                }
+                
+                @if (!string.IsNullOrEmpty(field.ValidationMessage))
+                {
+                    <div class="form-field__error" role="alert" aria-live="polite"></div>
+                }
+            </div>
+        }
+    </div>
+    
+    @if (Model.RequiresCaptcha)
+    {
+        <div class="form-field">
+            <div class="g-recaptcha" data-sitekey="@ViewBag.RecaptchaSiteKey"></div>
+        </div>
+    }
+    
+    <div class="form-component__actions">
+        <button type="submit" class="form-component__submit btn btn-primary">
+            <span class="submit-text">@Model.SubmitButtonText</span>
+            <span class="loading-text" style="display: none;">Submitting...</span>
+        </button>
+    </div>
+    
+    <div id="loading-@Model.FormId" class="form-loading" style="display: none;">
+        <div class="spinner"></div>
+    </div>
+    
+    <div class="form-messages" role="status" aria-live="polite"></div>
+</form>
+
+<script>
+function onFormSuccess(data) {
+    const form = event.target.closest('form');
+    const messagesContainer = form.querySelector('.form-messages');
+    
+    if (data.success) {
+        messagesContainer.innerHTML = '<div class="alert alert-success">' + data.message + '</div>';
+        form.reset();
+        
+        if (data.redirectUrl) {
+            setTimeout(() => window.location.href = data.redirectUrl, 2000);
+        }
+    } else {
+        messagesContainer.innerHTML = '<div class="alert alert-error">' + data.message + '</div>';
+    }
+}
+
+function onFormError() {
+    const form = event.target.closest('form');
+    const messagesContainer = form.querySelector('.form-messages');
+    messagesContainer.innerHTML = '<div class="alert alert-error">An error occurred. Please try again.</div>';
+}
+</script>`,
         category: "components",
         component: "custom_forms",
         sdlcStage: "development",
@@ -1636,7 +2306,281 @@ public class AssetService : IAssetService
         id: "components-navigation-development",
         title: "Navigation Component",
         description: "Multi-level responsive navigation with breadcrumbs and search",
-        content: "Implement a responsive navigation component with multi-level menus, breadcrumbs, search integration, and mobile-first design.",
+        content: `Implement a responsive navigation component with multi-level menus, breadcrumbs, search integration, and mobile-first design.
+
+// Navigation Component Implementation
+public class NavigationComponentController : Controller
+{
+    private readonly INavigationService _navigationService;
+    private readonly ICacheService _cacheService;
+    
+    public NavigationComponentController(INavigationService navigationService, ICacheService cacheService)
+    {
+        _navigationService = navigationService;
+        _cacheService = cacheService;
+    }
+    
+    public async Task<IActionResult> RenderNavigation()
+    {
+        var viewModel = await _cacheService.GetOrSetAsync("navigation-component", async () =>
+        {
+            return await _navigationService.GetNavigationViewModelAsync();
+        }, TimeSpan.FromMinutes(30));
+        
+        return PartialView("_NavigationComponent", viewModel);
+    }
+}
+
+// Navigation View Model
+public class NavigationComponentViewModel
+{
+    public IEnumerable<NavigationItem> MainNavigation { get; set; }
+    public IEnumerable<BreadcrumbItem> Breadcrumbs { get; set; }
+    public NavigationItem HomeItem { get; set; }
+    public SearchConfiguration SearchConfig { get; set; }
+    public string CurrentUrl { get; set; }
+    public bool IsMobileMenuOpen { get; set; }
+    public string CssClass { get; set; }
+}
+
+public class BreadcrumbItem
+{
+    public string Title { get; set; }
+    public string Url { get; set; }
+    public bool IsCurrentPage { get; set; }
+    public string Schema { get; set; }
+}
+
+public class SearchConfiguration
+{
+    public bool Enabled { get; set; }
+    public string Placeholder { get; set; }
+    public string SearchUrl { get; set; }
+    public bool AutoComplete { get; set; }
+    public int MinCharacters { get; set; }
+}
+
+// Razor View - _NavigationComponent.cshtml
+@model NavigationComponentViewModel
+
+<nav class="navigation-component @Model.CssClass" role="navigation" aria-label="Main navigation">
+    <div class="navigation-component__container">
+        <!-- Mobile Menu Toggle -->
+        <button class="navigation-component__mobile-toggle" 
+                type="button"
+                aria-expanded="@Model.IsMobileMenuOpen.ToString().ToLower()"
+                aria-controls="main-navigation-menu"
+                aria-label="Toggle navigation menu">
+            <span class="mobile-toggle__icon">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+            </span>
+            <span class="mobile-toggle__text">Menu</span>
+        </button>
+        
+        <!-- Brand/Home Link -->
+        @if (Model.HomeItem != null)
+        {
+            <a href="@Model.HomeItem.Url" class="navigation-component__brand" aria-label="Go to homepage">
+                @Model.HomeItem.Title
+            </a>
+        }
+        
+        <!-- Search Component -->
+        @if (Model.SearchConfig?.Enabled == true)
+        {
+            <div class="navigation-component__search">
+                <form class="search-form" action="@Model.SearchConfig.SearchUrl" method="get" role="search">
+                    <div class="search-form__input-group">
+                        <label for="nav-search" class="sr-only">Search</label>
+                        <input type="search" 
+                               id="nav-search"
+                               name="q" 
+                               class="search-form__input"
+                               placeholder="@Model.SearchConfig.Placeholder"
+                               autocomplete="off"
+                               @(Model.SearchConfig.AutoComplete ? Html.Raw("data-autocomplete=\"true\"") : Html.Raw(""))
+                               data-min-chars="@Model.SearchConfig.MinCharacters">
+                        <button type="submit" class="search-form__button" aria-label="Search">
+                            <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20">
+                                <path d="M21.71 20.29L18 16.61A9 9 0 1 0 16.61 18l3.68 3.68a1 1 0 0 0 1.42 0 1 1 0 0 0 0-1.39zM11 18a7 7 0 1 1 7-7 7 7 0 0 1-7 7z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="search-form__suggestions" aria-live="polite"></div>
+                </form>
+            </div>
+        }
+        
+        <!-- Main Navigation Menu -->
+        <div class="navigation-component__menu-wrapper" id="main-navigation-menu">
+            <ul class="navigation-component__menu" role="menubar">
+                @foreach (var item in Model.MainNavigation ?? Enumerable.Empty<NavigationItem>())
+                {
+                    <li class="navigation-item @(item.HasChildren ? "has-children" : "") @(item.IsActive ? "active" : "")" 
+                        role="none">
+                        @if (item.HasChildren)
+                        {
+                            <button class="navigation-item__toggle" 
+                                    role="menuitem"
+                                    aria-haspopup="true"
+                                    aria-expanded="false"
+                                    aria-controls="submenu-@item.Id">
+                                <span class="navigation-item__text">@item.Title</span>
+                                <span class="navigation-item__icon" aria-hidden="true">▼</span>
+                            </button>
+                            
+                            <ul class="navigation-item__submenu" 
+                                id="submenu-@item.Id"
+                                role="menu"
+                                aria-label="@item.Title submenu">
+                                @foreach (var child in item.Children ?? Enumerable.Empty<NavigationItem>())
+                                {
+                                    <li class="submenu-item @(child.IsActive ? "active" : "")" role="none">
+                                        <a href="@child.Url" 
+                                           class="submenu-item__link"
+                                           role="menuitem"
+                                           @(child.Target != null ? Html.Raw($"target=\"{child.Target}\"") : Html.Raw(""))>
+                                            @child.Title
+                                        </a>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                        else
+                        {
+                            <a href="@item.Url" 
+                               class="navigation-item__link @(item.IsActive ? "active" : "")"
+                               role="menuitem"
+                               @(item.Target != null ? Html.Raw($"target=\"{item.Target}\"") : Html.Raw(""))>
+                                @item.Title
+                            </a>
+                        }
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+    
+    <!-- Breadcrumbs -->
+    @if (Model.Breadcrumbs?.Any() == true)
+    {
+        <div class="navigation-component__breadcrumbs">
+            <nav aria-label="Breadcrumb" class="breadcrumbs">
+                <ol class="breadcrumbs__list" vocab="https://schema.org/" typeof="BreadcrumbList">
+                    @foreach (var (breadcrumb, index) in Model.Breadcrumbs.Select((b, i) => (b, i)))
+                    {
+                        <li class="breadcrumbs__item @(breadcrumb.IsCurrentPage ? "current" : "")" 
+                            property="itemListElement" typeof="ListItem">
+                            @if (breadcrumb.IsCurrentPage)
+                            {
+                                <span class="breadcrumbs__text" property="name" aria-current="page">
+                                    @breadcrumb.Title
+                                </span>
+                            }
+                            else
+                            {
+                                <a href="@breadcrumb.Url" class="breadcrumbs__link" property="item" typeof="WebPage">
+                                    <span property="name">@breadcrumb.Title</span>
+                                </a>
+                            }
+                            <meta property="position" content="@(index + 1)" />
+                        </li>
+                    }
+                </ol>
+            </nav>
+        </div>
+    }
+</nav>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const nav = document.querySelector('.navigation-component');
+    const mobileToggle = nav.querySelector('.navigation-component__mobile-toggle');
+    const menuWrapper = nav.querySelector('.navigation-component__menu-wrapper');
+    
+    // Mobile menu toggle
+    mobileToggle?.addEventListener('click', function() {
+        const isExpanded = this.getAttribute('aria-expanded') === 'true';
+        this.setAttribute('aria-expanded', !isExpanded);
+        menuWrapper.classList.toggle('open');
+        document.body.classList.toggle('nav-open');
+    });
+    
+    // Submenu toggles
+    nav.querySelectorAll('.navigation-item__toggle').forEach(toggle => {
+        toggle.addEventListener('click', function() {
+            const isExpanded = this.getAttribute('aria-expanded') === 'true';
+            const submenu = this.nextElementSibling;
+            
+            // Close other submenus
+            nav.querySelectorAll('.navigation-item__toggle').forEach(other => {
+                if (other !== this) {
+                    other.setAttribute('aria-expanded', 'false');
+                    other.nextElementSibling?.classList.remove('open');
+                }
+            });
+            
+            this.setAttribute('aria-expanded', !isExpanded);
+            submenu?.classList.toggle('open');
+        });
+    });
+    
+    // Search autocomplete
+    const searchInput = nav.querySelector('[data-autocomplete="true"]');
+    if (searchInput) {
+        let searchTimeout;
+        const suggestionsContainer = nav.querySelector('.search-form__suggestions');
+        const minChars = parseInt(searchInput.dataset.minChars) || 3;
+        
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            const query = this.value.trim();
+            
+            if (query.length >= minChars) {
+                searchTimeout = setTimeout(() => {
+                    fetchSearchSuggestions(query, suggestionsContainer);
+                }, 300);
+            } else {
+                suggestionsContainer.innerHTML = '';
+            }
+        });
+    }
+    
+    // Close menus on outside click
+    document.addEventListener('click', function(e) {
+        if (!nav.contains(e.target)) {
+            mobileToggle?.setAttribute('aria-expanded', 'false');
+            menuWrapper?.classList.remove('open');
+            document.body.classList.remove('nav-open');
+            
+            nav.querySelectorAll('.navigation-item__toggle').forEach(toggle => {
+                toggle.setAttribute('aria-expanded', 'false');
+                toggle.nextElementSibling?.classList.remove('open');
+            });
+        }
+    });
+});
+
+async function fetchSearchSuggestions(query, container) {
+    try {
+        const response = await fetch(\`/api/search/suggestions?q=\${encodeURIComponent(query)}\`);
+        const data = await response.json();
+        
+        if (data.suggestions?.length > 0) {
+            container.innerHTML = data.suggestions
+                .map(suggestion => \`<div class="search-suggestion" data-url="\${suggestion.url}">\${suggestion.title}</div>\`)
+                .join('');
+        } else {
+            container.innerHTML = '';
+        }
+    } catch (error) {
+        console.error('Search suggestions error:', error);
+        container.innerHTML = '';
+    }
+}
+</script>`,
         category: "components",
         component: "navigation",
         sdlcStage: "development",
@@ -1648,7 +2592,425 @@ public class AssetService : IAssetService
         id: "components-search-development",
         title: "Search Component",
         description: "Intelligent search with auto-complete and faceted filtering",
-        content: "Create an intelligent search component with auto-complete, faceted filtering, result highlighting, and integration with Sitecore Content Search.",
+        content: `Create an intelligent search component with auto-complete, faceted filtering, result highlighting, and integration with Sitecore Content Search.
+
+// Search Component Implementation
+public class SearchComponentController : Controller
+{
+    private readonly ISearchService _searchService;
+    private readonly ILogger<SearchComponentController> _logger;
+    
+    public SearchComponentController(ISearchService searchService, ILogger<SearchComponentController> logger)
+    {
+        _searchService = searchService;
+        _logger = logger;
+    }
+    
+    [HttpGet]
+    public async Task<IActionResult> Search([FromQuery] SearchRequestModel request)
+    {
+        try
+        {
+            var results = await _searchService.SearchAsync(request);
+            
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                return Json(results);
+            }
+            
+            return View("SearchResults", results);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error performing search for query: {Query}", request.Query);
+            return Json(new { error = "Search failed. Please try again." });
+        }
+    }
+    
+    [HttpGet]
+    public async Task<IActionResult> Suggestions([FromQuery] string q, [FromQuery] int max = 5)
+    {
+        try
+        {
+            var suggestions = await _searchService.GetSuggestionsAsync(q, max);
+            return Json(new { suggestions });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting search suggestions for: {Query}", q);
+            return Json(new { suggestions = Array.Empty<object>() });
+        }
+    }
+}
+
+// Search Models
+public class SearchRequestModel
+{
+    public string Query { get; set; } = "";
+    public int Page { get; set; } = 1;
+    public int PageSize { get; set; } = 10;
+    public Dictionary<string, string[]> Facets { get; set; } = new();
+    public string SortBy { get; set; } = "relevance";
+    public string[] ContentTypes { get; set; } = Array.Empty<string>();
+}
+
+public class SearchResultsViewModel
+{
+    public string Query { get; set; }
+    public int TotalResults { get; set; }
+    public int CurrentPage { get; set; }
+    public int TotalPages { get; set; }
+    public IEnumerable<SearchResultItem> Results { get; set; }
+    public Dictionary<string, FacetGroup> Facets { get; set; }
+    public SearchStatistics Statistics { get; set; }
+    public string[] SuggestionQuery { get; set; }
+}
+
+public class SearchResultItem
+{
+    public string Id { get; set; }
+    public string Title { get; set; }
+    public string Url { get; set; }
+    public string Excerpt { get; set; }
+    public string ContentType { get; set; }
+    public DateTime LastModified { get; set; }
+    public string ImageUrl { get; set; }
+    public Dictionary<string, object> Fields { get; set; }
+    public double Score { get; set; }
+}
+
+public class FacetGroup
+{
+    public string Name { get; set; }
+    public string DisplayName { get; set; }
+    public IEnumerable<FacetValue> Values { get; set; }
+}
+
+public class FacetValue
+{
+    public string Value { get; set; }
+    public string DisplayValue { get; set; }
+    public int Count { get; set; }
+    public bool Selected { get; set; }
+}
+
+// Razor View - SearchComponent.cshtml
+@model SearchResultsViewModel
+
+<div class="search-component" data-search-url="@Url.Action("Search")" data-suggestions-url="@Url.Action("Suggestions")">
+    <!-- Search Form -->
+    <form class="search-component__form" method="get" role="search">
+        <div class="search-form-container">
+            <div class="search-input-group">
+                <label for="search-query" class="sr-only">Search</label>
+                <input type="search" 
+                       id="search-query"
+                       name="query" 
+                       value="@Model.Query"
+                       class="search-input"
+                       placeholder="What are you looking for?"
+                       autocomplete="off"
+                       data-autocomplete="true"
+                       data-min-chars="2"
+                       required>
+                <button type="submit" class="search-button" aria-label="Search">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" width="24" height="24">
+                        <path d="M21.71 20.29L18 16.61A9 9 0 1 0 16.61 18l3.68 3.68a1 1 0 0 0 1.42 0 1 1 0 0 0 0-1.39zM11 18a7 7 0 1 1 7-7 7 7 0 0 1-7 7z"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Auto-complete suggestions -->
+            <div class="search-suggestions" role="listbox" aria-label="Search suggestions"></div>
+            
+            <!-- Advanced filters -->
+            <div class="search-filters">
+                <button type="button" class="filters-toggle" aria-expanded="false" aria-controls="advanced-filters">
+                    Advanced Filters
+                    <span class="filters-toggle__icon" aria-hidden="true">▼</span>
+                </button>
+                
+                <div id="advanced-filters" class="advanced-filters" hidden>
+                    <div class="filter-group">
+                        <label for="content-type">Content Type:</label>
+                        <select name="contentTypes" id="content-type" multiple>
+                            <option value="page">Pages</option>
+                            <option value="article">Articles</option>
+                            <option value="product">Products</option>
+                            <option value="media">Media</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label for="sort-by">Sort by:</label>
+                        <select name="sortBy" id="sort-by">
+                            <option value="relevance">Relevance</option>
+                            <option value="date">Date</option>
+                            <option value="title">Title</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+    
+    @if (!string.IsNullOrEmpty(Model.Query))
+    {
+        <!-- Search Results -->
+        <div class="search-results">
+            <!-- Results Header -->
+            <div class="search-results__header">
+                <h2 class="search-results__title">
+                    Search Results for "@Model.Query"
+                </h2>
+                <div class="search-results__stats">
+                    @if (Model.TotalResults > 0)
+                    {
+                        <span>@Model.TotalResults.ToString("N0") results found in @Model.Statistics.Duration.TotalMilliseconds.ToString("F0")ms</span>
+                    }
+                    else
+                    {
+                        <span>No results found</span>
+                    }
+                </div>
+            </div>
+            
+            @if (Model.TotalResults > 0)
+            {
+                <div class="search-results__container">
+                    <!-- Faceted Navigation -->
+                    @if (Model.Facets?.Any() == true)
+                    {
+                        <aside class="search-facets" role="complementary" aria-label="Filter results">
+                            <h3 class="search-facets__title">Refine Results</h3>
+                            
+                            @foreach (var facetGroup in Model.Facets)
+                            {
+                                <div class="facet-group">
+                                    <h4 class="facet-group__title">@facetGroup.Value.DisplayName</h4>
+                                    <ul class="facet-group__list">
+                                        @foreach (var facetValue in facetGroup.Value.Values)
+                                        {
+                                            <li class="facet-item">
+                                                <label class="facet-item__label">
+                                                    <input type="checkbox" 
+                                                           name="facets[@facetGroup.Key]" 
+                                                           value="@facetValue.Value"
+                                                           @(facetValue.Selected ? "checked" : "")
+                                                           class="facet-item__checkbox"
+                                                           data-facet-group="@facetGroup.Key">
+                                                    <span class="facet-item__text">@facetValue.DisplayValue</span>
+                                                    <span class="facet-item__count">(@facetValue.Count)</span>
+                                                </label>
+                                            </li>
+                                        }
+                                    </ul>
+                                </div>
+                            }
+                        </aside>
+                    }
+                    
+                    <!-- Results List -->
+                    <main class="search-results__main" role="main">
+                        <ul class="search-results__list">
+                            @foreach (var result in Model.Results)
+                            {
+                                <li class="search-result-item" data-result-id="@result.Id">
+                                    @if (!string.IsNullOrEmpty(result.ImageUrl))
+                                    {
+                                        <div class="search-result-item__image">
+                                            <img src="@result.ImageUrl" alt="" loading="lazy">
+                                        </div>
+                                    }
+                                    
+                                    <div class="search-result-item__content">
+                                        <h3 class="search-result-item__title">
+                                            <a href="@result.Url" class="search-result-item__link">
+                                                @Html.Raw(HighlightSearchTerms(result.Title, Model.Query))
+                                            </a>
+                                        </h3>
+                                        
+                                        <p class="search-result-item__excerpt">
+                                            @Html.Raw(HighlightSearchTerms(result.Excerpt, Model.Query))
+                                        </p>
+                                        
+                                        <div class="search-result-item__meta">
+                                            <span class="search-result-item__type">@result.ContentType</span>
+                                            <span class="search-result-item__date">@result.LastModified.ToString("MMM dd, yyyy")</span>
+                                            <span class="search-result-item__score" title="Relevance score">Score: @result.Score.ToString("F2")</span>
+                                        </div>
+                                        
+                                        <div class="search-result-item__url">
+                                            <cite>@result.Url</cite>
+                                        </div>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                        
+                        <!-- Pagination -->
+                        @if (Model.TotalPages > 1)
+                        {
+                            <nav class="search-pagination" aria-label="Search results pagination">
+                                <ul class="pagination">
+                                    @if (Model.CurrentPage > 1)
+                                    {
+                                        <li class="pagination__item">
+                                            <a href="@GetPageUrl(Model.CurrentPage - 1)" class="pagination__link">
+                                                Previous
+                                            </a>
+                                        </li>
+                                    }
+                                    
+                                    @for (int i = Math.Max(1, Model.CurrentPage - 2); i <= Math.Min(Model.TotalPages, Model.CurrentPage + 2); i++)
+                                    {
+                                        <li class="pagination__item @(i == Model.CurrentPage ? "active" : "")">
+                                            @if (i == Model.CurrentPage)
+                                            {
+                                                <span class="pagination__current" aria-current="page">@i</span>
+                                            }
+                                            else
+                                            {
+                                                <a href="@GetPageUrl(i)" class="pagination__link">@i</a>
+                                            }
+                                        </li>
+                                    }
+                                    
+                                    @if (Model.CurrentPage < Model.TotalPages)
+                                    {
+                                        <li class="pagination__item">
+                                            <a href="@GetPageUrl(Model.CurrentPage + 1)" class="pagination__link">
+                                                Next
+                                            </a>
+                                        </li>
+                                    }
+                                </ul>
+                            </nav>
+                        }
+                    </main>
+                </div>
+            }
+            else
+            {
+                <!-- No Results -->
+                <div class="search-no-results">
+                    <h3>No results found</h3>
+                    <p>Try adjusting your search terms or filters.</p>
+                    
+                    @if (Model.SuggestionQuery?.Any() == true)
+                    {
+                        <p>Did you mean: 
+                            @foreach (var suggestion in Model.SuggestionQuery)
+                            {
+                                <a href="?query=@Uri.EscapeDataString(suggestion)" class="search-suggestion-link">@suggestion</a>
+                            }
+                        </p>
+                    }
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@functions {
+    private string GetPageUrl(int page)
+    {
+        var queryString = HttpUtility.ParseQueryString(Request.QueryString.Value ?? "");
+        queryString["page"] = page.ToString();
+        return "?" + queryString.ToString();
+    }
+    
+    private string HighlightSearchTerms(string text, string searchTerms)
+    {
+        if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(searchTerms))
+            return text;
+            
+        var terms = searchTerms.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        foreach (var term in terms)
+        {
+            text = Regex.Replace(text, Regex.Escape(term), 
+                $"<mark>{term}</mark>", RegexOptions.IgnoreCase);
+        }
+        return text;
+    }
+}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchComponent = document.querySelector('.search-component');
+    const searchInput = searchComponent.querySelector('.search-input');
+    const suggestionsContainer = searchComponent.querySelector('.search-suggestions');
+    const form = searchComponent.querySelector('.search-component__form');
+    
+    let searchTimeout;
+    
+    // Auto-complete functionality
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        const query = this.value.trim();
+        
+        if (query.length >= 2) {
+            searchTimeout = setTimeout(() => {
+                fetchSuggestions(query);
+            }, 300);
+        } else {
+            hideSuggestions();
+        }
+    });
+    
+    // Facet filtering
+    searchComponent.querySelectorAll('.facet-item__checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            form.submit();
+        });
+    });
+    
+    async function fetchSuggestions(query) {
+        try {
+            const url = searchComponent.dataset.suggestionsUrl + '?q=' + encodeURIComponent(query);
+            const response = await fetch(url);
+            const data = await response.json();
+            
+            if (data.suggestions?.length > 0) {
+                showSuggestions(data.suggestions);
+            } else {
+                hideSuggestions();
+            }
+        } catch (error) {
+            console.error('Error fetching suggestions:', error);
+            hideSuggestions();
+        }
+    }
+    
+    function showSuggestions(suggestions) {
+        suggestionsContainer.innerHTML = suggestions
+            .map(suggestion => \`<div class="search-suggestion" role="option" data-value="\${suggestion.title}">\${suggestion.title}</div>\`)
+            .join('');
+        suggestionsContainer.style.display = 'block';
+        
+        // Add click handlers
+        suggestionsContainer.querySelectorAll('.search-suggestion').forEach(item => {
+            item.addEventListener('click', function() {
+                searchInput.value = this.dataset.value;
+                hideSuggestions();
+                form.submit();
+            });
+        });
+    }
+    
+    function hideSuggestions() {
+        suggestionsContainer.style.display = 'none';
+        suggestionsContainer.innerHTML = '';
+    }
+    
+    // Hide suggestions on outside click
+    document.addEventListener('click', function(e) {
+        if (!searchComponent.contains(e.target)) {
+            hideSuggestions();
+        }
+    });
+});
+</script>`,
         category: "components",
         component: "search",
         sdlcStage: "development",
@@ -1660,7 +3022,524 @@ public class AssetService : IAssetService
         id: "components-media_gallery-development",
         title: "Media Gallery",
         description: "Responsive media gallery with lazy loading and lightbox functionality",
-        content: "Implement a responsive media gallery with lazy loading, lightbox functionality, image optimization, and integration with Sitecore Media Library.",
+        content: `Implement a responsive media gallery with lazy loading, lightbox functionality, image optimization, and integration with Sitecore Media Library.
+
+// Media Gallery Component Implementation
+public class MediaGalleryController : Controller
+{
+    private readonly IMediaService _mediaService;
+    private readonly ICacheService _cacheService;
+    
+    public MediaGalleryController(IMediaService mediaService, ICacheService cacheService)
+    {
+        _mediaService = mediaService;
+        _cacheService = cacheService;
+    }
+    
+    public async Task<IActionResult> RenderGallery(Guid datasourceId)
+    {
+        var cacheKey = $"media-gallery-{datasourceId}";
+        var viewModel = await _cacheService.GetOrSetAsync(cacheKey, async () =>
+        {
+            return await _mediaService.GetMediaGalleryAsync(datasourceId);
+        }, TimeSpan.FromMinutes(30));
+        
+        return PartialView("_MediaGallery", viewModel);
+    }
+    
+    [HttpGet]
+    public async Task<IActionResult> LoadMore([FromQuery] Guid galleryId, [FromQuery] int page = 1, [FromQuery] int pageSize = 12)
+    {
+        try
+        {
+            var items = await _mediaService.GetMediaItemsAsync(galleryId, page, pageSize);
+            return Json(new { success = true, items, hasMore = items.Count() == pageSize });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, error = ex.Message });
+        }
+    }
+}
+
+// Media Gallery Models
+public class MediaGalleryViewModel
+{
+    public Guid Id { get; set; }
+    public string Title { get; set; }
+    public string Description { get; set; }
+    public IEnumerable<MediaItem> Items { get; set; }
+    public GalleryConfiguration Configuration { get; set; }
+    public string CssClass { get; set; }
+    public bool HasMoreItems { get; set; }
+    public int TotalItems { get; set; }
+}
+
+public class MediaItem
+{
+    public Guid Id { get; set; }
+    public string Title { get; set; }
+    public string Description { get; set; }
+    public string Alt { get; set; }
+    public string ThumbnailUrl { get; set; }
+    public string MediumUrl { get; set; }
+    public string FullUrl { get; set; }
+    public string MediaType { get; set; } // image, video, audio
+    public long FileSize { get; set; }
+    public string FileName { get; set; }
+    public int Width { get; set; }
+    public int Height { get; set; }
+    public DateTime DateCreated { get; set; }
+    public Dictionary<string, object> Metadata { get; set; }
+}
+
+public class GalleryConfiguration
+{
+    public string Layout { get; set; } = "grid"; // grid, masonry, carousel
+    public int ItemsPerPage { get; set; } = 12;
+    public bool EnableLazyLoading { get; set; } = true;
+    public bool EnableLightbox { get; set; } = true;
+    public bool EnableInfiniteScroll { get; set; } = false;
+    public bool ShowCaptions { get; set; } = true;
+    public bool ShowMetadata { get; set; } = false;
+    public string[] AllowedTypes { get; set; } = { "image", "video" };
+    public ResponsiveConfiguration Responsive { get; set; } = new();
+}
+
+public class ResponsiveConfiguration
+{
+    public int ColumnsDesktop { get; set; } = 4;
+    public int ColumnsTablet { get; set; } = 3;
+    public int ColumnsMobile { get; set; } = 2;
+    public string AspectRatio { get; set; } = "16/9";
+}
+
+// Razor View - _MediaGallery.cshtml
+@model MediaGalleryViewModel
+
+<div class="media-gallery @Model.CssClass" 
+     data-gallery-id="@Model.Id"
+     data-layout="@Model.Configuration.Layout"
+     data-enable-lightbox="@Model.Configuration.EnableLightbox.ToString().ToLower()"
+     data-enable-infinite-scroll="@Model.Configuration.EnableInfiniteScroll.ToString().ToLower()"
+     data-load-more-url="@Url.Action("LoadMore")">
+     
+    @if (!string.IsNullOrEmpty(Model.Title))
+    {
+        <header class="media-gallery__header">
+            <h2 class="media-gallery__title">@Model.Title</h2>
+            @if (!string.IsNullOrEmpty(Model.Description))
+            {
+                <p class="media-gallery__description">@Model.Description</p>
+            }
+        </header>
+    }
+    
+    <div class="media-gallery__container">
+        <div class="media-gallery__grid" 
+             style="--columns-desktop: @Model.Configuration.Responsive.ColumnsDesktop; 
+                    --columns-tablet: @Model.Configuration.Responsive.ColumnsTablet; 
+                    --columns-mobile: @Model.Configuration.Responsive.ColumnsMobile;
+                    --aspect-ratio: @Model.Configuration.Responsive.AspectRatio;">
+                    
+            @foreach (var item in Model.Items ?? Enumerable.Empty<MediaItem>())
+            {
+                <div class="media-gallery__item" 
+                     data-media-id="@item.Id"
+                     data-media-type="@item.MediaType">
+                     
+                    <div class="media-item">
+                        @if (item.MediaType == "image")
+                        {
+                            <div class="media-item__image-container">
+                                @if (Model.Configuration.EnableLazyLoading)
+                                {
+                                    <img class="media-item__image lazy" 
+                                         data-src="@item.MediumUrl"
+                                         data-full-src="@item.FullUrl"
+                                         src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMSIgaGVpZ2h0PSIxIiB2aWV3Qm94PSIwIDAgMSAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IiNmNWY1ZjUiLz48L3N2Zz4="
+                                         alt="@item.Alt"
+                                         loading="lazy"
+                                         width="@item.Width"
+                                         height="@item.Height">
+                                }
+                                else
+                                {
+                                    <img class="media-item__image" 
+                                         src="@item.MediumUrl"
+                                         data-full-src="@item.FullUrl"
+                                         alt="@item.Alt"
+                                         width="@item.Width"
+                                         height="@item.Height">
+                                }
+                                
+                                @if (Model.Configuration.EnableLightbox)
+                                {
+                                    <button class="media-item__zoom" 
+                                            type="button"
+                                            aria-label="View full size image"
+                                            data-lightbox-trigger>
+                                        <svg aria-hidden="true" viewBox="0 0 24 24" width="24" height="24">
+                                            <path d="M21.71 20.29L18 16.61A9 9 0 1 0 16.61 18l3.68 3.68a1 1 0 0 0 1.42 0 1 1 0 0 0 0-1.39zM11 18a7 7 0 1 1 7-7 7 7 0 0 1-7 7z"/>
+                                            <path d="M13 11h-2v-2a1 1 0 0 0-2 0v2H7a1 1 0 0 0 0 2h2v2a1 1 0 0 0 2 0v-2h2a1 1 0 0 0 0-2z"/>
+                                        </svg>
+                                    </button>
+                                }
+                            </div>
+                        }
+                        else if (item.MediaType == "video")
+                        {
+                            <div class="media-item__video-container">
+                                <video class="media-item__video" 
+                                       poster="@item.ThumbnailUrl"
+                                       controls
+                                       preload="metadata"
+                                       width="@item.Width"
+                                       height="@item.Height">
+                                    <source src="@item.FullUrl" type="video/mp4">
+                                    Your browser does not support the video tag.
+                                </video>
+                            </div>
+                        }
+                        
+                        @if (Model.Configuration.ShowCaptions && (!string.IsNullOrEmpty(item.Title) || !string.IsNullOrEmpty(item.Description)))
+                        {
+                            <div class="media-item__caption">
+                                @if (!string.IsNullOrEmpty(item.Title))
+                                {
+                                    <h3 class="media-item__title">@item.Title</h3>
+                                }
+                                @if (!string.IsNullOrEmpty(item.Description))
+                                {
+                                    <p class="media-item__description">@item.Description</p>
+                                }
+                            </div>
+                        }
+                        
+                        @if (Model.Configuration.ShowMetadata)
+                        {
+                            <div class="media-item__metadata">
+                                <span class="media-item__size">@FormatFileSize(item.FileSize)</span>
+                                <span class="media-item__dimensions">@item.Width × @item.Height</span>
+                                <time class="media-item__date" datetime="@item.DateCreated.ToString("yyyy-MM-dd")">
+                                    @item.DateCreated.ToString("MMM dd, yyyy")
+                                </time>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+        
+        @if (Model.HasMoreItems && !Model.Configuration.EnableInfiniteScroll)
+        {
+            <div class="media-gallery__load-more">
+                <button type="button" class="load-more-button btn btn-secondary" data-load-more>
+                    <span class="load-more-text">Load More</span>
+                    <span class="load-more-spinner" style="display: none;">Loading...</span>
+                </button>
+            </div>
+        }
+        
+        @if (Model.Configuration.EnableInfiniteScroll)
+        {
+            <div class="media-gallery__loading" style="display: none;">
+                <div class="loading-spinner"></div>
+            </div>
+        }
+    </div>
+    
+    <!-- Gallery Stats -->
+    <footer class="media-gallery__footer">
+        <p class="media-gallery__stats">
+            Showing @Model.Items.Count() of @Model.TotalItems items
+        </p>
+    </footer>
+</div>
+
+<!-- Lightbox Modal -->
+@if (Model.Configuration.EnableLightbox)
+{
+    <div class="lightbox-overlay" style="display: none;" role="dialog" aria-modal="true" aria-label="Media lightbox">
+        <div class="lightbox-container">
+            <button class="lightbox-close" type="button" aria-label="Close lightbox">&times;</button>
+            
+            <button class="lightbox-prev" type="button" aria-label="Previous image">&#8249;</button>
+            <button class="lightbox-next" type="button" aria-label="Next image">&#8250;</button>
+            
+            <div class="lightbox-content">
+                <img class="lightbox-image" src="" alt="">
+                <div class="lightbox-caption">
+                    <h3 class="lightbox-title"></h3>
+                    <p class="lightbox-description"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@functions {
+    private string FormatFileSize(long bytes)
+    {
+        string[] suffixes = { "B", "KB", "MB", "GB" };
+        int counter = 0;
+        decimal number = bytes;
+        while (Math.Round(number / 1024) >= 1)
+        {
+            number /= 1024;
+            counter++;
+        }
+        return $"{number:n1} {suffixes[counter]}";
+    }
+}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const gallery = document.querySelector('.media-gallery');
+    if (!gallery) return;
+    
+    const config = {
+        enableLightbox: gallery.dataset.enableLightbox === 'true',
+        enableInfiniteScroll: gallery.dataset.enableInfiniteScroll === 'true',
+        galleryId: gallery.dataset.galleryId,
+        loadMoreUrl: gallery.dataset.loadMoreUrl
+    };
+    
+    let currentPage = 1;
+    let isLoading = false;
+    let hasMoreItems = gallery.querySelector('.load-more-button') !== null;
+    
+    // Lazy loading
+    if ('IntersectionObserver' in window) {
+        const lazyImages = gallery.querySelectorAll('.lazy');
+        const imageObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    img.src = img.dataset.src;
+                    img.classList.remove('lazy');
+                    imageObserver.unobserve(img);
+                }
+            });
+        });
+        
+        lazyImages.forEach(img => imageObserver.observe(img));
+    }
+    
+    // Lightbox functionality
+    if (config.enableLightbox) {
+        setupLightbox();
+    }
+    
+    // Load more functionality
+    const loadMoreButton = gallery.querySelector('.load-more-button');
+    if (loadMoreButton) {
+        loadMoreButton.addEventListener('click', loadMoreItems);
+    }
+    
+    // Infinite scroll
+    if (config.enableInfiniteScroll) {
+        setupInfiniteScroll();
+    }
+    
+    function setupLightbox() {
+        const lightbox = document.querySelector('.lightbox-overlay');
+        const lightboxImage = lightbox.querySelector('.lightbox-image');
+        const lightboxTitle = lightbox.querySelector('.lightbox-title');
+        const lightboxDescription = lightbox.querySelector('.lightbox-description');
+        const closeBtn = lightbox.querySelector('.lightbox-close');
+        const prevBtn = lightbox.querySelector('.lightbox-prev');
+        const nextBtn = lightbox.querySelector('.lightbox-next');
+        
+        let currentIndex = 0;
+        let mediaItems = [];
+        
+        // Open lightbox
+        gallery.addEventListener('click', function(e) {
+            if (e.target.closest('[data-lightbox-trigger]')) {
+                e.preventDefault();
+                const mediaItem = e.target.closest('.media-gallery__item');
+                const allItems = gallery.querySelectorAll('.media-gallery__item');
+                currentIndex = Array.from(allItems).indexOf(mediaItem);
+                
+                mediaItems = Array.from(allItems).map(item => {
+                    const img = item.querySelector('.media-item__image');
+                    const title = item.querySelector('.media-item__title')?.textContent || '';
+                    const description = item.querySelector('.media-item__description')?.textContent || '';
+                    
+                    return {
+                        src: img.dataset.fullSrc || img.src,
+                        alt: img.alt,
+                        title,
+                        description
+                    };
+                });
+                
+                showLightbox(currentIndex);
+            }
+        });
+        
+        function showLightbox(index) {
+            const item = mediaItems[index];
+            lightboxImage.src = item.src;
+            lightboxImage.alt = item.alt;
+            lightboxTitle.textContent = item.title;
+            lightboxDescription.textContent = item.description;
+            
+            lightbox.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            
+            // Update navigation buttons
+            prevBtn.style.display = index > 0 ? 'block' : 'none';
+            nextBtn.style.display = index < mediaItems.length - 1 ? 'block' : 'none';
+        }
+        
+        function hideLightbox() {
+            lightbox.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+        
+        // Event listeners
+        closeBtn.addEventListener('click', hideLightbox);
+        lightbox.addEventListener('click', function(e) {
+            if (e.target === lightbox) hideLightbox();
+        });
+        
+        prevBtn.addEventListener('click', function() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                showLightbox(currentIndex);
+            }
+        });
+        
+        nextBtn.addEventListener('click', function() {
+            if (currentIndex < mediaItems.length - 1) {
+                currentIndex++;
+                showLightbox(currentIndex);
+            }
+        });
+        
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (lightbox.style.display === 'flex') {
+                switch(e.key) {
+                    case 'Escape':
+                        hideLightbox();
+                        break;
+                    case 'ArrowLeft':
+                        if (currentIndex > 0) {
+                            currentIndex--;
+                            showLightbox(currentIndex);
+                        }
+                        break;
+                    case 'ArrowRight':
+                        if (currentIndex < mediaItems.length - 1) {
+                            currentIndex++;
+                            showLightbox(currentIndex);
+                        }
+                        break;
+                }
+            }
+        });
+    }
+    
+    async function loadMoreItems() {
+        if (isLoading || !hasMoreItems) return;
+        
+        isLoading = true;
+        currentPage++;
+        
+        const button = gallery.querySelector('.load-more-button');
+        const buttonText = button.querySelector('.load-more-text');
+        const buttonSpinner = button.querySelector('.load-more-spinner');
+        
+        buttonText.style.display = 'none';
+        buttonSpinner.style.display = 'inline';
+        button.disabled = true;
+        
+        try {
+            const response = await fetch(\`\${config.loadMoreUrl}?galleryId=\${config.galleryId}&page=\${currentPage}\`);
+            const data = await response.json();
+            
+            if (data.success && data.items?.length > 0) {
+                appendItems(data.items);
+                hasMoreItems = data.hasMore;
+                
+                if (!hasMoreItems) {
+                    button.style.display = 'none';
+                }
+            } else {
+                hasMoreItems = false;
+                button.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Error loading more items:', error);
+        } finally {
+            isLoading = false;
+            buttonText.style.display = 'inline';
+            buttonSpinner.style.display = 'none';
+            button.disabled = false;
+        }
+    }
+    
+    function setupInfiniteScroll() {
+        const loadingIndicator = gallery.querySelector('.media-gallery__loading');
+        
+        const scrollObserver = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && !isLoading && hasMoreItems) {
+                loadingIndicator.style.display = 'block';
+                loadMoreItems().finally(() => {
+                    loadingIndicator.style.display = 'none';
+                });
+            }
+        });
+        
+        if (loadingIndicator) {
+            scrollObserver.observe(loadingIndicator);
+        }
+    }
+    
+    function appendItems(items) {
+        const grid = gallery.querySelector('.media-gallery__grid');
+        items.forEach(item => {
+            const itemHtml = createItemHtml(item);
+            grid.insertAdjacentHTML('beforeend', itemHtml);
+        });
+        
+        // Re-initialize lazy loading for new items
+        if ('IntersectionObserver' in window) {
+            const newLazyImages = grid.querySelectorAll('.lazy');
+            newLazyImages.forEach(img => imageObserver.observe(img));
+        }
+    }
+    
+    function createItemHtml(item) {
+        // This would typically be generated server-side
+        // Simplified version for demonstration
+        return \`
+            <div class="media-gallery__item" data-media-id="\${item.id}" data-media-type="\${item.mediaType}">
+                <div class="media-item">
+                    <div class="media-item__image-container">
+                        <img class="media-item__image lazy" 
+                             data-src="\${item.mediumUrl}"
+                             data-full-src="\${item.fullUrl}"
+                             src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMSIgaGVpZ2h0PSIxIiB2aWV3Qm94PSIwIDAgMSAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IiNmNWY1ZjUiLz48L3N2Zz4="
+                             alt="\${item.alt}"
+                             loading="lazy">
+                        <button class="media-item__zoom" type="button" aria-label="View full size image" data-lightbox-trigger>
+                            <svg aria-hidden="true" viewBox="0 0 24 24" width="24" height="24">
+                                <path d="M21.71 20.29L18 16.61A9 9 0 1 0 16.61 18l3.68 3.68a1 1 0 0 0 1.42 0 1 1 0 0 0 0-1.39zM11 18a7 7 0 1 1 7-7 7 7 0 0 1-7 7z"/>
+                                <path d="M13 11h-2v-2a1 1 0 0 0-2 0v2H7a1 1 0 0 0 0 2h2v2a1 1 0 0 0 2 0v-2h2a1 1 0 0 0 0-2z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    \${item.title ? \`<div class="media-item__caption"><h3 class="media-item__title">\${item.title}</h3></div>\` : ''}
+                </div>
+            </div>
+        \`;
+    }
+});
+</script>`,
         category: "components",
         component: "media_gallery",
         sdlcStage: "development",
@@ -1712,7 +3591,414 @@ public void {{TestMethodName}}_{{Scenario}}_{{ExpectedResult}}()
         id: "testing-integration_test-development",
         title: "Integration Test",
         description: "Integration test for Sitecore components with real dependencies",
-        content: "Implement integration tests for Sitecore components with real dependencies, database interactions, and end-to-end scenarios.",
+        content: `Implement integration tests for Sitecore components with real dependencies, database interactions, and end-to-end scenarios.
+
+// Integration Test Implementation
+[TestClass]
+public class {{ComponentName}}IntegrationTests
+{
+    private static TestContext _testContext;
+    private static IServiceProvider _serviceProvider;
+    private static ISitecoreContext _sitecoreContext;
+    private static IConfiguration _configuration;
+    
+    [ClassInitialize]
+    public static void ClassInitialize(TestContext context)
+    {
+        _testContext = context;
+        
+        // Setup test configuration
+        var configBuilder = new ConfigurationBuilder()
+            .AddJsonFile("appsettings.test.json", optional: false)
+            .AddEnvironmentVariables("TEST_");
+        _configuration = configBuilder.Build();
+        
+        // Setup dependency injection for integration tests
+        var services = new ServiceCollection();
+        ConfigureTestServices(services);
+        _serviceProvider = services.BuildServiceProvider();
+        
+        // Initialize Sitecore context
+        _sitecoreContext = _serviceProvider.GetRequiredService<ISitecoreContext>();
+    }
+    
+    private static void ConfigureTestServices(IServiceCollection services)
+    {
+        // Register test configuration
+        services.AddSingleton(_configuration);
+        
+        // Register Sitecore dependencies
+        services.AddScoped<ISitecoreContext, TestSitecoreContext>();
+        services.AddScoped<IItemManager, TestItemManager>();
+        services.AddScoped<ISearchManager, TestSearchManager>();
+        
+        // Register component-specific services
+        services.AddScoped<I{{ServiceName}}, {{ServiceName}}>();
+        services.AddScoped<{{ControllerName}}>();
+        
+        // Register test database context
+        services.AddDbContext<TestDbContext>(options =>
+            options.UseSqlServer(_configuration.GetConnectionString("TestDatabase")));
+        
+        // Register logging
+        services.AddLogging(builder => builder.AddConsole());
+        
+        // Register HTTP client for API testing
+        services.AddHttpClient();
+    }
+    
+    [TestInitialize]
+    public void TestInitialize()
+    {
+        // Setup test data before each test
+        SetupTestData();
+    }
+    
+    [TestCleanup]
+    public void TestCleanup()
+    {
+        // Cleanup test data after each test
+        CleanupTestData();
+    }
+    
+    [TestMethod]
+    public async Task {{MethodName}}_WithValidInput_ReturnsExpectedResult()
+    {
+        // Arrange
+        var controller = _serviceProvider.GetRequiredService<{{ControllerName}}>();
+        var testItem = CreateTestItem();
+        
+        var mockContext = _serviceProvider.GetRequiredService<ISitecoreContext>();
+        mockContext.Database.Add(testItem);
+        
+        var requestModel = new {{RequestModel}}
+        {
+            {{PropertyName}} = "{{TestValue}}",
+            {{PropertyName2}} = {{TestValue2}}
+        };
+        
+        // Act
+        var result = await controller.{{ActionName}}(requestModel);
+        
+        // Assert
+        Assert.IsNotNull(result);
+        
+        if (result is ViewResult viewResult)
+        {
+            Assert.IsInstanceOfType(viewResult.Model, typeof({{ViewModelType}}));
+            var viewModel = viewResult.Model as {{ViewModelType}};
+            
+            Assert.AreEqual("{{ExpectedValue}}", viewModel.{{PropertyName}});
+            Assert.IsTrue(viewModel.{{BooleanProperty}});
+        }
+        else if (result is JsonResult jsonResult)
+        {
+            dynamic data = jsonResult.Value;
+            Assert.AreEqual("{{ExpectedValue}}", data.{{PropertyName}}.ToString());
+            Assert.IsTrue((bool)data.success);
+        }
+    }
+    
+    [TestMethod]
+    public async Task {{MethodName}}_WithDatabaseInteraction_PersistsDataCorrectly()
+    {
+        // Arrange
+        using var scope = _serviceProvider.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<TestDbContext>();
+        var service = scope.ServiceProvider.GetRequiredService<I{{ServiceName}}>();
+        
+        var entity = new {{EntityType}}
+        {
+            Id = Guid.NewGuid(),
+            Name = "Test Entity",
+            CreatedDate = DateTime.UtcNow,
+            IsActive = true
+        };
+        
+        // Act
+        await service.CreateAsync(entity);
+        
+        // Assert - Verify data was persisted
+        var persistedEntity = await dbContext.{{EntitySetName}}
+            .FirstOrDefaultAsync(e => e.Id == entity.Id);
+            
+        Assert.IsNotNull(persistedEntity);
+        Assert.AreEqual(entity.Name, persistedEntity.Name);
+        Assert.AreEqual(entity.IsActive, persistedEntity.IsActive);
+        
+        // Act - Update the entity
+        persistedEntity.Name = "Updated Entity";
+        await service.UpdateAsync(persistedEntity);
+        
+        // Assert - Verify update was persisted
+        var updatedEntity = await dbContext.{{EntitySetName}}
+            .FirstOrDefaultAsync(e => e.Id == entity.Id);
+            
+        Assert.AreEqual("Updated Entity", updatedEntity.Name);
+    }
+    
+    [TestMethod]
+    public async Task {{MethodName}}_WithSearchIntegration_ReturnsCorrectResults()
+    {
+        // Arrange
+        var searchManager = _serviceProvider.GetRequiredService<ISearchManager>();
+        var searchService = _serviceProvider.GetRequiredService<I{{SearchServiceName}}>();
+        
+        // Setup test search data
+        var testItems = new List<{{SearchItemType}}>
+        {
+            new {{SearchItemType}} { Id = Guid.NewGuid(), Title = "Test Item 1", Content = "Content for testing search" },
+            new {{SearchItemType}} { Id = Guid.NewGuid(), Title = "Test Item 2", Content = "Another test content" },
+            new {{SearchItemType}} { Id = Guid.NewGuid(), Title = "Different Title", Content = "No match content" }
+        };
+        
+        foreach (var item in testItems)
+        {
+            await searchManager.IndexItem(item);
+        }
+        
+        // Wait for indexing to complete
+        await Task.Delay(1000);
+        
+        var searchRequest = new SearchRequest
+        {
+            Query = "test",
+            PageSize = 10,
+            Page = 1
+        };
+        
+        // Act
+        var searchResults = await searchService.SearchAsync(searchRequest);
+        
+        // Assert
+        Assert.IsNotNull(searchResults);
+        Assert.IsTrue(searchResults.TotalResults >= 2);
+        Assert.IsTrue(searchResults.Results.Any(r => r.Title.Contains("Test Item")));
+        
+        // Verify result ranking
+        var firstResult = searchResults.Results.First();
+        Assert.IsTrue(firstResult.Score > 0);
+    }
+    
+    [TestMethod]
+    public async Task {{MethodName}}_WithExternalApiCall_HandlesApiResponseCorrectly()
+    {
+        // Arrange
+        var httpClient = _serviceProvider.GetRequiredService<HttpClient>();
+        var apiService = new {{ApiServiceName}}(httpClient, _configuration);
+        
+        var requestData = new {{ApiRequestModel}}
+        {
+            {{PropertyName}} = "{{TestValue}}",
+            Timestamp = DateTime.UtcNow
+        };
+        
+        // Act
+        var response = await apiService.CallExternalApiAsync(requestData);
+        
+        // Assert
+        Assert.IsNotNull(response);
+        Assert.IsTrue(response.IsSuccess);
+        Assert.IsNotNull(response.Data);
+        
+        // Verify response data structure
+        Assert.AreEqual("{{ExpectedStatus}}", response.Status);
+        Assert.IsTrue(response.Data.{{PropertyName}}.Length > 0);
+    }
+    
+    [TestMethod]
+    public async Task {{MethodName}}_WithConcurrentRequests_HandlesLoadCorrectly()
+    {
+        // Arrange
+        var service = _serviceProvider.GetRequiredService<I{{ServiceName}}>();
+        var tasks = new List<Task<{{ResponseType}}>>();
+        const int concurrentRequests = 10;
+        
+        // Act - Execute concurrent requests
+        for (int i = 0; i < concurrentRequests; i++)
+        {
+            var request = new {{RequestType}}
+            {
+                Id = Guid.NewGuid(),
+                Value = $"Test Value {i}"
+            };
+            
+            tasks.Add(service.ProcessAsync(request));
+        }
+        
+        var results = await Task.WhenAll(tasks);
+        
+        // Assert
+        Assert.AreEqual(concurrentRequests, results.Length);
+        Assert.IsTrue(results.All(r => r.IsSuccess));
+        
+        // Verify all requests were processed uniquely
+        var uniqueResults = results.Select(r => r.Id).Distinct().Count();
+        Assert.AreEqual(concurrentRequests, uniqueResults);
+    }
+    
+    [TestMethod]
+    public async Task {{MethodName}}_WithInvalidData_ThrowsExpectedException()
+    {
+        // Arrange
+        var service = _serviceProvider.GetRequiredService<I{{ServiceName}}>();
+        var invalidRequest = new {{RequestType}}
+        {
+            // Missing required properties or invalid values
+            {{PropertyName}} = null,
+            {{NumericProperty}} = -1
+        };
+        
+        // Act & Assert
+        await Assert.ThrowsExceptionAsync<{{ExpectedExceptionType}}>(
+            () => service.ProcessAsync(invalidRequest));
+    }
+    
+    [TestMethod]
+    public async Task {{MethodName}}_WithTransactionRollback_MaintainsDataIntegrity()
+    {
+        // Arrange
+        using var scope = _serviceProvider.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<TestDbContext>();
+        var service = scope.ServiceProvider.GetRequiredService<I{{ServiceName}}>();
+        
+        var initialCount = await dbContext.{{EntitySetName}}.CountAsync();
+        
+        var entity1 = new {{EntityType}} { Id = Guid.NewGuid(), Name = "Valid Entity" };
+        var entity2 = new {{EntityType}} { Id = Guid.NewGuid(), Name = null }; // This should cause failure
+        
+        // Act & Assert
+        try
+        {
+            using var transaction = await dbContext.Database.BeginTransactionAsync();
+            await service.CreateAsync(entity1);
+            await service.CreateAsync(entity2); // This should fail
+            await transaction.CommitAsync();
+            
+            Assert.Fail("Expected exception was not thrown");
+        }
+        catch (Exception)
+        {
+            // Expected exception
+        }
+        
+        // Assert - Verify rollback occurred
+        var finalCount = await dbContext.{{EntitySetName}}.CountAsync();
+        Assert.AreEqual(initialCount, finalCount);
+    }
+    
+    private void SetupTestData()
+    {
+        // Create test items, users, permissions, etc.
+        var testDatabase = _sitecoreContext.Database;
+        
+        // Setup test templates
+        var testTemplate = testDatabase.GetTemplate("{{TestTemplateName}}");
+        if (testTemplate == null)
+        {
+            testTemplate = CreateTestTemplate();
+        }
+        
+        // Setup test items
+        var testItem = CreateTestItem(testTemplate);
+        testDatabase.Add(testItem);
+    }
+    
+    private void CleanupTestData()
+    {
+        // Remove test items and clean up database
+        var testDatabase = _sitecoreContext.Database;
+        var testItems = testDatabase.SelectItems("fast://*[@@templatename='{{TestTemplateName}}']");
+        
+        foreach (var item in testItems)
+        {
+            item.Delete();
+        }
+    }
+    
+    private {{ItemType}} CreateTestItem()
+    {
+        return new {{ItemType}}
+        {
+            ID = Guid.NewGuid(),
+            Name = "Test Item",
+            TemplateID = Guid.NewGuid(),
+            Fields = new Dictionary<string, object>
+            {
+                ["Title"] = "Test Title",
+                ["Description"] = "Test Description",
+                ["IsActive"] = true,
+                ["CreatedDate"] = DateTime.UtcNow
+            }
+        };
+    }
+    
+    private Template CreateTestTemplate()
+    {
+        return new Template
+        {
+            ID = Guid.NewGuid(),
+            Name = "{{TestTemplateName}}",
+            Fields = new List<TemplateField>
+            {
+                new TemplateField { Name = "Title", Type = "Single-Line Text" },
+                new TemplateField { Name = "Description", Type = "Multi-Line Text" },
+                new TemplateField { Name = "IsActive", Type = "Checkbox" },
+                new TemplateField { Name = "CreatedDate", Type = "Datetime" }
+            }
+        };
+    }
+    
+    [ClassCleanup]
+    public static void ClassCleanup()
+    {
+        _serviceProvider?.Dispose();
+    }
+}
+
+// Test Database Context
+public class TestDbContext : DbContext
+{
+    public TestDbContext(DbContextOptions<TestDbContext> options) : base(options) { }
+    
+    public DbSet<{{EntityType}}> {{EntitySetName}} { get; set; }
+    
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        
+        // Configure test entity mappings
+        modelBuilder.Entity<{{EntityType}}>()
+            .HasKey(e => e.Id);
+            
+        modelBuilder.Entity<{{EntityType}}>()
+            .Property(e => e.Name)
+            .IsRequired()
+            .HasMaxLength(255);
+    }
+}
+
+// Test Configuration (appsettings.test.json)
+{
+  "ConnectionStrings": {
+    "TestDatabase": "Server=(localdb)\\mssqllocaldb;Database=SitecoreTest;Trusted_Connection=true;MultipleActiveResultSets=true"
+  },
+  "Sitecore": {
+    "ConnectionString": "Data Source=(localdb)\\mssqllocaldb;Initial Catalog=SitecoreTest_Master;Integrated Security=True",
+    "TestMode": true
+  },
+  "Search": {
+    "Provider": "Solr",
+    "IndexName": "sitecore_test_index",
+    "Url": "http://localhost:8983/solr"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft": "Warning"
+    }
+  }
+}`,
         category: "testing",
         component: "integration_test",
         sdlcStage: "development",
@@ -1736,7 +4022,341 @@ public void {{TestMethodName}}_{{Scenario}}_{{ExpectedResult}}()
         id: "testing-mock_configuration-development",
         title: "Mock Configuration",
         description: "Mock configuration for Sitecore context and services",
-        content: "Set up comprehensive mock configuration for Sitecore context, services, and dependencies for effective unit testing.",
+        content: `Set up comprehensive mock configuration for Sitecore context, services, and dependencies for effective unit testing.
+
+// Mock Configuration Setup
+public static class MockConfiguration
+{
+    public static IServiceProvider CreateMockServiceProvider()
+    {
+        var services = new ServiceCollection();
+        ConfigureMockServices(services);
+        return services.BuildServiceProvider();
+    }
+    
+    private static void ConfigureMockServices(IServiceCollection services)
+    {
+        // Mock Sitecore Context
+        var mockSitecoreContext = new Mock<ISitecoreContext>();
+        var mockDatabase = new Mock<IDatabase>();
+        var mockItem = CreateMockItem();
+        
+        mockDatabase.Setup(db => db.GetItem(It.IsAny<ID>())).Returns(mockItem.Object);
+        mockDatabase.Setup(db => db.SelectItems(It.IsAny<string>())).Returns(new[] { mockItem.Object });
+        mockSitecoreContext.Setup(ctx => ctx.Database).Returns(mockDatabase.Object);
+        mockSitecoreContext.Setup(ctx => ctx.GetCurrentItem<I{{ModelName}}>()).Returns(CreateMockSitecoreItem());
+        
+        services.AddSingleton(mockSitecoreContext.Object);
+        
+        // Mock Configuration
+        var mockConfiguration = new Mock<IConfiguration>();
+        mockConfiguration.Setup(c => c["{{ConfigKey}}"]).Returns("{{ConfigValue}}");
+        mockConfiguration.Setup(c => c.GetConnectionString("Default")).Returns("{{TestConnectionString}}");
+        services.AddSingleton(mockConfiguration.Object);
+        
+        // Mock Logger
+        var mockLogger = new Mock<ILogger<{{ClassName}}>>();
+        services.AddSingleton(mockLogger.Object);
+        
+        // Mock Cache Service
+        var mockCacheService = new Mock<ICacheService>();
+        mockCacheService.Setup(c => c.GetOrSet(It.IsAny<string>(), It.IsAny<Func<object>>(), It.IsAny<TimeSpan>()))
+                       .Returns<string, Func<object>, TimeSpan>((key, factory, duration) => factory());
+        services.AddSingleton(mockCacheService.Object);
+        
+        // Mock HTTP Context
+        var mockHttpContext = new Mock<HttpContext>();
+        var mockRequest = new Mock<HttpRequest>();
+        var mockResponse = new Mock<HttpResponse>();
+        var mockSession = new Mock<ISession>();
+        
+        mockRequest.Setup(r => r.Headers).Returns(new HeaderDictionary());
+        mockRequest.Setup(r => r.Query).Returns(new QueryCollection());
+        mockHttpContext.Setup(c => c.Request).Returns(mockRequest.Object);
+        mockHttpContext.Setup(c => c.Response).Returns(mockResponse.Object);
+        mockHttpContext.Setup(c => c.Session).Returns(mockSession.Object);
+        
+        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
+        mockHttpContextAccessor.Setup(a => a.HttpContext).Returns(mockHttpContext.Object);
+        services.AddSingleton(mockHttpContextAccessor.Object);
+    }
+    
+    private static Mock<IItem> CreateMockItem()
+    {
+        var mockItem = new Mock<IItem>();
+        mockItem.Setup(i => i.ID).Returns(new ID(Guid.NewGuid()));
+        mockItem.Setup(i => i.Name).Returns("Test Item");
+        mockItem.Setup(i => i.DisplayName).Returns("Test Item Display Name");
+        mockItem.Setup(i => i.TemplateID).Returns(new ID(Guid.NewGuid()));
+        mockItem.Setup(i => i.TemplateName).Returns("{{TemplateName}}");
+        mockItem.Setup(i => i.Paths).Returns(CreateMockItemPaths());
+        mockItem.Setup(i => i.Fields).Returns(CreateMockFieldCollection());
+        mockItem.Setup(i => i["{{FieldName}}"]).Returns("{{FieldValue}}");
+        return mockItem;
+    }
+    
+    private static ItemPaths CreateMockItemPaths()
+    {
+        // Create mock paths object with common Sitecore paths
+        return new ItemPaths
+        {
+            FullPath = "/sitecore/content/home/test-item",
+            Path = "/sitecore/content/home/test-item",
+            Name = "test-item"
+        };
+    }
+    
+    private static FieldCollection CreateMockFieldCollection()
+    {
+        var fields = new Dictionary<string, string>
+        {
+            ["Title"] = "Test Title",
+            ["Description"] = "Test Description",
+            ["Image"] = "{{MediaLibraryPath}}/test-image.jpg",
+            ["Link"] = "{{LinkFieldValue}}",
+            ["Date"] = DateTime.Now.ToString("yyyyMMddTHHmmss"),
+            ["Number"] = "42",
+            ["Checkbox"] = "1"
+        };
+        
+        var mockFieldCollection = new Mock<FieldCollection>();
+        foreach (var field in fields)
+        {
+            var mockField = new Mock<Field>();
+            mockField.Setup(f => f.Name).Returns(field.Key);
+            mockField.Setup(f => f.Value).Returns(field.Value);
+            mockField.Setup(f => f.HasValue).Returns(!string.IsNullOrEmpty(field.Value));
+            mockFieldCollection.Setup(fc => fc[field.Key]).Returns(mockField.Object);
+        }
+        
+        return mockFieldCollection.Object;
+    }
+    
+    private static I{{ModelName}} CreateMockSitecoreItem()
+    {
+        var mock = new Mock<I{{ModelName}}>();
+        mock.Setup(m => m.{{PropertyName}}).Returns("{{PropertyValue}}");
+        mock.Setup(m => m.{{BooleanProperty}}).Returns(true);
+        mock.Setup(m => m.{{DateProperty}}).Returns(DateTime.Now);
+        mock.Setup(m => m.{{ImageProperty}}).Returns(CreateMockImage());
+        mock.Setup(m => m.{{LinkProperty}}).Returns(CreateMockLink());
+        return mock.Object;
+    }
+    
+    private static Image CreateMockImage()
+    {
+        var mockImage = new Mock<Image>();
+        mockImage.Setup(i => i.Src).Returns("/media/test-image.jpg");
+        mockImage.Setup(i => i.Alt).Returns("Test Alt Text");
+        mockImage.Setup(i => i.Width).Returns(800);
+        mockImage.Setup(i => i.Height).Returns(600);
+        return mockImage.Object;
+    }
+    
+    private static Link CreateMockLink()
+    {
+        var mockLink = new Mock<Link>();
+        mockLink.Setup(l => l.Url).Returns("/test-page");
+        mockLink.Setup(l => l.Text).Returns("Test Link Text");
+        mockLink.Setup(l => l.Target).Returns("_self");
+        mockLink.Setup(l => l.Title).Returns("Test Link Title");
+        return mockLink.Object;
+    }
+}
+
+// Base Test Class
+public abstract class BaseSitecoreTest
+{
+    protected IServiceProvider ServiceProvider { get; private set; }
+    protected Mock<ISitecoreContext> MockSitecoreContext { get; private set; }
+    protected Mock<ILogger<{{ClassName}}>> MockLogger { get; private set; }
+    protected Mock<ICacheService> MockCacheService { get; private set; }
+    
+    [TestInitialize]
+    public virtual void TestInitialize()
+    {
+        ServiceProvider = MockConfiguration.CreateMockServiceProvider();
+        MockSitecoreContext = new Mock<ISitecoreContext>();
+        MockLogger = new Mock<ILogger<{{ClassName}}>>();
+        MockCacheService = new Mock<ICacheService>();
+        
+        SetupCommonMocks();
+    }
+    
+    protected virtual void SetupCommonMocks()
+    {
+        // Setup common mock behaviors that are used across multiple tests
+        MockCacheService.Setup(c => c.GetOrSet(It.IsAny<string>(), It.IsAny<Func<object>>(), It.IsAny<TimeSpan>()))
+                       .Returns<string, Func<object>, TimeSpan>((key, factory, duration) => factory());
+    }
+    
+    protected T GetService<T>() where T : class
+    {
+        return ServiceProvider.GetService<T>();
+    }
+    
+    protected {{ControllerName}} CreateController()
+    {
+        return new {{ControllerName}}(
+            MockSitecoreContext.Object,
+            MockLogger.Object,
+            MockCacheService.Object
+        );
+    }
+    
+    [TestCleanup]
+    public virtual void TestCleanup()
+    {
+        ServiceProvider?.Dispose();
+    }
+}
+
+// Test Data Builders
+public class {{ModelName}}TestDataBuilder
+{
+    private readonly {{ModelName}} _instance = new {{ModelName}}();
+    
+    public {{ModelName}}TestDataBuilder WithId(Guid id)
+    {
+        _instance.Id = id;
+        return this;
+    }
+    
+    public {{ModelName}}TestDataBuilder With{{PropertyName}}(string {{propertyName}})
+    {
+        _instance.{{PropertyName}} = {{propertyName}};
+        return this;
+    }
+    
+    public {{ModelName}}TestDataBuilder With{{BooleanProperty}}(bool {{booleanProperty}})
+    {
+        _instance.{{BooleanProperty}} = {{booleanProperty}};
+        return this;
+    }
+    
+    public {{ModelName}}TestDataBuilder With{{DateProperty}}(DateTime {{dateProperty}})
+    {
+        _instance.{{DateProperty}} = {{dateProperty}};
+        return this;
+    }
+    
+    public {{ModelName}}TestDataBuilder WithDefaults()
+    {
+        _instance.Id = Guid.NewGuid();
+        _instance.{{PropertyName}} = "Default {{PropertyName}}";
+        _instance.{{BooleanProperty}} = true;
+        _instance.{{DateProperty}} = DateTime.Now;
+        return this;
+    }
+    
+    public {{ModelName}} Build() => _instance;
+    
+    public static implicit operator {{ModelName}}({{ModelName}}TestDataBuilder builder) => builder.Build();
+}
+
+// Mock HTTP Context Helper
+public static class MockHttpContextHelper
+{
+    public static ControllerContext CreateControllerContext(string url = "/", string method = "GET")
+    {
+        var httpContext = new Mock<HttpContext>();
+        var request = new Mock<HttpRequest>();
+        var response = new Mock<HttpResponse>();
+        
+        request.Setup(r => r.Path).Returns(url);
+        request.Setup(r => r.Method).Returns(method);
+        request.Setup(r => r.Headers).Returns(new HeaderDictionary());
+        request.Setup(r => r.Query).Returns(new QueryCollection());
+        
+        var responseHeaders = new Mock<IHeaderDictionary>();
+        response.Setup(r => r.Headers).Returns(responseHeaders.Object);
+        
+        httpContext.Setup(c => c.Request).Returns(request.Object);
+        httpContext.Setup(c => c.Response).Returns(response.Object);
+        
+        return new ControllerContext
+        {
+            HttpContext = httpContext.Object
+        };
+    }
+    
+    public static void SetupAuthentication(Mock<HttpContext> httpContext, string userName = "testuser", params string[] roles)
+    {
+        var identity = new Mock<IIdentity>();
+        identity.Setup(i => i.Name).Returns(userName);
+        identity.Setup(i => i.IsAuthenticated).Returns(true);
+        
+        var principal = new Mock<ClaimsPrincipal>();
+        principal.Setup(p => p.Identity).Returns(identity.Object);
+        principal.Setup(p => p.IsInRole(It.IsAny<string>())).Returns<string>(role => roles.Contains(role));
+        
+        httpContext.Setup(c => c.User).Returns(principal.Object);
+    }
+}
+
+// Assert Extensions for Sitecore
+public static class SitecoreAssertExtensions
+{
+    public static void AssertItemExists(this ISitecoreContext context, string path)
+    {
+        var item = context.Database.GetItem(path);
+        Assert.IsNotNull(item, $"Item at path '{path}' does not exist");
+    }
+    
+    public static void AssertItemHasField(this IItem item, string fieldName, string expectedValue = null)
+    {
+        Assert.IsNotNull(item, "Item cannot be null");
+        var field = item.Fields[fieldName];
+        Assert.IsNotNull(field, $"Field '{fieldName}' does not exist on item");
+        
+        if (expectedValue != null)
+        {
+            Assert.AreEqual(expectedValue, field.Value, $"Field '{fieldName}' value mismatch");
+        }
+    }
+    
+    public static void AssertViewModelProperty<T>(this T viewModel, Expression<Func<T, object>> propertyExpression, object expectedValue)
+    {
+        var memberExpression = propertyExpression.Body as MemberExpression ?? 
+                              ((UnaryExpression)propertyExpression.Body).Operand as MemberExpression;
+        
+        var propertyName = memberExpression.Member.Name;
+        var propertyInfo = typeof(T).GetProperty(propertyName);
+        var actualValue = propertyInfo.GetValue(viewModel);
+        
+        Assert.AreEqual(expectedValue, actualValue, $"Property '{propertyName}' value mismatch");
+    }
+}
+
+// Usage Example
+[TestClass]
+public class ExampleControllerTests : BaseSitecoreTest
+{
+    [TestMethod]
+    public void Index_ReturnsViewWithCorrectModel()
+    {
+        // Arrange
+        var testData = new {{ModelName}}TestDataBuilder()
+            .WithDefaults()
+            .With{{PropertyName}}("Test Value")
+            .Build();
+            
+        MockSitecoreContext.Setup(ctx => ctx.GetCurrentItem<I{{ModelName}}>())
+                          .Returns(testData);
+        
+        var controller = CreateController();
+        
+        // Act
+        var result = controller.Index() as ViewResult;
+        
+        // Assert
+        Assert.IsNotNull(result);
+        Assert.IsInstanceOfType(result.Model, typeof({{ViewModelName}}));
+        
+        var viewModel = result.Model as {{ViewModelName}};
+        viewModel.AssertViewModelProperty(vm => vm.{{PropertyName}}, "Test Value");
+    }
+}`,
         category: "testing",
         component: "mock_configuration",
         sdlcStage: "development",
