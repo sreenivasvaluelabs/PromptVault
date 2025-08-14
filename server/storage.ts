@@ -29,7 +29,45 @@ export class MemStorage implements IStorage {
         id: "foundation-service_interface-development",
         title: "Service Interface",
         description: "Foundation service interface with dependency injection and logging",
-        content: "Create a foundation service interface following Helix architecture principles. Include async methods, error handling, and comprehensive logging.",
+        content: `Create a foundation service interface following Helix architecture principles. Include async methods, error handling, and comprehensive logging.
+
+// Foundation service interface
+public interface I{{ServiceName}}Service
+{
+    Task<{{ReturnType}}> {{MethodName}}Async({{Parameters}});
+    void LogOperation(string operation, object data = null);
+}
+
+public class {{ServiceName}}Service : I{{ServiceName}}Service
+{
+    private readonly ILogger<{{ServiceName}}Service> _logger;
+
+    public {{ServiceName}}Service(ILogger<{{ServiceName}}Service> logger)
+    {
+        _logger = logger;
+    }
+
+    public async Task<{{ReturnType}}> {{MethodName}}Async({{Parameters}})
+    {
+        _logger.LogInformation("Executing {{MethodName}}");
+        
+        try
+        {
+            // Implementation here
+            throw new NotImplementedException();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in {{MethodName}}");
+            throw;
+        }
+    }
+
+    public void LogOperation(string operation, object data = null)
+    {
+        _logger.LogInformation("Operation: {Operation}, Data: {@Data}", operation, data);
+    }
+}`,
         category: "foundation",
         component: "service_interface",
         sdlcStage: "development",
@@ -91,7 +129,48 @@ export class MemStorage implements IStorage {
         id: "feature-controller_action-development",
         title: "Controller Action",
         description: "Feature controller action with comprehensive error handling and logging",
-        content: "Create a Sitecore MVC controller action with proper error handling, logging, dependency injection, and response handling following Helix architecture.",
+        content: `Create a Sitecore MVC controller action with proper error handling, logging, dependency injection, and response handling following Helix architecture.
+
+// Feature controller action
+public ActionResult {{ActionName}}()
+{
+    try
+    {
+        var datasource = GetDatasource<I{{ModelName}}>();
+        var viewModel = new {{ViewModelName}}(datasource);
+        
+        _loggingService.LogInformation($"{{ActionName}} rendered for item: {datasource?.Id}");
+        return View(viewModel);
+    }
+    catch (Exception ex)
+    {
+        _loggingService.LogError("Error rendering {{ActionName}}", ex);
+        return View(new {{ViewModelName}}(null));
+    }
+}
+
+[HttpPost]
+[ValidateAntiForgeryToken]
+public ActionResult {{ActionName}}Post({{ViewModelName}} model)
+{
+    if (!ModelState.IsValid)
+    {
+        return View(model);
+    }
+    
+    try
+    {
+        await _{{serviceName}}Service.ProcessAsync(model);
+        _loggingService.LogInformation("{{ActionName}} processed successfully");
+        return RedirectToAction("Success");
+    }
+    catch (Exception ex)
+    {
+        _loggingService.LogError(ex, "Error processing {{ActionName}}");
+        ModelState.AddModelError("", "An error occurred while processing your request.");
+        return View(model);
+    }
+}`,
         category: "feature",
         component: "controller_action",
         sdlcStage: "development",
@@ -115,7 +194,57 @@ export class MemStorage implements IStorage {
         id: "feature-glass_mapper_model-development",
         title: "Glass Mapper Model",
         description: "Glass Mapper model with comprehensive field mapping and inheritance",
-        content: "Create a Glass Mapper model interface with comprehensive field mappings, inheritance from base templates, and proper Sitecore field handling.",
+        content: `Create a Glass Mapper model interface with comprehensive field mappings, inheritance from base templates, and proper Sitecore field handling.
+
+// Glass Mapper model interface
+[SitecoreType(TemplateId = "{{{TemplateId}}}", AutoMap = true)]
+public interface I{{ModelName}}
+{
+    [SitecoreId]
+    Guid Id { get; set; }
+
+    [SitecoreField("{{FieldName}}")]
+    string {{PropertyName}} { get; set; }
+
+    [SitecoreField("{{ImageFieldName}}")]
+    Glass.Mapper.Sc.Fields.Image {{ImagePropertyName}} { get; set; }
+
+    [SitecoreField("{{LinkFieldName}}")]
+    Glass.Mapper.Sc.Fields.Link {{LinkPropertyName}} { get; set; }
+
+    [SitecoreField("{{RichTextFieldName}}")]
+    string {{RichTextPropertyName}} { get; set; }
+
+    [SitecoreField("{{DateFieldName}}")]
+    DateTime {{DatePropertyName}} { get; set; }
+
+    [SitecoreField("{{CheckboxFieldName}}")]
+    bool {{CheckboxPropertyName}} { get; set; }
+
+    [SitecoreChildren]
+    IEnumerable<I{{ChildModelName}}> {{ChildrenPropertyName}} { get; set; }
+
+    [SitecoreParent]
+    I{{ParentModelName}} {{ParentPropertyName}} { get; set; }
+}
+
+// Implementation class for additional business logic
+public class {{ModelName}} : I{{ModelName}}
+{
+    public Guid Id { get; set; }
+    public string {{PropertyName}} { get; set; }
+    public Glass.Mapper.Sc.Fields.Image {{ImagePropertyName}} { get; set; }
+    public Glass.Mapper.Sc.Fields.Link {{LinkPropertyName}} { get; set; }
+    public string {{RichTextPropertyName}} { get; set; }
+    public DateTime {{DatePropertyName}} { get; set; }
+    public bool {{CheckboxPropertyName}} { get; set; }
+    public IEnumerable<I{{ChildModelName}}> {{ChildrenPropertyName}} { get; set; }
+    public I{{ParentModelName}} {{ParentPropertyName}} { get; set; }
+
+    // Business logic methods
+    public bool IsValid => !string.IsNullOrEmpty({{PropertyName}});
+    public string FormattedDate => {{DatePropertyName}}.ToString("yyyy-MM-dd");
+}`,
         category: "feature",
         component: "glass_mapper_model",
         sdlcStage: "development",
@@ -139,7 +268,40 @@ export class MemStorage implements IStorage {
         id: "feature-razor_view-development",
         title: "Razor View",
         description: "Accessible Razor view with SEO optimization and responsive design",
-        content: "Create a Razor view with accessibility features, SEO optimization, responsive design, and integration with Sitecore Experience Editor.",
+        content: `Create a Razor view with accessibility features, SEO optimization, responsive design, and integration with Sitecore Experience Editor.
+
+@model {{Namespace}}.{{ViewModelName}}
+
+@if (Model.HasContent)
+{
+    <div class="{{cssClass}}" role="region" aria-label="{{AriaLabel}}">
+        <h2 class="{{cssClass}}__title">@Model.{{TitleProperty}}</h2>
+        
+        @if (!string.IsNullOrEmpty(Model.{{DescriptionProperty}}))
+        {
+            <p class="{{cssClass}}__description">@Model.{{DescriptionProperty}}</p>
+        }
+        
+        @if (Model.{{ImageProperty}} != null)
+        {
+            @Html.Glass().RenderImage(Model.{{ImageProperty}}, new { @class = "{{cssClass}}__image", alt = Model.{{AltTextProperty}} })
+        }
+        
+        @if (Model.{{LinkProperty}} != null && !string.IsNullOrEmpty(Model.{{LinkProperty}}.Url))
+        {
+            <a href="@Model.{{LinkProperty}}.Url" class="{{cssClass}}__link" 
+               @if (Model.{{LinkProperty}}.Target != null) { <text>target="@Model.{{LinkProperty}}.Target"</text> }>
+                @(!string.IsNullOrEmpty(Model.{{LinkProperty}}.Text) ? Model.{{LinkProperty}}.Text : "Read More")
+            </a>
+        }
+    </div>
+}
+else if (Sitecore.Context.PageMode.IsExperienceEditor)
+{
+    <div class="{{cssClass}} {{cssClass}}--empty">
+        <p>No content available. Please add content using the Experience Editor.</p>
+    </div>
+}`,
         category: "feature",
         component: "razor_view",
         sdlcStage: "development",
@@ -504,6 +666,440 @@ export class MemStorage implements IStorage {
         tags: ["sdlc", "logging", "analysis", "elk-stack", "management", "template"],
         context: "maintenance",
         metadata: { complexity: "high", monitoring: "required" }
+      },
+
+      // Additional 36 SDLC Templates for complete 75 prompt coverage
+      {
+        id: "sdlc_templates-requirements_analysis-requirements",
+        title: "Requirements Analysis Template",
+        description: "Structured requirements gathering and analysis template",
+        content: "Create a structured requirements analysis template for gathering functional and non-functional requirements with stakeholder input.",
+        category: "sdlc_templates",
+        component: "requirements_analysis",
+        sdlcStage: "requirements",
+        tags: ["sdlc", "requirements", "analysis", "stakeholders", "template"],
+        context: "requirements_analysis",
+        metadata: { complexity: "medium", documentation: "required" }
+      },
+      {
+        id: "sdlc_templates-epic_template-requirements",
+        title: "Epic Template",
+        description: "Epic definition template with theme alignment and acceptance criteria",
+        content: "Define comprehensive epics with business value, acceptance criteria, and feature breakdown for agile development.",
+        category: "sdlc_templates",
+        component: "epic_template",
+        sdlcStage: "requirements",
+        tags: ["sdlc", "epic", "agile", "features", "template"],
+        context: "requirements_analysis",
+        metadata: { complexity: "medium", planning: "required" }
+      },
+      {
+        id: "sdlc_templates-feature_specification-design",
+        title: "Feature Specification",
+        description: "Detailed feature specification template with wireframes",
+        content: "Create detailed feature specifications with wireframes, user flows, and technical requirements.",
+        category: "sdlc_templates",
+        component: "feature_specification",
+        sdlcStage: "design",
+        tags: ["sdlc", "feature", "specification", "wireframes", "template"],
+        context: "technical_design",
+        metadata: { complexity: "high", design: "required" }
+      },
+      {
+        id: "sdlc_templates-code_review_checklist-development",
+        title: "Code Review Checklist",
+        description: "Comprehensive code review checklist template",
+        content: "Establish code review standards with security, performance, and maintainability checkpoints.",
+        category: "sdlc_templates",
+        component: "code_review_checklist",
+        sdlcStage: "development",
+        tags: ["sdlc", "code-review", "quality", "checklist", "template"],
+        context: "implementation",
+        metadata: { complexity: "medium", quality: "required" }
+      },
+      {
+        id: "sdlc_templates-git_workflow-development",
+        title: "Git Workflow Template",
+        description: "Git branching strategy and workflow template",
+        content: "Define Git workflow with branching strategy, merge policies, and release management procedures.",
+        category: "sdlc_templates",
+        component: "git_workflow",
+        sdlcStage: "development",
+        tags: ["sdlc", "git", "workflow", "branching", "template"],
+        context: "implementation",
+        metadata: { complexity: "medium", workflow: "required" }
+      },
+      {
+        id: "sdlc_templates-definition_of_done-development",
+        title: "Definition of Done",
+        description: "Definition of done template for quality assurance",
+        content: "Establish clear definition of done criteria including testing, documentation, and deployment requirements.",
+        category: "sdlc_templates",
+        component: "definition_of_done",
+        sdlcStage: "development",
+        tags: ["sdlc", "dod", "quality", "criteria", "template"],
+        context: "implementation",
+        metadata: { complexity: "low", quality: "required" }
+      },
+      {
+        id: "sdlc_templates-test_plan-unit_testing",
+        title: "Test Plan Template",
+        description: "Comprehensive test plan template with coverage requirements",
+        content: "Create structured test plans with coverage requirements, test cases, and execution strategies.",
+        category: "sdlc_templates",
+        component: "test_plan",
+        sdlcStage: "unit_testing",
+        tags: ["sdlc", "testing", "plan", "coverage", "template"],
+        context: "unit_testing",
+        metadata: { complexity: "high", testing: "required" }
+      },
+      {
+        id: "sdlc_templates-bug_report-unit_testing",
+        title: "Bug Report Template",
+        description: "Structured bug report template with reproduction steps",
+        content: "Define bug reporting standards with reproduction steps, environment details, and severity classification.",
+        category: "sdlc_templates",
+        component: "bug_report",
+        sdlcStage: "unit_testing",
+        tags: ["sdlc", "bug", "report", "reproduction", "template"],
+        context: "unit_testing",
+        metadata: { complexity: "low", quality: "required" }
+      },
+      {
+        id: "sdlc_templates-acceptance_criteria-unit_testing",
+        title: "Acceptance Criteria Template",
+        description: "Acceptance criteria template with Given-When-Then format",
+        content: "Create clear acceptance criteria using Given-When-Then format for behavior-driven development.",
+        category: "sdlc_templates",
+        component: "acceptance_criteria",
+        sdlcStage: "unit_testing",
+        tags: ["sdlc", "acceptance", "criteria", "bdd", "template"],
+        context: "unit_testing",
+        metadata: { complexity: "medium", testing: "required" }
+      },
+      {
+        id: "sdlc_templates-release_notes-deployment",
+        title: "Release Notes Template",
+        description: "Release notes template with feature highlights and breaking changes",
+        content: "Structure release notes with feature highlights, bug fixes, breaking changes, and migration guides.",
+        category: "sdlc_templates",
+        component: "release_notes",
+        sdlcStage: "deployment",
+        tags: ["sdlc", "release", "notes", "changelog", "template"],
+        context: "deployment",
+        metadata: { complexity: "medium", communication: "required" }
+      },
+      {
+        id: "sdlc_templates-deployment_guide-deployment",
+        title: "Deployment Guide",
+        description: "Step-by-step deployment guide template",
+        content: "Create comprehensive deployment guides with environment setup, configuration, and rollback procedures.",
+        category: "sdlc_templates",
+        component: "deployment_guide",
+        sdlcStage: "deployment",
+        tags: ["sdlc", "deployment", "guide", "configuration", "template"],
+        context: "deployment",
+        metadata: { complexity: "high", operations: "required" }
+      },
+      {
+        id: "sdlc_templates-environment_setup-deployment",
+        title: "Environment Setup",
+        description: "Environment configuration template for different stages",
+        content: "Define environment setup procedures for development, staging, and production environments.",
+        category: "sdlc_templates",
+        component: "environment_setup",
+        sdlcStage: "deployment",
+        tags: ["sdlc", "environment", "setup", "configuration", "template"],
+        context: "deployment",
+        metadata: { complexity: "high", infrastructure: "required" }
+      },
+      {
+        id: "sdlc_templates-incident_response-maintenance",
+        title: "Incident Response Plan",
+        description: "Incident response and escalation template",
+        content: "Establish incident response procedures with escalation paths, communication protocols, and resolution tracking.",
+        category: "sdlc_templates",
+        component: "incident_response",
+        sdlcStage: "maintenance",
+        tags: ["sdlc", "incident", "response", "escalation", "template"],
+        context: "maintenance",
+        metadata: { complexity: "high", operations: "critical" }
+      },
+      {
+        id: "sdlc_templates-maintenance_schedule-maintenance",
+        title: "Maintenance Schedule",
+        description: "Scheduled maintenance and update template",
+        content: "Plan scheduled maintenance windows with impact assessment, rollback procedures, and communication plans.",
+        category: "sdlc_templates",
+        component: "maintenance_schedule",
+        sdlcStage: "maintenance",
+        tags: ["sdlc", "maintenance", "schedule", "planning", "template"],
+        context: "maintenance",
+        metadata: { complexity: "medium", operations: "required" }
+      },
+      {
+        id: "sdlc_templates-retrospective-maintenance",
+        title: "Sprint Retrospective",
+        description: "Sprint retrospective template for continuous improvement",
+        content: "Facilitate sprint retrospectives with action items, team feedback, and process improvement tracking.",
+        category: "sdlc_templates",
+        component: "retrospective",
+        sdlcStage: "maintenance",
+        tags: ["sdlc", "retrospective", "improvement", "team", "template"],
+        context: "maintenance",
+        metadata: { complexity: "low", team: "required" }
+      },
+      {
+        id: "sdlc_templates-capacity_planning-requirements",
+        title: "Capacity Planning",
+        description: "Resource and capacity planning template",
+        content: "Plan team capacity, resource allocation, and workload distribution for sprint and release planning.",
+        category: "sdlc_templates",
+        component: "capacity_planning",
+        sdlcStage: "requirements",
+        tags: ["sdlc", "capacity", "planning", "resources", "template"],
+        context: "requirements_analysis",
+        metadata: { complexity: "medium", planning: "required" }
+      },
+      {
+        id: "sdlc_templates-risk_assessment-requirements",
+        title: "Risk Assessment",
+        description: "Project risk assessment and mitigation template",
+        content: "Identify project risks with impact assessment, probability analysis, and mitigation strategies.",
+        category: "sdlc_templates",
+        component: "risk_assessment",
+        sdlcStage: "requirements",
+        tags: ["sdlc", "risk", "assessment", "mitigation", "template"],
+        context: "requirements_analysis",
+        metadata: { complexity: "high", planning: "critical" }
+      },
+      {
+        id: "sdlc_templates-stakeholder_analysis-requirements",
+        title: "Stakeholder Analysis",
+        description: "Stakeholder identification and analysis template",
+        content: "Map stakeholders with influence analysis, communication preferences, and engagement strategies.",
+        category: "sdlc_templates",
+        component: "stakeholder_analysis",
+        sdlcStage: "requirements",
+        tags: ["sdlc", "stakeholder", "analysis", "communication", "template"],
+        context: "requirements_analysis",
+        metadata: { complexity: "medium", communication: "required" }
+      },
+      {
+        id: "sdlc_templates-ux_research-design",
+        title: "UX Research Plan",
+        description: "User experience research and testing template",
+        content: "Plan user experience research with user personas, testing scenarios, and feedback collection methods.",
+        category: "sdlc_templates",
+        component: "ux_research",
+        sdlcStage: "design",
+        tags: ["sdlc", "ux", "research", "testing", "template"],
+        context: "technical_design",
+        metadata: { complexity: "high", user_experience: "required" }
+      },
+      {
+        id: "sdlc_templates-wireframe_template-design",
+        title: "Wireframe Template",
+        description: "UI wireframe and mockup template",
+        content: "Create UI wireframes with responsive layouts, component specifications, and interaction definitions.",
+        category: "sdlc_templates",
+        component: "wireframe_template",
+        sdlcStage: "design",
+        tags: ["sdlc", "wireframe", "ui", "mockup", "template"],
+        context: "technical_design",
+        metadata: { complexity: "medium", design: "required" }
+      },
+      {
+        id: "sdlc_templates-database_design-design",
+        title: "Database Design",
+        description: "Database schema and design template",
+        content: "Design database schemas with entity relationships, indexing strategies, and migration procedures.",
+        category: "sdlc_templates",
+        component: "database_design",
+        sdlcStage: "design",
+        tags: ["sdlc", "database", "schema", "design", "template"],
+        context: "technical_design",
+        metadata: { complexity: "high", database: "required" }
+      },
+      {
+        id: "sdlc_templates-integration_design-design",
+        title: "Integration Design",
+        description: "System integration and API design template",
+        content: "Design system integrations with API specifications, data flow diagrams, and error handling strategies.",
+        category: "sdlc_templates",
+        component: "integration_design",
+        sdlcStage: "design",
+        tags: ["sdlc", "integration", "api", "design", "template"],
+        context: "technical_design",
+        metadata: { complexity: "high", integration: "required" }
+      },
+      {
+        id: "sdlc_templates-coding_standards-development",
+        title: "Coding Standards",
+        description: "Coding standards and best practices template",
+        content: "Establish coding standards with naming conventions, formatting rules, and best practice guidelines.",
+        category: "sdlc_templates",
+        component: "coding_standards",
+        sdlcStage: "development",
+        tags: ["sdlc", "coding", "standards", "best-practices", "template"],
+        context: "implementation",
+        metadata: { complexity: "medium", quality: "required" }
+      },
+      {
+        id: "sdlc_templates-technical_debt-development",
+        title: "Technical Debt Log",
+        description: "Technical debt tracking and management template",
+        content: "Track technical debt with impact assessment, prioritization criteria, and resolution planning.",
+        category: "sdlc_templates",
+        component: "technical_debt",
+        sdlcStage: "development",
+        tags: ["sdlc", "technical-debt", "tracking", "management", "template"],
+        context: "implementation",
+        metadata: { complexity: "medium", maintenance: "important" }
+      },
+      {
+        id: "sdlc_templates-refactoring_plan-development",
+        title: "Refactoring Plan",
+        description: "Code refactoring strategy and planning template",
+        content: "Plan code refactoring with impact analysis, testing strategies, and incremental delivery approaches.",
+        category: "sdlc_templates",
+        component: "refactoring_plan",
+        sdlcStage: "development",
+        tags: ["sdlc", "refactoring", "planning", "strategy", "template"],
+        context: "implementation",
+        metadata: { complexity: "high", quality: "important" }
+      },
+      {
+        id: "sdlc_templates-load_testing-integration_testing",
+        title: "Load Testing Plan",
+        description: "Performance and load testing template",
+        content: "Design load testing scenarios with performance benchmarks, scalability testing, and bottleneck identification.",
+        category: "sdlc_templates",
+        component: "load_testing",
+        sdlcStage: "integration_testing",
+        tags: ["sdlc", "load", "testing", "performance", "template"],
+        context: "integration_testing",
+        metadata: { complexity: "high", performance: "critical" }
+      },
+      {
+        id: "sdlc_templates-security_testing-integration_testing",
+        title: "Security Testing Plan",
+        description: "Security testing and vulnerability assessment template",
+        content: "Plan security testing with vulnerability assessments, penetration testing, and compliance validation.",
+        category: "sdlc_templates",
+        component: "security_testing",
+        sdlcStage: "integration_testing",
+        tags: ["sdlc", "security", "testing", "vulnerability", "template"],
+        context: "integration_testing",
+        metadata: { complexity: "high", security: "critical" }
+      },
+      {
+        id: "sdlc_templates-user_acceptance_testing-integration_testing",
+        title: "User Acceptance Testing",
+        description: "UAT planning and execution template",
+        content: "Plan user acceptance testing with test scenarios, user training, and feedback collection procedures.",
+        category: "sdlc_templates",
+        component: "user_acceptance_testing",
+        sdlcStage: "integration_testing",
+        tags: ["sdlc", "uat", "acceptance", "testing", "template"],
+        context: "integration_testing",
+        metadata: { complexity: "medium", validation: "required" }
+      },
+      {
+        id: "sdlc_templates-regression_testing-integration_testing",
+        title: "Regression Testing",
+        description: "Regression testing strategy and automation template",
+        content: "Design regression testing with automated test suites, coverage analysis, and continuous integration.",
+        category: "sdlc_templates",
+        component: "regression_testing",
+        sdlcStage: "integration_testing",
+        tags: ["sdlc", "regression", "testing", "automation", "template"],
+        context: "integration_testing",
+        metadata: { complexity: "high", automation: "required" }
+      },
+      {
+        id: "sdlc_templates-ci_cd_pipeline-deployment",
+        title: "CI/CD Pipeline",
+        description: "Continuous integration and deployment pipeline template",
+        content: "Configure CI/CD pipelines with automated testing, deployment stages, and rollback mechanisms.",
+        category: "sdlc_templates",
+        component: "ci_cd_pipeline",
+        sdlcStage: "deployment",
+        tags: ["sdlc", "cicd", "pipeline", "automation", "template"],
+        context: "deployment",
+        metadata: { complexity: "high", automation: "required" }
+      },
+      {
+        id: "sdlc_templates-backup_strategy-deployment",
+        title: "Backup Strategy",
+        description: "Data backup and recovery strategy template",
+        content: "Plan backup strategies with recovery procedures, retention policies, and disaster recovery protocols.",
+        category: "sdlc_templates",
+        component: "backup_strategy",
+        sdlcStage: "deployment",
+        tags: ["sdlc", "backup", "recovery", "strategy", "template"],
+        context: "deployment",
+        metadata: { complexity: "high", recovery: "critical" }
+      },
+      {
+        id: "sdlc_templates-rollback_plan-deployment",
+        title: "Rollback Plan",
+        description: "Deployment rollback procedures template",
+        content: "Define rollback procedures with automated rollback triggers, data migration reversal, and communication protocols.",
+        category: "sdlc_templates",
+        component: "rollback_plan",
+        sdlcStage: "deployment",
+        tags: ["sdlc", "rollback", "procedures", "recovery", "template"],
+        context: "deployment",
+        metadata: { complexity: "high", recovery: "critical" }
+      },
+      {
+        id: "sdlc_templates-performance_monitoring-maintenance",
+        title: "Performance Monitoring",
+        description: "Application performance monitoring template",
+        content: "Setup performance monitoring with metrics collection, alerting thresholds, and optimization recommendations.",
+        category: "sdlc_templates",
+        component: "performance_monitoring",
+        sdlcStage: "maintenance",
+        tags: ["sdlc", "performance", "monitoring", "metrics", "template"],
+        context: "maintenance",
+        metadata: { complexity: "high", monitoring: "required" }
+      },
+      {
+        id: "sdlc_templates-knowledge_transfer-maintenance",
+        title: "Knowledge Transfer",
+        description: "Knowledge transfer and documentation template",
+        content: "Plan knowledge transfer with documentation standards, training materials, and handover procedures.",
+        category: "sdlc_templates",
+        component: "knowledge_transfer",
+        sdlcStage: "maintenance",
+        tags: ["sdlc", "knowledge", "transfer", "documentation", "template"],
+        context: "maintenance",
+        metadata: { complexity: "medium", documentation: "required" }
+      },
+      {
+        id: "sdlc_templates-change_management-maintenance",
+        title: "Change Management",
+        description: "Change request and approval process template",
+        content: "Establish change management processes with approval workflows, impact assessments, and communication plans.",
+        category: "sdlc_templates",
+        component: "change_management",
+        sdlcStage: "maintenance",
+        tags: ["sdlc", "change", "management", "approval", "template"],
+        context: "maintenance",
+        metadata: { complexity: "medium", governance: "required" }
+      },
+      {
+        id: "sdlc_templates-post_mortem-maintenance",
+        title: "Post-Mortem Analysis",
+        description: "Incident post-mortem and lessons learned template",
+        content: "Conduct post-mortem analysis with root cause investigation, lessons learned, and preventive measures.",
+        category: "sdlc_templates",
+        component: "post_mortem",
+        sdlcStage: "maintenance",
+        tags: ["sdlc", "post-mortem", "analysis", "lessons", "template"],
+        context: "maintenance",
+        metadata: { complexity: "medium", learning: "important" }
       }
     ];
 
