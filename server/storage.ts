@@ -4010,7 +4010,343 @@ public class TestDbContext : DbContext
         id: "testing-test_data_builder-development",
         title: "Test Data Builder",
         description: "Test data builder pattern for creating test objects",
-        content: "Create test data builders using the builder pattern for generating consistent test data across unit and integration tests.",
+        content: `Create test data builders using the builder pattern for generating consistent test data across unit and integration tests.
+
+// Test Data Builder Pattern Implementation
+public class {{ModelName}}TestDataBuilder
+{
+    private readonly {{ModelName}} _instance = new {{ModelName}}();
+    
+    public {{ModelName}}TestDataBuilder()
+    {
+        SetDefaults();
+    }
+    
+    private void SetDefaults()
+    {
+        _instance.Id = Guid.NewGuid();
+        _instance.CreatedDate = DateTime.UtcNow;
+        _instance.IsActive = true;
+        _instance.Name = "Default Test Name";
+        _instance.Description = "Default test description for testing purposes";
+    }
+    
+    public {{ModelName}}TestDataBuilder WithId(Guid id)
+    {
+        _instance.Id = id;
+        return this;
+    }
+    
+    public {{ModelName}}TestDataBuilder WithName(string name)
+    {
+        _instance.Name = name;
+        return this;
+    }
+    
+    public {{ModelName}}TestDataBuilder WithDescription(string description)
+    {
+        _instance.Description = description;
+        return this;
+    }
+    
+    public {{ModelName}}TestDataBuilder WithIsActive(bool isActive)
+    {
+        _instance.IsActive = isActive;
+        return this;
+    }
+    
+    public {{ModelName}}TestDataBuilder WithCreatedDate(DateTime createdDate)
+    {
+        _instance.CreatedDate = createdDate;
+        return this;
+    }
+    
+    public {{ModelName}}TestDataBuilder WithRandomData()
+    {
+        var random = new Random();
+        _instance.Id = Guid.NewGuid();
+        _instance.Name = $"Test Item {random.Next(1000, 9999)}";
+        _instance.Description = $"Test description {random.Next(1000, 9999)}";
+        _instance.IsActive = random.Next(0, 2) == 1;
+        _instance.CreatedDate = DateTime.UtcNow.AddDays(-random.Next(0, 365));
+        return this;
+    }
+    
+    public {{ModelName}}TestDataBuilder AsInactive()
+    {
+        _instance.IsActive = false;
+        return this;
+    }
+    
+    public {{ModelName}}TestDataBuilder AsActive()
+    {
+        _instance.IsActive = true;
+        return this;
+    }
+    
+    public {{ModelName}}TestDataBuilder WithPastDate(int daysAgo)
+    {
+        _instance.CreatedDate = DateTime.UtcNow.AddDays(-daysAgo);
+        return this;
+    }
+    
+    public {{ModelName}}TestDataBuilder WithFutureDate(int daysFromNow)
+    {
+        _instance.CreatedDate = DateTime.UtcNow.AddDays(daysFromNow);
+        return this;
+    }
+    
+    public {{ModelName}} Build()
+    {
+        // Create a new instance to prevent modification of built objects
+        return new {{ModelName}}
+        {
+            Id = _instance.Id,
+            Name = _instance.Name,
+            Description = _instance.Description,
+            IsActive = _instance.IsActive,
+            CreatedDate = _instance.CreatedDate
+        };
+    }
+    
+    public List<{{ModelName}}> BuildMany(int count)
+    {
+        var items = new List<{{ModelName}}>();
+        for (int i = 0; i < count; i++)
+        {
+            // Create variation for each item
+            var builder = new {{ModelName}}TestDataBuilder()
+                .WithName($"{_instance.Name} {i + 1}")
+                .WithDescription($"{_instance.Description} {i + 1}")
+                .WithIsActive(_instance.IsActive)
+                .WithCreatedDate(_instance.CreatedDate.AddMinutes(i));
+                
+            items.Add(builder.Build());
+        }
+        return items;
+    }
+    
+    // Implicit conversion operator
+    public static implicit operator {{ModelName}}({{ModelName}}TestDataBuilder builder)
+    {
+        return builder.Build();
+    }
+}
+
+// Sitecore Item Test Data Builder
+public class SitecoreItemTestDataBuilder
+{
+    private readonly Dictionary<string, object> _fields = new Dictionary<string, object>();
+    private Guid _id = Guid.NewGuid();
+    private Guid _templateId = Guid.NewGuid();
+    private string _name = "Test Item";
+    private string _path = "/sitecore/content/home/test-item";
+    
+    public SitecoreItemTestDataBuilder WithId(Guid id)
+    {
+        _id = id;
+        return this;
+    }
+    
+    public SitecoreItemTestDataBuilder WithTemplateId(Guid templateId)
+    {
+        _templateId = templateId;
+        return this;
+    }
+    
+    public SitecoreItemTestDataBuilder WithName(string name)
+    {
+        _name = name;
+        return this;
+    }
+    
+    public SitecoreItemTestDataBuilder WithPath(string path)
+    {
+        _path = path;
+        return this;
+    }
+    
+    public SitecoreItemTestDataBuilder WithField(string fieldName, object fieldValue)
+    {
+        _fields[fieldName] = fieldValue;
+        return this;
+    }
+    
+    public SitecoreItemTestDataBuilder WithTitle(string title)
+    {
+        _fields["Title"] = title;
+        return this;
+    }
+    
+    public SitecoreItemTestDataBuilder WithDescription(string description)
+    {
+        _fields["Description"] = description;
+        return this;
+    }
+    
+    public SitecoreItemTestDataBuilder WithImage(string imagePath)
+    {
+        _fields["Image"] = imagePath;
+        return this;
+    }
+    
+    public SitecoreItemTestDataBuilder WithLink(string linkUrl, string linkText = null)
+    {
+        _fields["Link"] = new { Url = linkUrl, Text = linkText ?? "Learn More" };
+        return this;
+    }
+    
+    public SitecoreItemTestDataBuilder WithDateField(string fieldName, DateTime date)
+    {
+        _fields[fieldName] = date.ToString("yyyyMMddTHHmmss");
+        return this;
+    }
+    
+    public SitecoreItemTestDataBuilder WithCheckboxField(string fieldName, bool isChecked)
+    {
+        _fields[fieldName] = isChecked ? "1" : "0";
+        return this;
+    }
+    
+    public Mock<IItem> BuildMock()
+    {
+        var mockItem = new Mock<IItem>();
+        
+        mockItem.Setup(i => i.ID).Returns(new ID(_id));
+        mockItem.Setup(i => i.TemplateID).Returns(new ID(_templateId));
+        mockItem.Setup(i => i.Name).Returns(_name);
+        mockItem.Setup(i => i.Paths).Returns(new ItemPaths { FullPath = _path });
+        
+        // Setup fields
+        var mockFields = new Mock<FieldCollection>();
+        foreach (var field in _fields)
+        {
+            var mockField = new Mock<Field>();
+            mockField.Setup(f => f.Name).Returns(field.Key);
+            mockField.Setup(f => f.Value).Returns(field.Value?.ToString() ?? string.Empty);
+            mockField.Setup(f => f.HasValue).Returns(field.Value != null);
+            
+            mockFields.Setup(fc => fc[field.Key]).Returns(mockField.Object);
+            mockItem.Setup(i => i[field.Key]).Returns(field.Value?.ToString() ?? string.Empty);
+        }
+        
+        mockItem.Setup(i => i.Fields).Returns(mockFields.Object);
+        
+        return mockItem;
+    }
+}
+
+// Usage Examples and Test Patterns
+[TestClass]
+public class TestDataBuilderExamples
+{
+    [TestMethod]
+    public void SingleItem_UsingDefaults()
+    {
+        // Arrange
+        var testItem = new {{ModelName}}TestDataBuilder().Build();
+        
+        // Assert
+        Assert.IsNotNull(testItem);
+        Assert.AreNotEqual(Guid.Empty, testItem.Id);
+        Assert.IsTrue(testItem.IsActive);
+        Assert.IsNotNull(testItem.Name);
+    }
+    
+    [TestMethod]
+    public void SingleItem_WithCustomValues()
+    {
+        // Arrange
+        var testItem = new {{ModelName}}TestDataBuilder()
+            .WithName("Custom Test Item")
+            .WithDescription("Custom description")
+            .AsInactive()
+            .WithPastDate(30)
+            .Build();
+        
+        // Assert
+        Assert.AreEqual("Custom Test Item", testItem.Name);
+        Assert.AreEqual("Custom description", testItem.Description);
+        Assert.IsFalse(testItem.IsActive);
+        Assert.IsTrue(testItem.CreatedDate < DateTime.UtcNow.AddDays(-29));
+    }
+    
+    [TestMethod]
+    public void MultipleItems_WithVariations()
+    {
+        // Arrange
+        var testItems = new {{ModelName}}TestDataBuilder()
+            .WithName("Base Item")
+            .WithDescription("Base description")
+            .BuildMany(5);
+        
+        // Assert
+        Assert.AreEqual(5, testItems.Count);
+        Assert.IsTrue(testItems.All(i => i.Name.StartsWith("Base Item")));
+        Assert.IsTrue(testItems.Select(i => i.Name).Distinct().Count() == 5); // All unique
+    }
+    
+    [TestMethod]
+    public void SitecoreItem_WithFields()
+    {
+        // Arrange
+        var mockItem = new SitecoreItemTestDataBuilder()
+            .WithName("Test Sitecore Item")
+            .WithTitle("Test Title")
+            .WithDescription("Test Description")
+            .WithImage("/media/test-image.jpg")
+            .WithLink("/test-page", "Test Link")
+            .WithDateField("PublishDate", DateTime.Now)
+            .WithCheckboxField("IsPublished", true)
+            .BuildMock();
+        
+        // Assert
+        Assert.AreEqual("Test Sitecore Item", mockItem.Object.Name);
+        Assert.AreEqual("Test Title", mockItem.Object["Title"]);
+        Assert.AreEqual("Test Description", mockItem.Object["Description"]);
+        Assert.AreEqual("1", mockItem.Object["IsPublished"]);
+    }
+}
+
+// Factory Methods for Common Test Scenarios
+public static class TestDataFactory
+{
+    public static {{ModelName}} CreateValid{{ModelName}}()
+    {
+        return new {{ModelName}}TestDataBuilder()
+            .WithName("Valid Test Item")
+            .WithDescription("Valid test description")
+            .AsActive()
+            .Build();
+    }
+    
+    public static {{ModelName}} CreateInvalid{{ModelName}}()
+    {
+        return new {{ModelName}}TestDataBuilder()
+            .WithName(null) // Invalid name
+            .WithDescription("")
+            .AsInactive()
+            .Build();
+    }
+    
+    public static List<{{ModelName}}> CreateTestCollection(int count = 10)
+    {
+        return new {{ModelName}}TestDataBuilder()
+            .WithRandomData()
+            .BuildMany(count);
+    }
+    
+    public static Mock<IItem> CreateSitecoreTestItem()
+    {
+        return new SitecoreItemTestDataBuilder()
+            .WithName("Standard Test Item")
+            .WithTitle("Standard Title")
+            .WithDescription("Standard description for testing")
+            .WithImage("/media/standard-image.jpg")
+            .WithCheckboxField("IsActive", true)
+            .BuildMock();
+    }
+}`,
         category: "testing",
         component: "test_data_builder",
         sdlcStage: "development",
@@ -4368,7 +4704,464 @@ public class ExampleControllerTests : BaseSitecoreTest
         id: "testing-e2e_test-development",
         title: "E2E Test",
         description: "End-to-end test with Selenium WebDriver and page object pattern",
-        content: "Implement end-to-end tests using Selenium WebDriver with page object pattern, cross-browser testing, and CI/CD integration.",
+        content: `Implement end-to-end tests using Selenium WebDriver with page object pattern, cross-browser testing, and CI/CD integration.
+
+// End-to-End Test Implementation with Selenium WebDriver
+[TestClass]
+public class {{FeatureName}}E2ETests
+{
+    private static IWebDriver _driver;
+    private static WebDriverWait _wait;
+    private static TestContext _testContext;
+    private static IConfiguration _configuration;
+    
+    [ClassInitialize]
+    public static void ClassInitialize(TestContext context)
+    {
+        _testContext = context;
+        
+        // Load test configuration
+        var configBuilder = new ConfigurationBuilder()
+            .AddJsonFile("appsettings.e2e.json", optional: false)
+            .AddEnvironmentVariables("E2E_");
+        _configuration = configBuilder.Build();
+        
+        // Initialize WebDriver based on configuration
+        var browserType = _configuration["Browser"] ?? "Chrome";
+        _driver = CreateWebDriver(browserType);
+        _wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(30));
+        
+        // Set implicit wait
+        _driver.Manage().Timeouts().ImplicitWait = TimeSpan.FromSeconds(10);
+        
+        // Maximize window for consistent testing
+        _driver.Manage().Window.Maximize();
+    }
+    
+    private static IWebDriver CreateWebDriver(string browserType)
+    {
+        var options = new ChromeOptions();
+        
+        switch (browserType.ToLower())
+        {
+            case "chrome":
+                // Chrome options for CI/CD environments
+                options.AddArguments("--no-sandbox");
+                options.AddArguments("--disable-dev-shm-usage");
+                options.AddArguments("--disable-gpu");
+                
+                if (_configuration.GetValue<bool>("Headless"))
+                {
+                    options.AddArguments("--headless");
+                }
+                
+                return new ChromeDriver(options);
+                
+            case "firefox":
+                var firefoxOptions = new FirefoxOptions();
+                if (_configuration.GetValue<bool>("Headless"))
+                {
+                    firefoxOptions.AddArguments("--headless");
+                }
+                return new FirefoxDriver(firefoxOptions);
+                
+            case "edge":
+                var edgeOptions = new EdgeOptions();
+                if (_configuration.GetValue<bool>("Headless"))
+                {
+                    edgeOptions.AddArguments("--headless");
+                }
+                return new EdgeDriver(edgeOptions);
+                
+            default:
+                throw new ArgumentException($"Unsupported browser type: {browserType}");
+        }
+    }
+    
+    [TestInitialize]
+    public void TestInitialize()
+    {
+        // Navigate to the base URL before each test
+        var baseUrl = _configuration["BaseUrl"] ?? "http://localhost";
+        _driver.Navigate().GoToUrl(baseUrl);
+        
+        // Clear cookies and local storage
+        _driver.Manage().Cookies.DeleteAllCookies();
+        ((IJavaScriptExecutor)_driver).ExecuteScript("localStorage.clear();");
+        ((IJavaScriptExecutor)_driver).ExecuteScript("sessionStorage.clear();");
+    }
+    
+    [TestMethod]
+    [TestCategory("E2E")]
+    [TestCategory("Smoke")]
+    public void HomePage_LoadsSuccessfully()
+    {
+        // Arrange
+        var homePage = new HomePage(_driver);
+        
+        // Act
+        var isLoaded = homePage.WaitForPageLoad();
+        
+        // Assert
+        Assert.IsTrue(isLoaded, "Home page should load successfully");
+        Assert.IsTrue(homePage.IsHeaderVisible(), "Header should be visible");
+        Assert.IsTrue(homePage.IsNavigationVisible(), "Navigation should be visible");
+        Assert.IsTrue(homePage.IsFooterVisible(), "Footer should be visible");
+    }
+    
+    [TestMethod]
+    [TestCategory("E2E")]
+    [TestCategory("Navigation")]
+    public void Navigation_AllLinksWorkCorrectly()
+    {
+        // Arrange
+        var homePage = new HomePage(_driver);
+        var navigationPage = new NavigationPage(_driver);
+        
+        // Act & Assert
+        homePage.WaitForPageLoad();
+        var navigationLinks = navigationPage.GetAllNavigationLinks();
+        
+        foreach (var link in navigationLinks)
+        {
+            navigationPage.ClickNavigationLink(link);
+            
+            // Wait for page to load
+            _wait.Until(driver => ((IJavaScriptExecutor)driver)
+                .ExecuteScript("return document.readyState").Equals("complete"));
+            
+            // Verify page loads without errors
+            var pageTitle = _driver.Title;
+            Assert.IsFalse(string.IsNullOrEmpty(pageTitle), 
+                $"Page title should not be empty for link: {link}");
+            
+            // Check for common error indicators
+            var errorElements = _driver.FindElements(By.CssSelector(".error, .exception, [data-error]"));
+            Assert.AreEqual(0, errorElements.Count, 
+                $"No error elements should be present on page: {link}");
+        }
+    }
+    
+    [TestMethod]
+    [TestCategory("E2E")]
+    [TestCategory("Forms")]
+    public void ContactForm_SubmitsSuccessfully()
+    {
+        // Arrange
+        var contactPage = new ContactPage(_driver);
+        var formData = new ContactFormData
+        {
+            FirstName = "John",
+            LastName = "Doe",
+            Email = "john.doe@example.com",
+            Phone = "+1-555-123-4567",
+            Message = "This is a test message for E2E testing purposes."
+        };
+        
+        // Act
+        contactPage.NavigateToContactPage();
+        contactPage.WaitForPageLoad();
+        
+        contactPage.FillContactForm(formData);
+        var successPage = contactPage.SubmitForm();
+        
+        // Assert
+        Assert.IsTrue(successPage.IsSuccessMessageVisible(), 
+            "Success message should be displayed after form submission");
+        
+        var confirmationNumber = successPage.GetConfirmationNumber();
+        Assert.IsFalse(string.IsNullOrEmpty(confirmationNumber), 
+            "Confirmation number should be generated");
+    }
+    
+    [TestMethod]
+    [TestCategory("E2E")]
+    [TestCategory("Search")]
+    public void SearchFunctionality_ReturnsResults()
+    {
+        // Arrange
+        var searchPage = new SearchPage(_driver);
+        var searchTerm = "test content";
+        
+        // Act
+        searchPage.NavigateToSearchPage();
+        searchPage.WaitForPageLoad();
+        
+        var resultsPage = searchPage.PerformSearch(searchTerm);
+        
+        // Assert
+        Assert.IsTrue(resultsPage.HasResults(), "Search should return results");
+        Assert.IsTrue(resultsPage.GetResultCount() > 0, "Result count should be greater than 0");
+        
+        var results = resultsPage.GetSearchResults();
+        Assert.IsTrue(results.Any(r => r.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                                      r.Description.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)),
+            "At least one result should contain the search term");
+    }
+    
+    [TestMethod]
+    [TestCategory("E2E")]
+    [TestCategory("Responsive")]
+    public void ResponsiveDesign_WorksOnDifferentScreenSizes()
+    {
+        // Arrange
+        var homePage = new HomePage(_driver);
+        var screenSizes = new[]
+        {
+            new { Width = 1920, Height = 1080, Name = "Desktop" },
+            new { Width = 1024, Height = 768, Name = "Tablet" },
+            new { Width = 375, Height = 667, Name = "Mobile" }
+        };
+        
+        foreach (var size in screenSizes)
+        {
+            // Act
+            _driver.Manage().Window.Size = new Size(size.Width, size.Height);
+            homePage.WaitForPageLoad();
+            
+            // Assert
+            Assert.IsTrue(homePage.IsHeaderVisible(), 
+                $"Header should be visible on {size.Name}");
+            Assert.IsTrue(homePage.IsContentVisible(), 
+                $"Content should be visible on {size.Name}");
+            
+            // Check for horizontal scrollbar (should not be present)
+            var hasHorizontalScroll = (bool)((IJavaScriptExecutor)_driver)
+                .ExecuteScript("return document.body.scrollWidth > window.innerWidth");
+            Assert.IsFalse(hasHorizontalScroll, 
+                $"No horizontal scrollbar should appear on {size.Name}");
+        }
+    }
+    
+    [TestMethod]
+    [TestCategory("E2E")]
+    [TestCategory("Performance")]
+    public void PageLoadTime_IsWithinAcceptableRange()
+    {
+        // Arrange
+        var performancePage = new PerformancePage(_driver);
+        var maxLoadTime = TimeSpan.FromSeconds(5);
+        
+        // Act
+        var stopwatch = Stopwatch.StartNew();
+        performancePage.NavigateToPage();
+        performancePage.WaitForPageLoad();
+        stopwatch.Stop();
+        
+        // Assert
+        Assert.IsTrue(stopwatch.Elapsed < maxLoadTime, 
+            $"Page should load within {maxLoadTime.TotalSeconds} seconds. Actual: {stopwatch.Elapsed.TotalSeconds}s");
+        
+        // Check for JavaScript errors
+        var jsErrors = ((IJavaScriptExecutor)_driver)
+            .ExecuteScript("return window.jsErrors || []") as IEnumerable<object>;
+        Assert.AreEqual(0, jsErrors?.Count() ?? 0, "No JavaScript errors should be present");
+    }
+    
+    [TestMethod]
+    [TestCategory("E2E")]
+    [TestCategory("CrossBrowser")]
+    [DataRow("Chrome")]
+    [DataRow("Firefox")]
+    [DataRow("Edge")]
+    public void CrossBrowserCompatibility_AllBrowsersWork(string browserType)
+    {
+        // This test can be run with different browsers in CI/CD
+        // The browser is set via configuration or test parameters
+        
+        // Arrange
+        using var browserDriver = CreateWebDriver(browserType);
+        var homePage = new HomePage(browserDriver);
+        
+        // Act
+        browserDriver.Navigate().GoToUrl(_configuration["BaseUrl"]);
+        var isLoaded = homePage.WaitForPageLoad();
+        
+        // Assert
+        Assert.IsTrue(isLoaded, $"Page should load correctly in {browserType}");
+        Assert.IsTrue(homePage.IsHeaderVisible(), $"Header should be visible in {browserType}");
+        Assert.IsTrue(homePage.IsNavigationVisible(), $"Navigation should work in {browserType}");
+    }
+    
+    [TestCleanup]
+    public void TestCleanup()
+    {
+        // Take screenshot on test failure
+        if (_testContext.CurrentTestOutcome == UnitTestOutcome.Failed)
+        {
+            TakeScreenshot();
+        }
+    }
+    
+    private void TakeScreenshot()
+    {
+        try
+        {
+            var screenshot = ((ITakesScreenshot)_driver).GetScreenshot();
+            var filename = $"{_testContext.TestName}_{DateTime.Now:yyyyMMdd_HHmmss}.png";
+            var filepath = Path.Combine(_testContext.TestResultsDirectory, filename);
+            screenshot.SaveAsFile(filepath, ScreenshotImageFormat.Png);
+            
+            _testContext.WriteLine($"Screenshot saved: {filepath}");
+        }
+        catch (Exception ex)
+        {
+            _testContext.WriteLine($"Failed to take screenshot: {ex.Message}");
+        }
+    }
+    
+    [ClassCleanup]
+    public static void ClassCleanup()
+    {
+        _driver?.Quit();
+        _driver?.Dispose();
+    }
+}
+
+// Page Object Models
+public class HomePage
+{
+    private readonly IWebDriver _driver;
+    private readonly WebDriverWait _wait;
+    
+    // Locators
+    private readonly By HeaderLocator = By.CssSelector("header");
+    private readonly By NavigationLocator = By.CssSelector("nav");
+    private readonly By FooterLocator = By.CssSelector("footer");
+    private readonly By ContentLocator = By.CssSelector("main");
+    
+    public HomePage(IWebDriver driver)
+    {
+        _driver = driver;
+        _wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
+    }
+    
+    public bool WaitForPageLoad()
+    {
+        return _wait.Until(driver => 
+            ((IJavaScriptExecutor)driver).ExecuteScript("return document.readyState").Equals("complete"));
+    }
+    
+    public bool IsHeaderVisible()
+    {
+        return _driver.FindElements(HeaderLocator).Any(e => e.Displayed);
+    }
+    
+    public bool IsNavigationVisible()
+    {
+        return _driver.FindElements(NavigationLocator).Any(e => e.Displayed);
+    }
+    
+    public bool IsFooterVisible()
+    {
+        return _driver.FindElements(FooterLocator).Any(e => e.Displayed);
+    }
+    
+    public bool IsContentVisible()
+    {
+        return _driver.FindElements(ContentLocator).Any(e => e.Displayed);
+    }
+}
+
+public class ContactPage
+{
+    private readonly IWebDriver _driver;
+    private readonly WebDriverWait _wait;
+    
+    // Form locators
+    private readonly By FirstNameInput = By.Id("firstName");
+    private readonly By LastNameInput = By.Id("lastName");
+    private readonly By EmailInput = By.Id("email");
+    private readonly By PhoneInput = By.Id("phone");
+    private readonly By MessageTextarea = By.Id("message");
+    private readonly By SubmitButton = By.CssSelector("button[type='submit']");
+    
+    public ContactPage(IWebDriver driver)
+    {
+        _driver = driver;
+        _wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
+    }
+    
+    public void NavigateToContactPage()
+    {
+        _driver.Navigate().GoToUrl(_driver.Url + "/contact");
+    }
+    
+    public bool WaitForPageLoad()
+    {
+        return _wait.Until(driver => driver.FindElement(FirstNameInput).Displayed);
+    }
+    
+    public void FillContactForm(ContactFormData formData)
+    {
+        _driver.FindElement(FirstNameInput).SendKeys(formData.FirstName);
+        _driver.FindElement(LastNameInput).SendKeys(formData.LastName);
+        _driver.FindElement(EmailInput).SendKeys(formData.Email);
+        _driver.FindElement(PhoneInput).SendKeys(formData.Phone);
+        _driver.FindElement(MessageTextarea).SendKeys(formData.Message);
+    }
+    
+    public SuccessPage SubmitForm()
+    {
+        _driver.FindElement(SubmitButton).Click();
+        return new SuccessPage(_driver);
+    }
+}
+
+public class ContactFormData
+{
+    public string FirstName { get; set; }
+    public string LastName { get; set; }
+    public string Email { get; set; }
+    public string Phone { get; set; }
+    public string Message { get; set; }
+}
+
+public class SuccessPage
+{
+    private readonly IWebDriver _driver;
+    private readonly WebDriverWait _wait;
+    
+    private readonly By SuccessMessageLocator = By.CssSelector(".success-message");
+    private readonly By ConfirmationNumberLocator = By.CssSelector(".confirmation-number");
+    
+    public SuccessPage(IWebDriver driver)
+    {
+        _driver = driver;
+        _wait = new WebDriverWait(_driver, TimeSpan.FromSeconds(10));
+    }
+    
+    public bool IsSuccessMessageVisible()
+    {
+        return _wait.Until(driver => driver.FindElement(SuccessMessageLocator).Displayed);
+    }
+    
+    public string GetConfirmationNumber()
+    {
+        return _driver.FindElement(ConfirmationNumberLocator).Text;
+    }
+}
+
+// E2E Test Configuration (appsettings.e2e.json)
+{
+  "BaseUrl": "https://localhost:5001",
+  "Browser": "Chrome",
+  "Headless": false,
+  "Timeout": 30,
+  "ImplicitWait": 10,
+  "Screenshots": {
+    "OnFailure": true,
+    "Directory": "Screenshots"
+  },
+  "CrossBrowser": {
+    "Enabled": true,
+    "Browsers": ["Chrome", "Firefox", "Edge"]
+  },
+  "Parallel": {
+    "Enabled": false,
+    "MaxDegreeOfParallelism": 3
+  }
+}`,
         category: "testing",
         component: "e2e_test",
         sdlcStage: "development",
@@ -4664,7 +5457,366 @@ class Carousel {
         id: "sdlc_templates-azure_devops_pipeline-development",
         title: "Azure DevOps Pipeline",
         description: "CI/CD pipeline template for Azure DevOps with build, test, and deployment stages",
-        content: "Create a complete Azure DevOps CI/CD pipeline template with build, test, and deployment stages for .NET applications.",
+        content: `Create a complete Azure DevOps CI/CD pipeline template with build, test, and deployment stages for .NET applications.
+
+# Azure DevOps CI/CD Pipeline Template
+# Complete pipeline with build, test, and deployment stages for .NET applications
+
+trigger:
+  branches:
+    include:
+    - main
+    - develop
+    - feature/*
+  paths:
+    exclude:
+    - README.md
+    - docs/*
+
+pr:
+  branches:
+    include:
+    - main
+    - develop
+
+variables:
+  buildConfiguration: 'Release'
+  dotNetFramework: 'net8.0'
+  dotNetVersion: '8.0.x'
+  vmImageName: 'windows-latest'
+  solutionPath: '**/*.sln'
+  testProjectsPath: '**/*Tests.csproj'
+  artifactName: 'drop'
+  
+  # SonarCloud variables
+  sonarCloudServiceConnection: 'SonarCloud'
+  sonarCloudProjectKey: 'your-project-key'
+  sonarCloudProjectName: 'your-project-name'
+  sonarCloudOrganization: 'your-org'
+
+stages:
+- stage: Build
+  displayName: 'Build and Test'
+  jobs:
+  - job: Build
+    displayName: 'Build Solution'
+    pool:
+      vmImage: $(vmImageName)
+    
+    steps:
+    - checkout: self
+      fetchDepth: 0  # Needed for SonarCloud analysis
+    
+    - task: UseDotNet@2
+      displayName: 'Use .NET $(dotNetVersion)'
+      inputs:
+        packageType: 'sdk'
+        version: $(dotNetVersion)
+        includePreviewVersions: false
+    
+    - task: SonarCloudPrepare@1
+      displayName: 'Prepare SonarCloud Analysis'
+      inputs:
+        SonarCloud: $(sonarCloudServiceConnection)
+        organization: $(sonarCloudOrganization)
+        scannerMode: 'MSBuild'
+        projectKey: $(sonarCloudProjectKey)
+        projectName: $(sonarCloudProjectName)
+        extraProperties: |
+          sonar.coverage.exclusions=**/*Tests.cs,**/Program.cs
+          sonar.cs.opencover.reportsPaths=$(Agent.TempDirectory)/**/coverage.opencover.xml
+    
+    - task: NuGetToolInstaller@1
+      displayName: 'Install NuGet'
+      inputs:
+        versionSpec: '>=5.0.0'
+    
+    - task: NuGetCommand@2
+      displayName: 'Restore NuGet packages'
+      inputs:
+        command: 'restore'
+        restoreSolution: $(solutionPath)
+        feedsToUse: 'select'
+        vstsFeed: 'your-feed-id'  # Optional: if using private NuGet feed
+    
+    - task: DotNetCoreCLI@2
+      displayName: 'Build Solution'
+      inputs:
+        command: 'build'
+        projects: $(solutionPath)
+        arguments: '--configuration $(buildConfiguration) --no-restore'
+    
+    - task: DotNetCoreCLI@2
+      displayName: 'Run Unit Tests'
+      inputs:
+        command: 'test'
+        projects: $(testProjectsPath)
+        arguments: '--configuration $(buildConfiguration) --no-build --collect:"XPlat Code Coverage" --results-directory $(Agent.TempDirectory) --logger trx --collect "Code coverage"'
+        publishTestResults: true
+    
+    - task: PublishCodeCoverageResults@1
+      displayName: 'Publish Code Coverage'
+      inputs:
+        codeCoverageTool: 'Cobertura'
+        summaryFileLocation: $(Agent.TempDirectory)/**/coverage.cobertura.xml
+    
+    - task: SonarCloudAnalyze@1
+      displayName: 'Run SonarCloud Analysis'
+    
+    - task: SonarCloudPublish@1
+      displayName: 'Publish SonarCloud Results'
+      inputs:
+        pollingTimeoutSec: '300'
+    
+    - task: DotNetCoreCLI@2
+      displayName: 'Publish Application'
+      inputs:
+        command: 'publish'
+        publishWebProjects: true
+        arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)'
+        zipAfterPublish: true
+        modifyOutputPath: false
+    
+    - task: PublishBuildArtifacts@1
+      displayName: 'Publish Build Artifacts'
+      inputs:
+        pathToPublish: $(Build.ArtifactStagingDirectory)
+        artifactName: $(artifactName)
+        publishLocation: 'Container'
+
+- stage: SecurityScan
+  displayName: 'Security Scanning'
+  dependsOn: Build
+  condition: succeeded()
+  jobs:
+  - job: SecurityScan
+    displayName: 'Run Security Scans'
+    pool:
+      vmImage: $(vmImageName)
+    
+    steps:
+    - task: WhiteSource@21
+      displayName: 'WhiteSource Security Scan'
+      inputs:
+        cwd: '$(Build.SourcesDirectory)'
+        projectName: '$(Build.Repository.Name)'
+    
+    - task: CredScan@3
+      displayName: 'Credential Scanner'
+      inputs:
+        toolMajorVersion: 'V2'
+        scanFolder: '$(Build.SourcesDirectory)'
+        debugMode: false
+    
+    - task: Semmle@1
+      displayName: 'CodeQL Security Scan'
+      inputs:
+        sourceCodeDirectory: '$(Build.SourcesDirectory)'
+        language: 'csharp'
+        buildcommands: 'dotnet build $(solutionPath) --configuration $(buildConfiguration)'
+
+- stage: DeployDev
+  displayName: 'Deploy to Development'
+  dependsOn: 
+  - Build
+  - SecurityScan
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/develop'))
+  variables:
+  - group: 'Development Environment'
+  jobs:
+  - deployment: DeployToDev
+    displayName: 'Deploy to Development Environment'
+    pool:
+      vmImage: $(vmImageName)
+    environment: 'Development'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: DownloadBuildArtifacts@0
+            displayName: 'Download Build Artifacts'
+            inputs:
+              buildType: 'current'
+              downloadType: 'single'
+              artifactName: $(artifactName)
+              downloadPath: '$(System.ArtifactsDirectory)'
+          
+          - task: AzureRmWebAppDeployment@4
+            displayName: 'Deploy to Azure Web App'
+            inputs:
+              ConnectionType: 'AzureRM'
+              azureSubscription: '$(Azure.ServiceConnection)'
+              appType: 'webApp'
+              WebAppName: '$(WebApp.Name.Dev)'
+              packageForLinux: '$(System.ArtifactsDirectory)/$(artifactName)/**/*.zip'
+              enableCustomDeployment: true
+              DeploymentType: 'webDeploy'
+              ExcludeFilesFromAppDataFlag: false
+              
+          - task: AzureCLI@2
+            displayName: 'Run Database Migrations'
+            inputs:
+              azureSubscription: '$(Azure.ServiceConnection)'
+              scriptType: 'ps'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                az webapp config connection-string set --name $(WebApp.Name.Dev) --resource-group $(ResourceGroup.Name.Dev) --connection-string-type SQLServer --settings DefaultConnection="$(ConnectionString.Dev)"
+                
+          - task: DotNetCoreCLI@2
+            displayName: 'Run Integration Tests'
+            inputs:
+              command: 'test'
+              projects: '**/*IntegrationTests.csproj'
+              arguments: '--configuration $(buildConfiguration) --logger trx'
+              
+          - task: PowerShell@2
+            displayName: 'Health Check'
+            inputs:
+              targetType: 'inline'
+              script: |
+                $response = Invoke-WebRequest -Uri "$(WebApp.Url.Dev)/health" -Method GET
+                if ($response.StatusCode -ne 200) {
+                  throw "Health check failed with status code: $($response.StatusCode)"
+                }
+                Write-Host "Health check passed"
+
+- stage: DeployStaging
+  displayName: 'Deploy to Staging'
+  dependsOn: DeployDev
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  variables:
+  - group: 'Staging Environment'
+  jobs:
+  - deployment: DeployToStaging
+    displayName: 'Deploy to Staging Environment'
+    pool:
+      vmImage: $(vmImageName)
+    environment: 'Staging'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: DownloadBuildArtifacts@0
+            displayName: 'Download Build Artifacts'
+            inputs:
+              buildType: 'current'
+              downloadType: 'single'
+              artifactName: $(artifactName)
+              downloadPath: '$(System.ArtifactsDirectory)'
+          
+          - task: AzureRmWebAppDeployment@4
+            displayName: 'Deploy to Azure Web App'
+            inputs:
+              ConnectionType: 'AzureRM'
+              azureSubscription: '$(Azure.ServiceConnection)'
+              appType: 'webApp'
+              WebAppName: '$(WebApp.Name.Staging)'
+              packageForLinux: '$(System.ArtifactsDirectory)/$(artifactName)/**/*.zip'
+              slotName: 'staging'
+              
+          - task: AzureAppServiceManage@0
+            displayName: 'Swap Deployment Slots'
+            inputs:
+              azureSubscription: '$(Azure.ServiceConnection)'
+              WebAppName: '$(WebApp.Name.Staging)'
+              ResourceGroupName: '$(ResourceGroup.Name.Staging)'
+              SourceSlot: 'staging'
+              SwapWithProduction: true
+              
+          - task: PowerShell@2
+            displayName: 'Run Smoke Tests'
+            inputs:
+              targetType: 'inline'
+              script: |
+                # Add smoke test scripts here
+                Write-Host "Running smoke tests..."
+                # Example: Invoke-Pester -Path "$(System.DefaultWorkingDirectory)/SmokeTests" -OutputFile "$(System.DefaultWorkingDirectory)/SmokeTestResults.xml" -OutputFormat NUnitXml
+
+- stage: DeployProduction
+  displayName: 'Deploy to Production'
+  dependsOn: DeployStaging
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  variables:
+  - group: 'Production Environment'
+  jobs:
+  - deployment: DeployToProduction
+    displayName: 'Deploy to Production Environment'
+    pool:
+      vmImage: $(vmImageName)
+    environment: 'Production'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: DownloadBuildArtifacts@0
+            displayName: 'Download Build Artifacts'
+            inputs:
+              buildType: 'current'
+              downloadType: 'single'
+              artifactName: $(artifactName)
+              downloadPath: '$(System.ArtifactsDirectory)'
+          
+          - task: AzureCLI@2
+            displayName: 'Create Application Backup'
+            inputs:
+              azureSubscription: '$(Azure.ServiceConnection)'
+              scriptType: 'ps'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                $backupName = "backup-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+                az webapp config backup create --resource-group $(ResourceGroup.Name.Prod) --webapp-name $(WebApp.Name.Prod) --backup-name $backupName --container-url "$(Backup.StorageUrl)"
+                
+          - task: AzureRmWebAppDeployment@4
+            displayName: 'Deploy to Production'
+            inputs:
+              ConnectionType: 'AzureRM'
+              azureSubscription: '$(Azure.ServiceConnection)'
+              appType: 'webApp'
+              WebAppName: '$(WebApp.Name.Prod)'
+              packageForLinux: '$(System.ArtifactsDirectory)/$(artifactName)/**/*.zip'
+              
+          - task: PowerShell@2
+            displayName: 'Production Health Check'
+            inputs:
+              targetType: 'inline'
+              script: |
+                Start-Sleep -Seconds 30  # Wait for app to start
+                $response = Invoke-WebRequest -Uri "$(WebApp.Url.Prod)/health" -Method GET
+                if ($response.StatusCode -ne 200) {
+                  throw "Production health check failed"
+                }
+                Write-Host "Production deployment successful"
+                
+          - task: PowerShell@2
+            displayName: 'Send Deployment Notification'
+            inputs:
+              targetType: 'inline'
+              script: |
+                # Send Teams/Slack notification
+                $webhook = "$(Notification.WebhookUrl)"
+                $body = @{
+                  text = "✅ Production deployment successful for $(Build.Repository.Name) - Build $(Build.BuildNumber)"
+                } | ConvertTo-Json
+                Invoke-RestMethod -Uri $webhook -Method Post -Body $body -ContentType 'application/json'
+
+# Variable Groups Configuration Examples:
+# Development Environment:
+# - Azure.ServiceConnection: 'Azure-Dev-Connection'
+# - WebApp.Name.Dev: 'myapp-dev'
+# - WebApp.Url.Dev: 'https://myapp-dev.azurewebsites.net'
+# - ResourceGroup.Name.Dev: 'rg-myapp-dev'
+# - ConnectionString.Dev: 'Server=dev-sql;Database=myapp-dev;...'
+
+# Staging Environment:
+# - WebApp.Name.Staging: 'myapp-staging'
+# - ResourceGroup.Name.Staging: 'rg-myapp-staging'
+
+# Production Environment:
+# - WebApp.Name.Prod: 'myapp-prod'
+# - WebApp.Url.Prod: 'https://myapp.azurewebsites.net'
+# - ResourceGroup.Name.Prod: 'rg-myapp-prod'
+# - Backup.StorageUrl: 'https://backupstorage.blob.core.windows.net/...'
+# - Notification.WebhookUrl: 'https://hooks.slack.com/services/...'`,
         category: "sdlc_templates",
         component: "azure_devops_pipeline",
         sdlcStage: "development",
@@ -4688,7 +5840,488 @@ class Carousel {
         id: "sdlc_templates-architecture_diagram-development",
         title: "Architecture Diagram",
         description: "Sitecore Helix architecture documentation and diagram template",
-        content: "Create comprehensive architecture documentation with Helix layer structure, dependencies, and component diagrams.",
+        content: `Create comprehensive architecture documentation with Helix layer structure, dependencies, and component diagrams.
+
+# Sitecore Helix Architecture Documentation
+## Complete architectural documentation with layer structure, dependencies, and component diagrams
+
+## 1. Architecture Overview
+
+### 1.1 Helix Architecture Principles
+The Sitecore Helix architecture follows three core principles:
+
+**Modular Architecture**
+- Separation of concerns through distinct layers
+- Clear boundaries between business functionality
+- Reusable and maintainable components
+
+**Dependency Direction**
+- Foundation → Feature → Project (unidirectional dependencies)
+- Lower layers cannot depend on higher layers
+- Promotes loose coupling and high cohesion
+
+**Solution Structure**
+- Organized by business capabilities
+- Clear naming conventions
+- Consistent project structure
+
+### 1.2 Layer Definitions
+
+#### Foundation Layer
+**Purpose**: Core functionality and shared services
+**Responsibilities**:
+- Base templates and interfaces
+- Shared utilities and extensions
+- Cross-cutting concerns (logging, caching, validation)
+- External service integrations
+
+**Dependencies**: None (cannot reference Feature or Project layers)
+
+#### Feature Layer
+**Purpose**: Business-specific functionality
+**Responsibilities**:
+- Business logic implementation
+- Content types and templates
+- User interface components
+- API endpoints
+
+**Dependencies**: Foundation layer only
+
+#### Project Layer
+**Purpose**: Site-specific implementations
+**Responsibilities**:
+- Site structure and layout
+- Tenant-specific configurations
+- Styling and branding
+- Content organization
+
+**Dependencies**: Foundation and Feature layers
+
+## 2. Solution Structure
+
+\`\`\`
+Solution/
+├── src/
+│   ├── Foundation/
+│   │   ├── DependencyInjection/
+│   │   │   ├── App_Config/Include/Foundation/
+│   │   │   │   └── Foundation.DependencyInjection.config
+│   │   │   ├── Services/
+│   │   │   │   ├── IServiceConfigurator.cs
+│   │   │   │   └── ServiceConfigurator.cs
+│   │   │   └── Foundation.DependencyInjection.csproj
+│   │   │
+│   │   ├── Logging/
+│   │   │   ├── Services/
+│   │   │   │   ├── ILogService.cs
+│   │   │   │   └── SitecoreLogService.cs
+│   │   │   ├── Models/
+│   │   │   │   └── LogEntry.cs
+│   │   │   └── Foundation.Logging.csproj
+│   │   │
+│   │   ├── Caching/
+│   │   │   ├── Services/
+│   │   │   │   ├── ICacheService.cs
+│   │   │   │   └── SitecoreCacheService.cs
+│   │   │   └── Foundation.Caching.csproj
+│   │   │
+│   │   └── Configuration/
+│   │       ├── Services/
+│   │       │   ├── IConfigurationService.cs
+│   │       │   └── ConfigurationService.cs
+│   │       └── Foundation.Configuration.csproj
+│   │
+│   ├── Feature/
+│   │   ├── Navigation/
+│   │   │   ├── Controllers/
+│   │   │   │   └── NavigationController.cs
+│   │   │   ├── Models/
+│   │   │   │   ├── INavigationItem.cs
+│   │   │   │   └── NavigationViewModel.cs
+│   │   │   ├── Services/
+│   │   │   │   ├── INavigationService.cs
+│   │   │   │   └── NavigationService.cs
+│   │   │   ├── Templates/
+│   │   │   │   └── Navigation Item.item
+│   │   │   ├── Views/Navigation/
+│   │   │   │   ├── _MainNavigation.cshtml
+│   │   │   │   └── _Breadcrumb.cshtml
+│   │   │   └── Feature.Navigation.csproj
+│   │   │
+│   │   ├── Search/
+│   │   │   ├── Controllers/
+│   │   │   │   └── SearchController.cs
+│   │   │   ├── Models/
+│   │   │   │   ├── SearchRequest.cs
+│   │   │   │   └── SearchResult.cs
+│   │   │   ├── Services/
+│   │   │   │   ├── ISearchService.cs
+│   │   │   │   └── SolrSearchService.cs
+│   │   │   └── Feature.Search.csproj
+│   │   │
+│   │   └── Content/
+│   │       ├── Controllers/
+│   │       │   └── ContentController.cs
+│   │       ├── Models/
+│   │       │   ├── IContentItem.cs
+│   │       │   └── ContentViewModel.cs
+│   │       └── Feature.Content.csproj
+│   │
+│   └── Project/
+│       ├── Website/
+│       │   ├── Controllers/
+│       │   │   └── HomeController.cs
+│       │   ├── Models/
+│       │   │   └── SiteSettingsModel.cs
+│       │   ├── Views/
+│       │   │   ├── Shared/
+│       │   │   │   ├── _Layout.cshtml
+│       │   │   │   └── _ViewStart.cshtml
+│       │   │   └── Home/
+│       │   │       └── Index.cshtml
+│       │   ├── App_Config/Include/Project/
+│       │   │   └── Project.Website.config
+│       │   ├── Assets/
+│       │   │   ├── styles/
+│       │   │   ├── scripts/
+│       │   │   └── images/
+│       │   └── Project.Website.csproj
+│       │
+│       └── Common/
+│           ├── Templates/
+│           │   ├── Page Types/
+│           │   └── Data Templates/
+│           └── Project.Common.csproj
+│
+├── tests/
+│   ├── Foundation.Tests/
+│   ├── Feature.Tests/
+│   └── Project.Tests/
+│
+└── tools/
+    ├── build/
+    └── deployment/
+\`\`\`
+
+## 3. Dependency Graph
+
+### 3.1 Foundation Layer Dependencies
+\`\`\`mermaid
+graph TD
+    A[Foundation.DependencyInjection] --> B[Sitecore.Kernel]
+    C[Foundation.Logging] --> A
+    D[Foundation.Caching] --> A
+    E[Foundation.Configuration] --> A
+    F[Foundation.Validation] --> A
+    G[Foundation.Serialization] --> A
+\`\`\`
+
+### 3.2 Feature Layer Dependencies
+\`\`\`mermaid
+graph TD
+    A[Feature.Navigation] --> B[Foundation.Logging]
+    A --> C[Foundation.Caching]
+    D[Feature.Search] --> B
+    D --> E[Foundation.Configuration]
+    F[Feature.Content] --> B
+    F --> C
+    G[Feature.Forms] --> B
+    G --> H[Foundation.Validation]
+\`\`\`
+
+### 3.3 Project Layer Dependencies
+\`\`\`mermaid
+graph TD
+    A[Project.Website] --> B[Feature.Navigation]
+    A --> C[Feature.Search]
+    A --> D[Feature.Content]
+    A --> E[Foundation.Logging]
+    F[Project.Common] --> E
+\`\`\`
+
+## 4. Component Integration Patterns
+
+### 4.1 Service Registration Pattern
+\`\`\`csharp
+// Foundation.DependencyInjection
+public class ServiceConfigurator : IConfigurator
+{
+    public void Configure(IServiceCollection serviceCollection)
+    {
+        // Foundation services
+        serviceCollection.AddSingleton<ILogService, SitecoreLogService>();
+        serviceCollection.AddSingleton<ICacheService, SitecoreCacheService>();
+        
+        // Feature services
+        serviceCollection.AddScoped<INavigationService, NavigationService>();
+        serviceCollection.AddScoped<ISearchService, SolrSearchService>();
+        
+        // Project services
+        serviceCollection.AddScoped<ISiteSettingsService, SiteSettingsService>();
+    }
+}
+\`\`\`
+
+### 4.2 Controller Base Pattern
+\`\`\`csharp
+// Foundation layer base controller
+public abstract class FoundationController : Controller
+{
+    protected readonly ILogService LogService;
+    protected readonly ICacheService CacheService;
+    
+    protected FoundationController(ILogService logService, ICacheService cacheService)
+    {
+        LogService = logService;
+        CacheService = cacheService;
+    }
+    
+    protected override void OnException(ExceptionContext filterContext)
+    {
+        LogService.Error("Controller exception", filterContext.Exception);
+        base.OnException(filterContext);
+    }
+}
+
+// Feature layer controller inheriting foundation
+public class NavigationController : FoundationController
+{
+    private readonly INavigationService _navigationService;
+    
+    public NavigationController(
+        INavigationService navigationService,
+        ILogService logService,
+        ICacheService cacheService) : base(logService, cacheService)
+    {
+        _navigationService = navigationService;
+    }
+}
+\`\`\`
+
+### 4.3 Model Interface Pattern
+\`\`\`csharp
+// Foundation interface
+public interface IBaseContent
+{
+    Guid Id { get; set; }
+    string Title { get; set; }
+    DateTime CreatedDate { get; set; }
+}
+
+// Feature interface extending foundation
+public interface INavigationItem : IBaseContent
+{
+    string Url { get; set; }
+    IEnumerable<INavigationItem> Children { get; set; }
+    bool IsActive { get; set; }
+}
+
+// Project implementation
+public class NavigationItem : INavigationItem
+{
+    public Guid Id { get; set; }
+    public string Title { get; set; }
+    public DateTime CreatedDate { get; set; }
+    public string Url { get; set; }
+    public IEnumerable<INavigationItem> Children { get; set; }
+    public bool IsActive { get; set; }
+}
+\`\`\`
+
+## 5. Configuration Architecture
+
+### 5.1 Configuration Layering
+\`\`\`xml
+<!-- Foundation configurations -->
+<configuration xmlns:patch="http://www.sitecore.net/xmlconfig/" xmlns:role="http://www.sitecore.net/xmlconfig/role/">
+  <sitecore>
+    <services>
+      <configurator type="Foundation.DependencyInjection.ServiceConfigurator, Foundation.DependencyInjection" />
+    </services>
+    
+    <settings>
+      <setting name="Foundation.Logging.Level" value="Info" />
+      <setting name="Foundation.Caching.DefaultExpiration" value="00:30:00" />
+    </settings>
+  </sitecore>
+</configuration>
+
+<!-- Feature configurations -->
+<configuration xmlns:patch="http://www.sitecore.net/xmlconfig/">
+  <sitecore>
+    <settings>
+      <setting name="Feature.Navigation.MaxDepth" value="3" />
+      <setting name="Feature.Search.IndexName" value="sitecore_web_index" />
+    </settings>
+    
+    <pipelines>
+      <mvc.getPageItem>
+        <processor type="Feature.Navigation.Pipelines.SetNavigationContext, Feature.Navigation" />
+      </mvc.getPageItem>
+    </pipelines>
+  </sitecore>
+</configuration>
+
+<!-- Project configurations -->
+<configuration xmlns:patch="http://www.sitecore.net/xmlconfig/">
+  <sitecore>
+    <sites>
+      <site name="website" 
+            hostName="localhost"
+            targetHostName="www.mysite.com"
+            rootPath="/sitecore/content/mysite"
+            startItem="/home"
+            database="web" />
+    </sites>
+  </sitecore>
+</configuration>
+\`\`\`
+
+## 6. Testing Strategy
+
+### 6.1 Testing Pyramid
+\`\`\`
+                    /\\
+                   /  \\
+                  / E2E \\
+                 /      \\
+                /________\\
+               /          \\
+              / Integration \\
+             /______________\\
+            /                \\
+           /   Unit Tests      \\
+          /__________________\\
+\`\`\`
+
+### 6.2 Test Organization
+- **Foundation Tests**: Service contracts, utilities, extensions
+- **Feature Tests**: Business logic, component behavior
+- **Project Tests**: Integration scenarios, end-to-end workflows
+
+### 6.3 Mock Strategy
+\`\`\`csharp
+// Foundation mocking infrastructure
+public static class MockFactory
+{
+    public static Mock<ISitecoreContext> CreateSitecoreContext()
+    {
+        var mock = new Mock<ISitecoreContext>();
+        // Setup common Sitecore context behaviors
+        return mock;
+    }
+    
+    public static Mock<ILogService> CreateLogService()
+    {
+        return new Mock<ILogService>();
+    }
+}
+
+// Feature test using foundation mocks
+[TestClass]
+public class NavigationServiceTests
+{
+    private Mock<ILogService> _logService;
+    private Mock<ICacheService> _cacheService;
+    private NavigationService _navigationService;
+    
+    [TestInitialize]
+    public void Setup()
+    {
+        _logService = MockFactory.CreateLogService();
+        _cacheService = MockFactory.CreateCacheService();
+        _navigationService = new NavigationService(_logService.Object, _cacheService.Object);
+    }
+}
+\`\`\`
+
+## 7. Deployment Architecture
+
+### 7.1 Environment Strategy
+- **Development**: Feature branch deployments, full debugging
+- **Integration**: Automated testing, performance profiling
+- **Staging**: Production-like environment, user acceptance testing
+- **Production**: Blue-green deployment, monitoring and alerting
+
+### 7.2 Deployment Packages
+\`\`\`
+Deployment/
+├── Foundation/
+│   ├── Foundation.*.dll
+│   └── App_Config/Include/Foundation/
+├── Feature/
+│   ├── Feature.*.dll
+│   ├── Views/Feature/
+│   └── App_Config/Include/Feature/
+└── Project/
+    ├── Project.*.dll
+    ├── Views/Project/
+    ├── Assets/
+    └── App_Config/Include/Project/
+\`\`\`
+
+## 8. Monitoring and Observability
+
+### 8.1 Logging Strategy
+- **Foundation**: Infrastructure and cross-cutting concerns
+- **Feature**: Business operations and user interactions
+- **Project**: Site-specific events and configurations
+
+### 8.2 Performance Monitoring
+- Component-level performance tracking
+- Dependency analysis and bottleneck identification
+- Cache effectiveness monitoring
+- Search performance optimization
+
+## 9. Security Architecture
+
+### 9.1 Security Layers
+- **Foundation**: Authentication, authorization, encryption
+- **Feature**: Input validation, output encoding, business rules
+- **Project**: Site-specific security policies
+
+### 9.2 Security Patterns
+\`\`\`csharp
+// Foundation security service
+public interface ISecurityService
+{
+    bool IsAuthenticated();
+    bool HasPermission(string permission);
+    void ValidateInput(string input);
+    string EncodeOutput(string output);
+}
+
+// Feature using foundation security
+public class ContentController : FoundationController
+{
+    private readonly ISecurityService _securityService;
+    
+    public ActionResult GetContent(string id)
+    {
+        _securityService.ValidateInput(id);
+        if (!_securityService.HasPermission("content:read"))
+        {
+            return new HttpUnauthorizedResult();
+        }
+        
+        var content = GetContentById(id);
+        return Json(_securityService.EncodeOutput(content));
+    }
+}
+\`\`\`
+
+## 10. Migration and Upgrade Strategy
+
+### 10.1 Version Management
+- Semantic versioning for each layer
+- Backward compatibility requirements
+- Migration scripts and procedures
+
+### 10.2 Upgrade Path
+1. Foundation layer upgrades (infrastructure)
+2. Feature layer updates (business logic)
+3. Project layer modifications (site-specific)
+4. Testing and validation at each step`,
         category: "sdlc_templates",
         component: "architecture_diagram",
         sdlcStage: "development",
@@ -4712,7 +6345,622 @@ class Carousel {
         id: "sdlc_templates-data_model_design-development",
         title: "Data Model Design",
         description: "Sitecore data template design and Glass Mapper model template",
-        content: "Create comprehensive data model design documentation with Sitecore template hierarchy and Glass Mapper models.",
+        content: `Create comprehensive data model design documentation with Sitecore template hierarchy and Glass Mapper models.
+
+# Comprehensive Data Model Design Documentation
+## Sitecore Template Hierarchy and Glass Mapper Model Implementation
+
+## 1. Template Hierarchy Structure
+
+### 1.1 Base Templates (Foundation Layer)
+
+#### _BaseTemplate
+**Purpose**: Core fields shared across all content items
+**Template ID**: {12345678-1234-5678-9012-123456789012}
+**Location**: /sitecore/templates/Foundation/BaseTemplate
+
+**Fields**:
+- **Meta Title** (Single-Line Text)
+  - Field ID: {A1B2C3D4-E5F6-7890-1234-567890ABCDEF}
+  - Default Value: $name
+  - Validation: Max length 60 characters
+  
+- **Meta Description** (Multi-Line Text)
+  - Field ID: {B2C3D4E5-F6G7-8901-2345-678901BCDEFG}
+  - Validation: Max length 160 characters
+  
+- **Meta Keywords** (Single-Line Text)
+  - Field ID: {C3D4E5F6-G7H8-9012-3456-789012CDEFGH}
+  
+- **Created Date** (Datetime)
+  - Field ID: {D4E5F6G7-H8I9-0123-4567-890123DEFGHI}
+  - Default Value: $now
+  
+- **Modified Date** (Datetime)
+  - Field ID: {E5F6G7H8-I9J0-1234-5678-901234EFGHIJ}
+  - Default Value: $now
+
+#### _PageTemplate
+**Purpose**: Standard page functionality
+**Template ID**: {23456789-2345-6789-0123-234567890123}
+**Base Templates**: _BaseTemplate
+**Location**: /sitecore/templates/Foundation/PageTemplate
+
+**Fields**:
+- **Page Title** (Single-Line Text)
+  - Field ID: {F6G7H8I9-J0K1-2345-6789-012345FGHIJK}
+  - Required: Yes
+  
+- **Page Content** (Rich Text)
+  - Field ID: {G7H8I9J0-K1L2-3456-7890-123456GHIJKL}
+  
+- **Hide from Navigation** (Checkbox)
+  - Field ID: {H8I9J0K1-L2M3-4567-8901-234567HIJKLM}
+  
+- **Canonical URL** (General Link)
+  - Field ID: {I9J0K1L2-M3N4-5678-9012-345678IJKLMN}
+
+### 1.2 Feature Templates
+
+#### Navigation Item Template
+**Purpose**: Navigation structure and behavior
+**Template ID**: {34567890-3456-7890-1234-345678901234}
+**Base Templates**: _BaseTemplate
+**Location**: /sitecore/templates/Feature/Navigation/NavigationItem
+
+**Fields**:
+- **Navigation Title** (Single-Line Text)
+  - Field ID: {J0K1L2M3-N4O5-6789-0123-456789JKLMNO}
+  - Default Value: $name
+  
+- **Navigation URL** (General Link)
+  - Field ID: {K1L2M3N4-O5P6-7890-1234-567890KLMNOP}
+  
+- **Open in New Window** (Checkbox)
+  - Field ID: {L2M3N4O5-P6Q7-8901-2345-678901LMNOPQ}
+  
+- **Navigation Icon** (Image)
+  - Field ID: {M3N4O5P6-Q7R8-9012-3456-789012MNOPQR}
+  
+- **Sort Order** (Integer)
+  - Field ID: {N4O5P6Q7-R8S9-0123-4567-890123NOPQRS}
+  - Default Value: 100
+
+#### Content Block Template
+**Purpose**: Reusable content components
+**Template ID**: {45678901-4567-8901-2345-456789012345}
+**Base Templates**: _BaseTemplate
+**Location**: /sitecore/templates/Feature/Content/ContentBlock
+
+**Fields**:
+- **Heading** (Single-Line Text)
+  - Field ID: {O5P6Q7R8-S9T0-1234-5678-901234OPQRST}
+  
+- **Subheading** (Single-Line Text)
+  - Field ID: {P6Q7R8S9-T0U1-2345-6789-012345PQRSTU}
+  
+- **Body Text** (Rich Text)
+  - Field ID: {Q7R8S9T0-U1V2-3456-7890-123456QRSTUV}
+  
+- **Call to Action** (General Link)
+  - Field ID: {R8S9T0U1-V2W3-4567-8901-234567RSTUVW}
+  
+- **Background Image** (Image)
+  - Field ID: {S9T0U1V2-W3X4-5678-9012-345678STUVWX}
+
+#### Media Gallery Template
+**Purpose**: Image and video gallery functionality
+**Template ID**: {56789012-5678-9012-3456-567890123456}
+**Base Templates**: _BaseTemplate
+**Location**: /sitecore/templates/Feature/Media/MediaGallery
+
+**Fields**:
+- **Gallery Title** (Single-Line Text)
+  - Field ID: {T0U1V2W3-X4Y5-6789-0123-456789TUVWXY}
+  
+- **Gallery Items** (Multilist)
+  - Field ID: {U1V2W3X4-Y5Z6-7890-1234-567890UVWXYZ}
+  - Source: /sitecore/media library
+  
+- **Display Mode** (Droplink)
+  - Field ID: {V2W3X4Y5-Z6A7-8901-2345-678901VWXYZA}
+  - Source: /sitecore/system/Settings/Feature/Media/Display Modes
+  
+- **Items Per Row** (Integer)
+  - Field ID: {W3X4Y5Z6-A7B8-9012-3456-789012WXYZAB}
+  - Default Value: 3
+
+### 1.3 Project Templates
+
+#### Home Page Template
+**Purpose**: Site homepage structure
+**Template ID**: {67890123-6789-0123-4567-678901234567}
+**Base Templates**: _PageTemplate
+**Location**: /sitecore/templates/Project/Website/HomePage
+
+**Fields**:
+- **Hero Banner** (Droptree)
+  - Field ID: {X4Y5Z6A7-B8C9-0123-4567-890123XYZABC}
+  - Source: /sitecore/content/Global/Components/Banners
+  
+- **Featured Content** (Multilist)
+  - Field ID: {Y5Z6A7B8-C9D0-1234-5678-901234YZABCD}
+  
+- **News Section** (Droptree)
+  - Field ID: {Z6A7B8C9-D0E1-2345-6789-012345ZABCDE}
+
+#### Landing Page Template
+**Purpose**: Campaign and product landing pages
+**Template ID**: {78901234-7890-1234-5678-789012345678}
+**Base Templates**: _PageTemplate
+**Location**: /sitecore/templates/Project/Website/LandingPage
+
+**Fields**:
+- **Campaign Code** (Single-Line Text)
+  - Field ID: {A7B8C9D0-E1F2-3456-7890-123456ABCDEF}
+  
+- **Conversion Goal** (Droplink)
+  - Field ID: {B8C9D0E1-F2G3-4567-8901-234567BCDEFG}
+  
+- **Lead Form** (Droptree)
+  - Field ID: {C9D0E1F2-G3H4-5678-9012-345678CDEFGH}
+
+## 2. Glass Mapper Model Implementation
+
+### 2.1 Base Interface Definitions
+
+\`\`\`csharp
+// Foundation.Models/Interfaces/IBaseTemplate.cs
+using Glass.Mapper.Sc.Configuration.Attributes;
+
+[SitecoreType(TemplateId = "{12345678-1234-5678-9012-123456789012}", AutoMap = true)]
+public interface IBaseTemplate
+{
+    [SitecoreId]
+    Guid Id { get; set; }
+    
+    [SitecoreInfo(SitecoreInfoType.Name)]
+    string Name { get; set; }
+    
+    [SitecoreInfo(SitecoreInfoType.Path)]
+    string Path { get; set; }
+    
+    [SitecoreField("Meta Title")]
+    string MetaTitle { get; set; }
+    
+    [SitecoreField("Meta Description")]
+    string MetaDescription { get; set; }
+    
+    [SitecoreField("Meta Keywords")]
+    string MetaKeywords { get; set; }
+    
+    [SitecoreField("Created Date")]
+    DateTime CreatedDate { get; set; }
+    
+    [SitecoreField("Modified Date")]
+    DateTime ModifiedDate { get; set; }
+}
+
+[SitecoreType(TemplateId = "{23456789-2345-6789-0123-234567890123}", AutoMap = true)]
+public interface IPageTemplate : IBaseTemplate
+{
+    [SitecoreField("Page Title")]
+    string PageTitle { get; set; }
+    
+    [SitecoreField("Page Content")]
+    string PageContent { get; set; }
+    
+    [SitecoreField("Hide from Navigation")]
+    bool HideFromNavigation { get; set; }
+    
+    [SitecoreField("Canonical URL")]
+    Link CanonicalUrl { get; set; }
+}
+\`\`\`
+
+### 2.2 Feature Model Implementations
+
+\`\`\`csharp
+// Feature.Navigation/Models/INavigationItem.cs
+using Glass.Mapper.Sc.Configuration.Attributes;
+
+[SitecoreType(TemplateId = "{34567890-3456-7890-1234-345678901234}", AutoMap = true)]
+public interface INavigationItem : IBaseTemplate
+{
+    [SitecoreField("Navigation Title")]
+    string NavigationTitle { get; set; }
+    
+    [SitecoreField("Navigation URL")]
+    Link NavigationUrl { get; set; }
+    
+    [SitecoreField("Open in New Window")]
+    bool OpenInNewWindow { get; set; }
+    
+    [SitecoreField("Navigation Icon")]
+    Image NavigationIcon { get; set; }
+    
+    [SitecoreField("Sort Order")]
+    int SortOrder { get; set; }
+    
+    [SitecoreChildren]
+    IEnumerable<INavigationItem> Children { get; set; }
+    
+    [SitecoreParent]
+    INavigationItem Parent { get; set; }
+    
+    // Computed properties
+    bool HasChildren { get; }
+    string CssClass { get; }
+    bool IsActive { get; }
+}
+
+// Feature.Navigation/Models/NavigationItem.cs
+public class NavigationItem : INavigationItem
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; }
+    public string Path { get; set; }
+    public string MetaTitle { get; set; }
+    public string MetaDescription { get; set; }
+    public string MetaKeywords { get; set; }
+    public DateTime CreatedDate { get; set; }
+    public DateTime ModifiedDate { get; set; }
+    
+    public string NavigationTitle { get; set; }
+    public Link NavigationUrl { get; set; }
+    public bool OpenInNewWindow { get; set; }
+    public Image NavigationIcon { get; set; }
+    public int SortOrder { get; set; }
+    public IEnumerable<INavigationItem> Children { get; set; }
+    public INavigationItem Parent { get; set; }
+    
+    // Computed properties
+    public bool HasChildren => Children?.Any() == true;
+    
+    public string CssClass
+    {
+        get
+        {
+            var classes = new List<string> { "nav-item" };
+            if (HasChildren) classes.Add("has-children");
+            if (IsActive) classes.Add("active");
+            return string.Join(" ", classes);
+        }
+    }
+    
+    public bool IsActive
+    {
+        get
+        {
+            var currentPath = Sitecore.Context.Item?.Paths.FullPath;
+            return !string.IsNullOrEmpty(currentPath) && 
+                   (Path.Equals(currentPath, StringComparison.OrdinalIgnoreCase) ||
+                    currentPath.StartsWith(Path + "/", StringComparison.OrdinalIgnoreCase));
+        }
+    }
+}
+\`\`\`
+
+### 2.3 Content Model Implementation
+
+\`\`\`csharp
+// Feature.Content/Models/IContentBlock.cs
+[SitecoreType(TemplateId = "{45678901-4567-8901-2345-456789012345}", AutoMap = true)]
+public interface IContentBlock : IBaseTemplate
+{
+    [SitecoreField("Heading")]
+    string Heading { get; set; }
+    
+    [SitecoreField("Subheading")]
+    string Subheading { get; set; }
+    
+    [SitecoreField("Body Text")]
+    string BodyText { get; set; }
+    
+    [SitecoreField("Call to Action")]
+    Link CallToAction { get; set; }
+    
+    [SitecoreField("Background Image")]
+    Image BackgroundImage { get; set; }
+    
+    // Computed properties
+    string RenderedContent { get; }
+    bool HasCallToAction { get; }
+    string BackgroundImageUrl { get; }
+}
+
+// Feature.Content/Models/ContentBlock.cs
+public class ContentBlock : IContentBlock
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; }
+    public string Path { get; set; }
+    public string MetaTitle { get; set; }
+    public string MetaDescription { get; set; }
+    public string MetaKeywords { get; set; }
+    public DateTime CreatedDate { get; set; }
+    public DateTime ModifiedDate { get; set; }
+    
+    public string Heading { get; set; }
+    public string Subheading { get; set; }
+    public string BodyText { get; set; }
+    public Link CallToAction { get; set; }
+    public Image BackgroundImage { get; set; }
+    
+    public string RenderedContent
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(BodyText)) return string.Empty;
+            
+            // Process rich text and apply any transformations
+            return FieldRenderer.Render(Sitecore.Context.Item, "Body Text");
+        }
+    }
+    
+    public bool HasCallToAction => CallToAction != null && !string.IsNullOrEmpty(CallToAction.Url);
+    
+    public string BackgroundImageUrl
+    {
+        get
+        {
+            if (BackgroundImage?.Src == null) return string.Empty;
+            
+            // Generate responsive image URL with media parameters
+            var mediaOptions = new MediaUrlOptions
+            {
+                Width = 1200,
+                Height = 600,
+                DisableMediaCache = false,
+                UseDefaultIcon = false
+            };
+            
+            return MediaManager.GetMediaUrl(BackgroundImage.MediaItem, mediaOptions);
+        }
+    }
+}
+\`\`\`
+
+### 2.4 Project Model Implementation
+
+\`\`\`csharp
+// Project.Website/Models/IHomePage.cs
+[SitecoreType(TemplateId = "{67890123-6789-0123-4567-678901234567}", AutoMap = true)]
+public interface IHomePage : IPageTemplate
+{
+    [SitecoreField("Hero Banner")]
+    IContentBlock HeroBanner { get; set; }
+    
+    [SitecoreField("Featured Content")]
+    IEnumerable<IContentBlock> FeaturedContent { get; set; }
+    
+    [SitecoreField("News Section")]
+    IContentBlock NewsSection { get; set; }
+    
+    // Computed properties
+    bool HasFeaturedContent { get; }
+    IEnumerable<IContentBlock> VisibleFeaturedContent { get; }
+}
+
+// Project.Website/Models/HomePage.cs
+public class HomePage : IHomePage
+{
+    // Base template properties
+    public Guid Id { get; set; }
+    public string Name { get; set; }
+    public string Path { get; set; }
+    public string MetaTitle { get; set; }
+    public string MetaDescription { get; set; }
+    public string MetaKeywords { get; set; }
+    public DateTime CreatedDate { get; set; }
+    public DateTime ModifiedDate { get; set; }
+    
+    // Page template properties
+    public string PageTitle { get; set; }
+    public string PageContent { get; set; }
+    public bool HideFromNavigation { get; set; }
+    public Link CanonicalUrl { get; set; }
+    
+    // Homepage-specific properties
+    public IContentBlock HeroBanner { get; set; }
+    public IEnumerable<IContentBlock> FeaturedContent { get; set; }
+    public IContentBlock NewsSection { get; set; }
+    
+    public bool HasFeaturedContent => FeaturedContent?.Any() == true;
+    
+    public IEnumerable<IContentBlock> VisibleFeaturedContent
+    {
+        get
+        {
+            return FeaturedContent?.Where(c => c != null && !string.IsNullOrEmpty(c.Heading)) ?? Enumerable.Empty<IContentBlock>();
+        }
+    }
+}
+\`\`\`
+
+## 3. Glass Mapper Configuration
+
+### 3.1 Dependency Injection Setup
+
+\`\`\`csharp
+// Foundation.DependencyInjection/GlassMapperConfigurator.cs
+public class GlassMapperConfigurator : IConfigurator
+{
+    public void Configure(IServiceCollection serviceCollection)
+    {
+        var context = Context.Create(DependencyResolver.CreateStandardResolver());
+        context.Load(
+            new SitecoreAttributeConfigurationLoader("Foundation.Models"),
+            new SitecoreAttributeConfigurationLoader("Feature.Navigation"),
+            new SitecoreAttributeConfigurationLoader("Feature.Content"),
+            new SitecoreAttributeConfigurationLoader("Feature.Media"),
+            new SitecoreAttributeConfigurationLoader("Project.Website")
+        );
+        
+        serviceCollection.AddSingleton<ISitecoreContext>(provider => 
+        {
+            var sitecoreService = new SitecoreService(Sitecore.Context.Database);
+            return sitecoreService;
+        });
+    }
+}
+\`\`\`
+
+### 3.2 Model Factory Pattern
+
+\`\`\`csharp
+// Foundation.Models/Factories/IModelFactory.cs
+public interface IModelFactory
+{
+    T GetModel<T>(Item item) where T : class, IBaseTemplate;
+    T GetModel<T>(Guid itemId) where T : class, IBaseTemplate;
+    T GetModel<T>(string itemPath) where T : class, IBaseTemplate;
+    IEnumerable<T> GetModels<T>(IEnumerable<Item> items) where T : class, IBaseTemplate;
+}
+
+// Foundation.Models/Factories/ModelFactory.cs
+public class ModelFactory : IModelFactory
+{
+    private readonly ISitecoreContext _sitecoreContext;
+    private readonly ILogger<ModelFactory> _logger;
+    
+    public ModelFactory(ISitecoreContext sitecoreContext, ILogger<ModelFactory> logger)
+    {
+        _sitecoreContext = sitecoreContext;
+        _logger = logger;
+    }
+    
+    public T GetModel<T>(Item item) where T : class, IBaseTemplate
+    {
+        if (item == null) return null;
+        
+        try
+        {
+            return _sitecoreContext.Cast<T>(item);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to cast item {ItemId} to type {ModelType}", item.ID, typeof(T).Name);
+            return null;
+        }
+    }
+    
+    public T GetModel<T>(Guid itemId) where T : class, IBaseTemplate
+    {
+        try
+        {
+            return _sitecoreContext.GetItem<T>(itemId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get item {ItemId} as type {ModelType}", itemId, typeof(T).Name);
+            return null;
+        }
+    }
+    
+    public T GetModel<T>(string itemPath) where T : class, IBaseTemplate
+    {
+        try
+        {
+            return _sitecoreContext.GetItem<T>(itemPath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get item at path {ItemPath} as type {ModelType}", itemPath, typeof(T).Name);
+            return null;
+        }
+    }
+    
+    public IEnumerable<T> GetModels<T>(IEnumerable<Item> items) where T : class, IBaseTemplate
+    {
+        return items?.Select(GetModel<T>).Where(model => model != null) ?? Enumerable.Empty<T>();
+    }
+}
+\`\`\`
+
+## 4. Advanced Model Patterns
+
+### 4.1 Computed Fields and Caching
+
+\`\`\`csharp
+// Feature.Navigation/Models/NavigationItemExtended.cs
+public class NavigationItemExtended : NavigationItem
+{
+    private readonly ICacheService _cacheService;
+    
+    public NavigationItemExtended(ICacheService cacheService)
+    {
+        _cacheService = cacheService;
+    }
+    
+    private IEnumerable<INavigationItem> _cachedChildren;
+    public override IEnumerable<INavigationItem> Children
+    {
+        get
+        {
+            if (_cachedChildren == null)
+            {
+                var cacheKey = $"nav-children-{Id}";
+                _cachedChildren = _cacheService.GetOrSet(cacheKey, () =>
+                {
+                    return base.Children?.OrderBy(c => c.SortOrder) ?? Enumerable.Empty<INavigationItem>();
+                }, TimeSpan.FromMinutes(30));
+            }
+            return _cachedChildren;
+        }
+        set => _cachedChildren = value;
+    }
+    
+    public string BreadcrumbPath
+    {
+        get
+        {
+            var path = new List<string>();
+            var current = this;
+            
+            while (current != null)
+            {
+                path.Insert(0, current.NavigationTitle ?? current.Name);
+                current = current.Parent;
+            }
+            
+            return string.Join(" > ", path);
+        }
+    }
+}
+\`\`\`
+
+### 4.2 Validation and Business Rules
+
+\`\`\`csharp
+// Feature.Content/Models/Validation/ContentBlockValidator.cs
+public class ContentBlockValidator : IValidator<IContentBlock>
+{
+    public ValidationResult Validate(IContentBlock model)
+    {
+        var result = new ValidationResult();
+        
+        if (string.IsNullOrWhiteSpace(model.Heading))
+        {
+            result.AddError("Heading", "Heading is required");
+        }
+        
+        if (model.Heading?.Length > 100)
+        {
+            result.AddError("Heading", "Heading cannot exceed 100 characters");
+        }
+        
+        if (model.HasCallToAction && string.IsNullOrWhiteSpace(model.CallToAction?.Text))
+        {
+            result.AddError("CallToAction", "Call to action text is required when URL is provided");
+        }
+        
+        return result;
+    }
+}
+\`\`\`
+
+This comprehensive data model design provides a solid foundation for Sitecore development with clear template hierarchies, strongly-typed Glass Mapper models, and extensible patterns for validation and caching.`,
         category: "sdlc_templates",
         component: "data_model_design",
         sdlcStage: "development",
