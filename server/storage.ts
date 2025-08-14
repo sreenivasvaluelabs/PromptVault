@@ -27612,7 +27612,394 @@ This comprehensive change management template ensures successful organizational 
         id: "sdlc_templates-post_mortem-maintenance",
         title: "Post-Mortem Analysis",
         description: "Incident post-mortem and lessons learned template",
-        content: "Conduct post-mortem analysis with root cause investigation, lessons learned, and preventive measures.",
+        content: `Conduct post-mortem analysis with root cause investigation, lessons learned, and preventive measures.
+
+# Post-Mortem Analysis Template
+## Comprehensive Incident Investigation and Learning Framework
+
+### Overview
+This template provides a systematic approach to post-mortem analysis through detailed incident timelines, thorough root cause identification, and actionable improvement recommendations ensuring organizational learning and prevention of recurring issues.
+
+### Post-Mortem Analysis Strategy
+
+#### Post-Mortem Objectives and Success Criteria
+**Primary Post-Mortem Goals**:
+1. **{{PostMortemGoal1}}**: {{Goal1Description}}
+   - Success Metric: {{Goal1Metric}}
+   - Target Completion: {{Goal1Target}}
+
+2. **{{PostMortemGoal2}}**: {{Goal2Description}}
+   - Success Metric: {{Goal2Metric}}
+   - Target Completion: {{Goal2Target}}
+
+3. **{{PostMortemGoal3}}**: {{Goal3Description}}
+   - Success Metric: {{Goal3Metric}}
+   - Target Completion: {{Goal3Target}}
+
+**Post-Mortem Framework**:
+\`\`\`yaml
+# Post-Mortem Framework Configuration
+post_mortem_framework:
+  incident_classification:
+    - severity: "{{IncidentSeverity1}}" # critical, high, medium, low
+      impact_scope: "{{Severity1ImpactScope}}" # system-wide, service-specific, user-group
+      post_mortem_requirements: [{{Severity1PostMortemRequirements}}]
+      timeline_requirements: {{Severity1TimelineRequirements}} hours
+      
+    - severity: "{{IncidentSeverity2}}"
+      impact_scope: "{{Severity2ImpactScope}}"
+      post_mortem_requirements: [{{Severity2PostMortemRequirements}}]
+      timeline_requirements: {{Severity2TimelineRequirements}} days
+      
+  analysis_scope:
+    technical_scope: [{{TechnicalAnalysisScope}}] # system components, data flows, dependencies
+    process_scope: [{{ProcessAnalysisScope}}] # operational procedures, communication protocols
+    human_factors_scope: [{{HumanFactorsAnalysisScope}}] # decision making, training gaps, workload
+    
+  stakeholder_involvement:
+    core_team: [{{CoreTeamMembers}}] # incident responders, technical leads, product owners
+    extended_team: [{{ExtendedTeamMembers}}] # stakeholders, subject matter experts
+    facilitator: "{{PostMortemFacilitator}}" # engineering manager, sre lead, external facilitator
+    
+  analysis_timeline:
+    immediate_timeline: {{ImmediateTimelineHours}} hours # initial facts gathering
+    detailed_analysis: {{DetailedAnalysisTimelineDays}} days # comprehensive investigation
+    report_completion: {{ReportCompletionTimelineDays}} days # final report and recommendations
+    
+  success_criteria:
+    comprehensive_timeline: {{ComprehensiveTimelineRequired}}
+    root_cause_identification: {{RootCauseIdentificationRequired}}
+    actionable_recommendations: {{ActionableRecommendationsRequired}}
+    stakeholder_consensus: {{StakeholderConsensusRequired}}
+\`\`\`
+
+### Incident Timeline Construction
+
+#### Comprehensive Timeline Development
+**Detailed Incident Timeline Framework**:
+\`\`\`yaml
+# Incident Timeline Configuration
+incident_timeline:
+  timeline_development_approach:
+    data_collection_methods:
+      - method: "{{DataCollectionMethod1}}" # log analysis, system monitoring, user reports
+        data_sources: [{{Method1DataSources}}]
+        reliability_level: "{{Method1Reliability}}" # high, medium, low
+        time_accuracy: "{{Method1TimeAccuracy}}" # second, minute, hour
+        
+      - method: "{{DataCollectionMethod2}}"
+        data_sources: [{{Method2DataSources}}]
+        reliability_level: "{{Method2Reliability}}"
+        time_accuracy: "{{Method2TimeAccuracy}}"
+        
+    timeline_precision:
+      event_timestamp_accuracy: "{{EventTimestampAccuracy}}" # millisecond, second, minute
+      timezone_standardization: "{{TimezoneStandardization}}" # utc, local, system
+      clock_synchronization_verification: {{ClockSynchronizationVerification}}
+      
+  timeline_structure:
+    pre_incident_period:
+      duration: {{PreIncidentPeriodDuration}} hours # hours before incident
+      focus_areas: [{{PreIncidentFocusAreas}}] # system changes, load patterns, maintenance
+      
+      key_events_categories:
+        - category: "System Changes"
+          event_types: [{{SystemChangeEventTypes}}] # deployments, configurations, updates
+          impact_assessment: "{{SystemChangeImpactAssessment}}"
+          
+        - category: "Environmental Changes"
+          event_types: [{{EnvironmentalChangeEventTypes}}] # traffic patterns, external dependencies
+          monitoring_data: [{{EnvironmentalMonitoringData}}]
+          
+        - category: "Operational Activities"
+          event_types: [{{OperationalActivityEventTypes}}] # maintenance, scaling, troubleshooting
+          activity_documentation: [{{OperationalActivityDocumentation}}]
+          
+    incident_period:
+      incident_detection:
+        detection_time: "{{IncidentDetectionTime}}" # timestamp when incident was first detected
+        detection_method: "{{IncidentDetectionMethod}}" # automated alert, user report, monitoring
+        detection_source: "{{IncidentDetectionSource}}"
+        detection_accuracy: "{{IncidentDetectionAccuracy}}" # true positive, false positive
+        
+      incident_escalation:
+        escalation_timeline: [{{EscalationTimelineEvents}}]
+        notification_effectiveness: "{{NotificationEffectiveness}}"
+        response_team_assembly: "{{ResponseTeamAssemblyTime}}"
+        
+      response_activities:
+        - activity: "{{ResponseActivity1}}" # diagnosis, mitigation, communication
+          start_time: "{{Activity1StartTime}}"
+          end_time: "{{Activity1EndTime}}"
+          responsible_party: "{{Activity1ResponsibleParty}}"
+          effectiveness: "{{Activity1Effectiveness}}" # successful, partially successful, failed
+          
+        - activity: "{{ResponseActivity2}}"
+          start_time: "{{Activity2StartTime}}"
+          end_time: "{{Activity2EndTime}}"
+          responsible_party: "{{Activity2ResponsibleParty}}"
+          effectiveness: "{{Activity2Effectiveness}}"
+          
+      decision_points:
+        - decision: "{{DecisionPoint1}}" # escalation decision, mitigation strategy
+          decision_time: "{{Decision1Time}}"
+          decision_maker: "{{Decision1Maker}}"
+          available_information: [{{Decision1AvailableInfo}}]
+          decision_rationale: "{{Decision1Rationale}}"
+          decision_outcome: "{{Decision1Outcome}}"
+          
+    resolution_period:
+      resolution_activities:
+        immediate_fix: "{{ImmediateFix}}"
+        resolution_time: "{{ResolutionTime}}"
+        resolution_verification: "{{ResolutionVerification}}"
+        
+      system_recovery:
+        recovery_timeline: [{{RecoveryTimelineEvents}}]
+        full_service_restoration: "{{FullServiceRestorationTime}}"
+        monitoring_intensification: {{MonitoringIntensificationPeriod}} hours
+        
+    post_resolution_period:
+      duration: {{PostResolutionPeriodDuration}} hours
+      stability_monitoring: [{{StabilityMonitoringActivities}}]
+      follow_up_actions: [{{FollowUpActions}}]
+      
+  timeline_validation:
+    cross_reference_verification: {{CrossReferenceVerification}}
+    stakeholder_timeline_review: {{StakeholderTimelineReview}}
+    data_consistency_checks: [{{DataConsistencyChecks}}]
+    gap_identification: {{TimelineGapIdentification}}
+    
+  timeline_visualization:
+    timeline_format: "{{TimelineFormat}}" # gantt chart, sequence diagram, narrative
+    interactive_elements: {{InteractiveTimelineElements}}
+    drill_down_capabilities: {{TimelineDrillDownCapabilities}}
+    annotation_support: {{TimelineAnnotationSupport}}
+\`\`\`
+
+### Root Cause Analysis Framework
+
+#### Systematic Root Cause Investigation
+**Comprehensive Root Cause Analysis**:
+\`\`\`yaml
+# Root Cause Analysis Configuration
+root_cause_analysis:
+  analysis_methodology:
+    - methodology: "{{RCAMethodology1}}" # 5 whys, fishbone diagram, fault tree analysis
+      applicability: [{{Methodology1Applicability}}] # technical issues, process failures
+      analysis_depth: "{{Methodology1Depth}}" # surface, intermediate, deep
+      
+      investigation_process:
+        - step: "{{Methodology1Step1}}" # problem statement, symptom identification
+          techniques: [{{Methodology1Step1Techniques}}]
+          deliverables: [{{Methodology1Step1Deliverables}}]
+          
+        - step: "{{Methodology1Step2}}" # data gathering, hypothesis formation
+          techniques: [{{Methodology1Step2Techniques}}]
+          deliverables: [{{Methodology1Step2Deliverables}}]
+          
+    - methodology: "{{RCAMethodology2}}"
+      applicability: [{{Methodology2Applicability}}]
+      analysis_depth: "{{Methodology2Depth}}"
+      
+  causal_factor_categories:
+    technical_factors:
+      - factor: "{{TechnicalFactor1}}" # software defects, hardware failures, architecture flaws
+        investigation_focus: "{{TechnicalFactor1Focus}}"
+        evidence_collection: [{{TechnicalFactor1Evidence}}]
+        contributing_conditions: [{{TechnicalFactor1Conditions}}]
+        
+      - factor: "{{TechnicalFactor2}}"
+        investigation_focus: "{{TechnicalFactor2Focus}}"
+        evidence_collection: [{{TechnicalFactor2Evidence}}]
+        
+    process_factors:
+      - factor: "{{ProcessFactor1}}" # procedural gaps, communication breakdowns
+        process_analysis: "{{ProcessFactor1Analysis}}"
+        deviation_identification: [{{ProcessFactor1Deviations}}]
+        
+      - factor: "{{ProcessFactor2}}"
+        process_analysis: "{{ProcessFactor2Analysis}}"
+        deviation_identification: [{{ProcessFactor2Deviations}}]
+        
+    human_factors:
+      - factor: "{{HumanFactor1}}" # decision errors, knowledge gaps, workload issues
+        behavioral_analysis: "{{HumanFactor1Analysis}}"
+        contributing_circumstances: [{{HumanFactor1Circumstances}}]
+        
+      - factor: "{{HumanFactor2}}"
+        behavioral_analysis: "{{HumanFactor2Analysis}}"
+        contributing_circumstances: [{{HumanFactor2Circumstances}}]
+        
+    organizational_factors:
+      - factor: "{{OrganizationalFactor1}}" # culture, policies, resource allocation
+        organizational_analysis: "{{OrganizationalFactor1Analysis}}"
+        systemic_issues: [{{OrganizationalFactor1SystemicIssues}}]
+        
+    environmental_factors:
+      - factor: "{{EnvironmentalFactor1}}" # external dependencies, third-party services
+        environmental_analysis: "{{EnvironmentalFactor1Analysis}}"
+        external_dependencies: [{{EnvironmentalFactor1Dependencies}}]
+        
+  causal_chain_analysis:
+    primary_cause: "{{PrimaryCause}}"
+    contributing_causes: [{{ContributingCauses}}]
+    
+    causal_relationships:
+      - relationship: "{{CausalRelationship1}}"
+        cause_effect_description: "{{CausalRelationship1Description}}"
+        evidence_support: [{{CausalRelationship1Evidence}}]
+        
+    root_cause_validation:
+      validation_criteria: [{{RootCauseValidationCriteria}}]
+      evidence_sufficiency: "{{EvidenceSufficiency}}" # strong, moderate, weak
+      alternative_explanations: [{{AlternativeExplanations}}]
+      
+  systemic_issues_identification:
+    pattern_analysis: "{{PatternAnalysis}}" # recurring issues, similar incidents
+    organizational_vulnerabilities: [{{OrganizationalVulnerabilities}}]
+    process_weaknesses: [{{ProcessWeaknesses}}]
+    technical_debt_assessment: "{{TechnicalDebtAssessment}}"
+    
+  contributory_factor_assessment:
+    severity_assessment:
+      - factor: "{{ContributoryFactor1}}"
+        severity: "{{Factor1Severity}}" # high, medium, low
+        likelihood_without_factor: "{{Factor1LikelihoodWithout}}"
+        
+    interaction_effects:
+      factor_combinations: [{{FactorCombinations}}]
+      amplification_effects: [{{AmplificationEffects}}]
+      cascade_effects: [{{CascadeEffects}}]
+      
+  analysis_quality_assurance:
+    peer_review_process: {{PeerReviewProcess}}
+    independent_verification: {{IndependentVerification}}
+    bias_mitigation: [{{BiasMitigationStrategies}}]
+    completeness_assessment: {{CompletenessAssessment}}
+\`\`\`
+
+### Improvement Recommendations Framework
+
+#### Actionable Improvement Strategy
+**Comprehensive Improvement Planning**:
+\`\`\`yaml
+# Improvement Recommendations Configuration
+improvement_recommendations:
+  recommendation_categories:
+    immediate_actions:
+      - action: "{{ImmediateAction1}}" # hot fixes, emergency procedures, risk mitigation
+        urgency: "{{ImmediateAction1Urgency}}" # critical, high, medium
+        implementation_timeline: {{ImmediateAction1Timeline}} hours
+        responsible_party: "{{ImmediateAction1ResponsibleParty}}"
+        
+        implementation_details:
+          steps: [{{ImmediateAction1Steps}}]
+          resources_required: [{{ImmediateAction1Resources}}]
+          success_criteria: [{{ImmediateAction1SuccessCriteria}}]
+          
+        risk_mitigation:
+          implementation_risks: [{{ImmediateAction1Risks}}]
+          mitigation_strategies: [{{ImmediateAction1MitigationStrategies}}]
+          
+      - action: "{{ImmediateAction2}}"
+        urgency: "{{ImmediateAction2Urgency}}"
+        implementation_timeline: {{ImmediateAction2Timeline}} days
+        responsible_party: "{{ImmediateAction2ResponsibleParty}}"
+        
+    short_term_improvements:
+      - improvement: "{{ShortTermImprovement1}}" # process enhancements, tool implementations
+        timeline: {{ShortTermImprovement1Timeline}} weeks
+        business_value: "{{ShortTermImprovement1BusinessValue}}"
+        implementation_effort: "{{ShortTermImprovement1Effort}}" # low, medium, high
+        
+        implementation_plan:
+          phases: [{{ShortTermImprovement1Phases}}]
+          milestones: [{{ShortTermImprovement1Milestones}}]
+          dependencies: [{{ShortTermImprovement1Dependencies}}]
+          
+        success_measurement:
+          kpis: [{{ShortTermImprovement1KPIs}}]
+          measurement_method: "{{ShortTermImprovement1MeasurementMethod}}"
+          target_improvements: [{{ShortTermImprovement1Targets}}]
+          
+      - improvement: "{{ShortTermImprovement2}}"
+        timeline: {{ShortTermImprovement2Timeline}} weeks
+        business_value: "{{ShortTermImprovement2BusinessValue}}"
+        
+    long_term_strategic_changes:
+      - change: "{{LongTermChange1}}" # architectural redesign, organizational changes
+        timeline: {{LongTermChange1Timeline}} months
+        strategic_alignment: "{{LongTermChange1StrategicAlignment}}"
+        investment_required: {{LongTermChange1Investment}}
+        
+        change_management:
+          stakeholder_impact: [{{LongTermChange1StakeholderImpact}}]
+          communication_plan: "{{LongTermChange1CommunicationPlan}}"
+          training_requirements: [{{LongTermChange1TrainingRequirements}}]
+          
+        roi_analysis:
+          expected_benefits: [{{LongTermChange1ExpectedBenefits}}]
+          cost_analysis: [{{LongTermChange1CostAnalysis}}]
+          payback_period: {{LongTermChange1PaybackPeriod}} months
+          
+  recommendation_prioritization:
+    prioritization_criteria:
+      - criterion: "Risk Reduction Impact"
+        weight: {{RiskReductionWeight}}%
+        assessment_method: "{{RiskReductionAssessment}}"
+        
+      - criterion: "Implementation Feasibility"
+        weight: {{ImplementationFeasibilityWeight}}%
+        feasibility_factors: [{{FeasibilityFactors}}]
+        
+      - criterion: "Business Value"
+        weight: {{BusinessValueWeight}}%
+        value_metrics: [{{BusinessValueMetrics}}]
+        
+      - criterion: "Resource Requirements"
+        weight: {{ResourceRequirementsWeight}}%
+        resource_constraints: [{{ResourceConstraints}}]
+        
+    prioritization_matrix:
+      high_priority_recommendations: [{{HighPriorityRecommendations}}]
+      medium_priority_recommendations: [{{MediumPriorityRecommendations}}]
+      low_priority_recommendations: [{{LowPriorityRecommendations}}]
+      
+  implementation_planning:
+    roadmap_development:
+      implementation_phases: [{{ImplementationPhases}}]
+      phase_dependencies: [{{PhaseDependencies}}]
+      critical_path_analysis: {{CriticalPathAnalysis}}
+      
+    resource_allocation:
+      human_resources: [{{HumanResourceRequirements}}]
+      financial_resources: {{FinancialResourceRequirements}}
+      technology_resources: [{{TechnologyResourceRequirements}}]
+      
+    risk_management:
+      implementation_risks: [{{ImplementationRisks}}]
+      risk_mitigation_plans: [{{RiskMitigationPlans}}]
+      contingency_planning: {{ContingencyPlanning}}
+      
+  tracking_and_monitoring:
+    progress_tracking:
+      tracking_mechanisms: [{{ProgressTrackingMechanisms}}]
+      reporting_frequency: "{{ProgressReportingFrequency}}"
+      status_indicators: [{{ProgressStatusIndicators}}]
+      
+    effectiveness_measurement:
+      success_metrics: [{{SuccessMetrics}}]
+      baseline_establishment: {{BaselineEstablishment}}
+      improvement_validation: {{ImprovementValidation}}
+      
+    continuous_monitoring:
+      ongoing_monitoring: [{{OngoingMonitoringActivities}}]
+      alert_systems: [{{ImprovementAlertSystems}}]
+      review_schedule: "{{ImprovementReviewSchedule}}"
+\`\`\`
+
+This comprehensive post-mortem analysis template ensures thorough incident investigation through systematic timeline construction, rigorous root cause analysis, and actionable improvement recommendations for organizational learning.`,
         category: "sdlc_templates",
         component: "post_mortem",
         sdlcStage: "maintenance",
